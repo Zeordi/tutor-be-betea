@@ -1,0 +1,141 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum Role {
+  PARENT
+  TEACHER
+  ADMIN
+}
+
+enum BookingStatus {
+  PENDING
+  CONFIRMED
+  CANCELLED
+  COMPLETED
+  DISPUTED
+}
+
+enum VerificationStatus {
+  UNVERIFIED
+  PENDING
+  APPROVED
+  REJECTED
+}
+
+model User {
+  id            String         @id @default(uuid())
+  email         String         @unique
+  passwordHash  String
+  name          String
+  role          Role           @default(PARENT)
+  emailVerified Boolean        @default(false)
+  createdAt     DateTime       @default(now())
+  updatedAt     DateTime       @updatedAt
+  teacher       TeacherProfile?
+  bookings      Booking[]      @relation("ParentBookings")
+  reviews       Review[]
+  messages      Message[]
+  favorites     Favorite[]
+}
+
+model TeacherProfile {
+  id                 String             @id @default(uuid())
+  userId             String             @unique
+  user               User               @relation(fields: [userId], references: [id])
+  bio                String?
+  subjects           String[]
+  hourlyRate         Decimal            @db.Money
+  verificationStatus VerificationStatus @default(UNVERIFIED)
+  availability       Availability[]
+  bookings           Booking[]
+  reviews            Review[]
+  createdAt          DateTime           @default(now())
+  updatedAt          DateTime           @updatedAt
+}
+
+model Availability {
+  id        String         @id @default(uuid())
+  teacherId String
+  teacher   TeacherProfile @relation(fields: [teacherId], references: [id])
+  weekday   Int
+  startTime String
+  endTime   String
+}
+
+model Booking {
+  id        String         @id @default(uuid())
+  parentId  String
+  parent    User           @relation("ParentBookings", fields: [parentId], references: [id])
+  teacherId String
+  teacher   TeacherProfile @relation(fields: [teacherId], references: [id])
+  startsAt  DateTime
+  endsAt    DateTime
+  status    BookingStatus  @default(PENDING)
+  notes     String?
+  payment   Payment?
+  createdAt DateTime       @default(now())
+  updatedAt DateTime       @updatedAt
+}
+
+model Payment {
+  id              String   @id @default(uuid())
+  bookingId       String   @unique
+  booking         Booking  @relation(fields: [bookingId], references: [id])
+  amount          Decimal  @db.Money
+  currency        String   @default("usd")
+  stripePaymentId String?
+  status          String
+  createdAt       DateTime @default(now())
+}
+
+model Review {
+  id        String         @id @default(uuid())
+  rating    Int
+  comment   String?
+  authorId  String
+  author    User           @relation(fields: [authorId], references: [id])
+  teacherId String
+  teacher   TeacherProfile @relation(fields: [teacherId], references: [id])
+  createdAt DateTime       @default(now())
+}
+
+model Conversation {
+  id        String    @id @default(uuid())
+  messages  Message[]
+  createdAt DateTime  @default(now())
+}
+
+model Message {
+  id             String       @id @default(uuid())
+  conversationId String
+  conversation   Conversation @relation(fields: [conversationId], references: [id])
+  senderId       String
+  sender         User         @relation(fields: [senderId], references: [id])
+  body           String
+  createdAt      DateTime     @default(now())
+}
+
+model Favorite {
+  id        String   @id @default(uuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id])
+  teacherId String
+  createdAt DateTime @default(now())
+
+  @@unique([userId, teacherId])
+}
+
+model Notification {
+  id        String   @id @default(uuid())
+  userId    String
+  title     String
+  body      String
+  read      Boolean  @default(false)
+  createdAt DateTime @default(now())
+}

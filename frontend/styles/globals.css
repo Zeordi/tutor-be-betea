@@ -1,0 +1,2 @@
+/* Shared style entry — mirrors app/globals.css for tooling that expects /styles */
+@import '../app/globals.css';
