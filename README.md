@@ -1,6 +1,10 @@
-# tutor-be-betea
+# TUTOR BE BETEA (በቤቴ) - Complete Platform
 
-Marketplace platform connecting parents with tutors — Next.js frontend, NestJS backend, Prisma, Stripe, and real-time chat.
+Teacher-Parent Connect Platform
+
+## 📋 PROJECT OVERVIEW
+
+Tutor Be Betea (በቤቴ) - meaning "At My Home" in Amharic, is a comprehensive platform connecting parents with verified local teachers for home-based tutoring. This complete implementation includes a modern web application, PWA mobile experience, and robust backend API.
 
 ## Structure
 
