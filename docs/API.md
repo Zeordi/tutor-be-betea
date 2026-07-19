@@ -8,7 +8,7 @@ http://localhost:4000/api
 
 Interactive Swagger (planned): `http://localhost:4000/api/docs`
 
-Unless noted otherwise, authenticated routes expect:
+Authenticated routes expect:
 
 ```http
 Authorization: Bearer <accessToken>
@@ -35,8 +35,6 @@ Request body:
   "userType": "PARENT"
 }
 ```
-
-`userType` may be `PARENT`, `TEACHER`, or `ADMIN`.
 
 Response:
 
@@ -70,76 +68,126 @@ Request body:
 }
 ```
 
-Response: same shape as register (`user`, `accessToken`, `refreshToken`, `expiresIn`).
-
-### Refresh Token
-
-```http
-POST /auth/refresh
-```
-
-Request body:
+Response:
 
 ```json
 {
-  "refreshToken": "refresh_token"
+  "user": {
+    "id": "uuid",
+    "email": "user@example.com",
+    "fullName": "John Doe",
+    "userType": "PARENT",
+    "isVerified": true
+  },
+  "accessToken": "jwt_token",
+  "refreshToken": "refresh_token",
+  "expiresIn": 900
 }
 ```
 
-### Verify Email
+### Refresh / verify / logout
 
-```http
-POST /auth/verify-email
-```
-
-Request body:
-
-```json
-{
-  "token": "email_verification_token"
-}
-```
-
-### Logout
-
-```http
-POST /auth/logout
-Authorization: Bearer <accessToken>
-```
-
----
-
-## Users
-
-| Method | Path | Auth | Description |
-|--------|------|------|-------------|
-| GET | `/users/me` | Yes | Current user profile |
-| PATCH | `/users/me` | Yes | Update name/email |
+| Method | Path | Description |
+|--------|------|-------------|
+| POST | `/auth/refresh` | Exchange refresh token |
+| POST | `/auth/verify-email` | Verify email with token |
+| POST | `/auth/logout` | Invalidate session |
 
 ---
 
 ## Teachers
 
-| Method | Path | Auth | Description |
-|--------|------|------|-------------|
-| GET | `/teachers` | Optional | List/search teachers (`?q=`) |
-| GET | `/teachers/:id` | Optional | Teacher profile by id |
-| POST | `/teachers/profile` | Yes | Create teacher profile |
-| PATCH | `/teachers/profile` | Yes | Update teacher profile |
-| GET | `/teachers/verification` | Yes | Verification status |
-| POST | `/teachers/verification` | Yes | Submit verification documents |
-| GET | `/teachers/availability` | Yes | Get weekly availability |
-| PUT | `/teachers/availability` | Yes | Set weekly availability slots |
+### Search Teachers
+
+```http
+GET /teachers/search?subject=math&minPrice=20&maxPrice=60&rating=4&radius=10&page=1&limit=20
+Authorization: Bearer {accessToken}
+```
+
+Response:
+
+```json
+{
+  "data": [
+    {
+      "id": "uuid",
+      "name": "Sarah Johnson",
+      "subject": "Mathematics",
+      "rating": 4.9,
+      "reviews": 45,
+      "price": 45,
+      "distance": "2.3 km",
+      "image": "url",
+      "verified": true,
+      "experience": 6,
+      "availability": ["Mon", "Wed", "Fri"]
+    }
+  ],
+  "total": 50,
+  "page": 1,
+  "totalPages": 3
+}
+```
+
+### Get Teacher Profile
+
+```http
+GET /teachers/{id}
+Authorization: Bearer {accessToken}
+```
+
+Response:
+
+```json
+{
+  "id": "uuid",
+  "user": {
+    "fullName": "Sarah Johnson",
+    "profileImage": "url",
+    "phone": "+251912345678"
+  },
+  "bio": "Experienced math teacher with 6 years...",
+  "hourlyRate": 45,
+  "avgRating": 4.9,
+  "totalReviews": 45,
+  "subjects": ["Algebra", "Geometry", "Calculus"],
+  "availability": [
+    {
+      "dayOfWeek": 1,
+      "startTime": "09:00",
+      "endTime": "17:00"
+    }
+  ],
+  "experienceYears": 6,
+  "education": [
+    {
+      "degree": "BSc Mathematics",
+      "institution": "Addis Ababa University",
+      "year": "2018"
+    }
+  ]
+}
+```
+
+Also available:
+
+| Method | Path | Description |
+|--------|------|-------------|
+| GET | `/teachers` | Simple list/search (`?q=`) |
+| POST | `/teachers/profile` | Create teacher profile |
+| PATCH | `/teachers/profile` | Update teacher profile |
+| GET/POST | `/teachers/verification` | Verification status / submit |
+| GET/PUT | `/teachers/availability` | Weekly availability |
 
 ---
 
 ## Bookings
 
-### Create booking
+### Create Booking
 
 ```http
 POST /bookings
-Authorization: Bearer <accessToken>
+Authorization: Bearer {accessToken}
 ```
 
 Request body:
@@ -147,124 +195,266 @@ Request body:
 ```json
 {
   "teacherId": "uuid",
-  "bookingDate": "2026-07-20",
+  "bookingDate": "2026-07-15",
   "startTime": "09:00",
   "endTime": "10:00",
-  "studentName": "Abebe",
+  "studentName": "Alex Johnson",
   "studentAge": 12,
-  "learningGoals": "Improve math fundamentals",
+  "learningGoals": "Improve algebra skills",
   "isTrialLesson": false
 }
 ```
 
-### Confirm / complete / cancel
-
-| Method | Path | Role | Description |
-|--------|------|------|-------------|
-| POST | `/bookings/:id/confirm` | Teacher | Confirm booking + create Stripe payment intent |
-| POST | `/bookings/:id/complete` | Teacher | Mark completed + release payout |
-| POST | `/bookings/:id/cancel` | Parent/Teacher | Cancel booking (optional refund) |
-
-Cancel body:
+Response:
 
 ```json
 {
-  "reason": "Schedule conflict"
+  "id": "uuid",
+  "status": "PENDING",
+  "totalAmount": 45.00,
+  "platformFee": 6.75,
+  "teacherPayout": 38.25,
+  "bookingDate": "2026-07-15",
+  "startTime": "09:00",
+  "endTime": "10:00"
 }
 ```
+
+### Confirm Booking (Teacher)
+
+```http
+PUT /bookings/{id}/confirm
+Authorization: Bearer {accessToken}
+```
+
+(`POST /bookings/{id}/confirm` is also accepted.)
+
+Response:
+
+```json
+{
+  "booking": {
+    "id": "uuid",
+    "status": "CONFIRMED"
+  },
+  "clientSecret": "pi_xxx_secret_xxx"
+}
+```
+
+### Complete / cancel
+
+| Method | Path | Description |
+|--------|------|-------------|
+| POST | `/bookings/{id}/complete` | Mark lesson completed + release payout |
+| POST | `/bookings/{id}/cancel` | Cancel booking (`{ "reason": "..." }`) |
 
 ---
 
 ## Payments
 
-| Method | Path | Auth | Description |
-|--------|------|------|-------------|
-| POST | `/payments` | Yes | Create payment |
-| POST | `/payments/refund` | Yes | Refund a payment |
-| POST | `/payments/webhooks/stripe` | Stripe signature | Stripe webhook handler |
+### Process Payment
+
+```http
+POST /payments/process
+Authorization: Bearer {accessToken}
+```
+
+Request body:
+
+```json
+{
+  "bookingId": "uuid",
+  "paymentMethodId": "pm_xxx"
+}
+```
+
+Response:
+
+```json
+{
+  "success": true,
+  "paymentId": "uuid",
+  "status": "SUCCEEDED",
+  "transactionId": "pi_xxx"
+}
+```
+
+Also available:
+
+| Method | Path | Description |
+|--------|------|-------------|
+| POST | `/payments` | Create payment intent |
+| POST | `/payments/refund` | Refund a payment |
+| POST | `/payments/webhooks/stripe` | Stripe webhook |
+
+---
+
+## Chat
+
+### Get Chat History
+
+```http
+GET /chat/history?bookingId=uuid&page=1&limit=50
+Authorization: Bearer {accessToken}
+```
+
+Response:
+
+```json
+{
+  "messages": [
+    {
+      "id": "uuid",
+      "senderId": "uuid",
+      "message": "Hello! I'm available for the lesson.",
+      "createdAt": "2026-07-14T09:00:00Z",
+      "isRead": true
+    }
+  ],
+  "total": 25,
+  "page": 1,
+  "totalPages": 1
+}
+```
 
 ---
 
 ## Reviews
 
-| Method | Path | Auth | Description |
-|--------|------|------|-------------|
-| GET | `/reviews/teacher/:teacherId` | Optional | List reviews for a teacher |
-| POST | `/reviews` | Yes | Create review |
-| PATCH | `/reviews/:id` | Yes | Update review |
+### Submit Review
 
----
-
-## Notifications
-
-| Method | Path | Auth | Description |
-|--------|------|------|-------------|
-| GET | `/notifications` | Yes | List notifications |
-| POST | `/notifications` | Yes | Create notification |
-| PATCH | `/notifications/read-all` | Yes | Mark all as read |
-
----
-
-## Admin
-
-Requires `ADMIN` role.
-
-| Method | Path | Description |
-|--------|------|-------------|
-| GET | `/admin/users` | List users |
-| PATCH | `/admin/users` | Enable/disable or verify users |
-| GET | `/admin/verifications` | Pending teacher verifications |
-| GET | `/admin/disputes` | List disputes |
-| PATCH | `/admin/disputes` | Resolve a dispute |
-
----
-
-## Chat (WebSocket)
-
-Namespace: `/chat`
-
-Authenticate with:
-
-```js
-io(WS_URL + '/chat', { auth: { token: accessToken } })
+```http
+POST /reviews
+Authorization: Bearer {accessToken}
 ```
 
-| Event | Direction | Description |
-|-------|-----------|-------------|
-| `send-message` | Client → Server | Send message for a booking |
-| `message-sent` | Server → Client | Sender confirmation |
-| `new-message` | Server → Client | Receiver gets message |
-| `mark-read` | Client → Server | Mark message read |
-| `get-chat-history` | Client → Server | Paginated history |
-| `chat-history` | Server → Client | History payload |
-| `typing` | Client → Server | Typing indicator |
-| `typing-status` | Server → Client | Typing status for peer |
-| `user-online` / `user-offline` | Server → Client | Presence |
-| `unread-count` | Server → Client | Unread messages on connect |
-
-`send-message` payload:
+Request body:
 
 ```json
 {
   "bookingId": "uuid",
-  "receiverId": "uuid",
-  "message": "Hello!",
-  "attachment": "optional-url"
+  "rating": 5,
+  "reviewText": "Excellent teacher! My daughter improved significantly.",
+  "isPublic": true
+}
+```
+
+Response:
+
+```json
+{
+  "id": "uuid",
+  "rating": 5,
+  "reviewText": "Excellent teacher! My daughter improved significantly.",
+  "isPublic": true,
+  "createdAt": "2026-07-14T10:00:00Z"
+}
+```
+
+Also: `GET /reviews/teacher/:teacherId`, `PATCH /reviews/:id`
+
+---
+
+## Notifications & Admin
+
+| Method | Path | Description |
+|--------|------|-------------|
+| GET | `/notifications` | List notifications |
+| POST | `/notifications` | Create notification |
+| PATCH | `/notifications/read-all` | Mark all read |
+| GET | `/admin/users` | List users (ADMIN) |
+| PATCH | `/admin/users` | Manage users (ADMIN) |
+| GET | `/admin/verifications` | Teacher verifications (ADMIN) |
+| GET | `/admin/disputes` | List disputes (ADMIN) |
+| PATCH | `/admin/disputes` | Resolve dispute (ADMIN) |
+
+---
+
+## Error Responses
+
+### 400 Bad Request
+
+```json
+{
+  "statusCode": 400,
+  "message": "Validation failed",
+  "errors": ["Field is required"]
+}
+```
+
+### 401 Unauthorized
+
+```json
+{
+  "statusCode": 401,
+  "message": "Unauthorized"
+}
+```
+
+### 404 Not Found
+
+```json
+{
+  "statusCode": 404,
+  "message": "Resource not found"
+}
+```
+
+### 500 Internal Server Error
+
+```json
+{
+  "statusCode": 500,
+  "message": "Internal server error"
 }
 ```
 
 ---
 
-## Error format
+## Rate Limits
 
-Typical error response:
+- 100 requests per minute per IP
+- 1000 requests per hour per user
 
-```json
-{
-  "statusCode": 400,
-  "message": "Teacher is not available at this time",
-  "timestamp": "2026-07-19T16:00:00.000Z"
-}
+---
+
+## WebSocket Events
+
+Namespace: `/chat`
+
+### Connect
+
+```js
+const socket = io('http://localhost:4000/chat', {
+  auth: { token: 'your_jwt_token' }
+});
 ```
 
-Common status codes: `400` validation/business rule, `401` unauthorized, `404` not found, `500` server error.
+### Send Message
+
+```js
+socket.emit('send-message', {
+  bookingId: 'uuid',
+  receiverId: 'uuid',
+  message: 'Hello!'
+});
+```
+
+### Listen for New Messages
+
+```js
+socket.on('new-message', (message) => {
+  console.log('New message:', message);
+});
+```
+
+### Typing Indicator
+
+```js
+socket.emit('typing', {
+  receiverId: 'uuid',
+  isTyping: true
+});
+```
+
+Other events: `message-sent`, `mark-read`, `message-read`, `get-chat-history`, `chat-history`, `user-online`, `user-offline`, `unread-count`.

@@ -3,6 +3,7 @@ import { JwtModule } from '@nestjs/jwt';
 import { ConfigService } from '@nestjs/config';
 import { ChatGateway } from './chat.gateway';
 import { ChatService } from './chat.service';
+import { ChatController } from './chat.controller';
 import { PrismaModule } from '../../prisma/prisma.module';
 import { NotificationService } from '../../services/notification.service';
 
@@ -19,6 +20,7 @@ import { NotificationService } from '../../services/notification.service';
       inject: [ConfigService],
     }),
   ],
+  controllers: [ChatController],
   providers: [ChatGateway, ChatService, NotificationService],
   exports: [ChatService],
 })

@@ -7,6 +7,27 @@ import { UpdateTeacherProfileDto } from './dto/update-teacher-profile.dto';
 export class TeachersController {
   constructor(private readonly teachersService: TeachersService) {}
 
+  @Get('search')
+  search(
+    @Query('subject') subject?: string,
+    @Query('minPrice') minPrice?: string,
+    @Query('maxPrice') maxPrice?: string,
+    @Query('rating') rating?: string,
+    @Query('radius') radius?: string,
+    @Query('page') page?: string,
+    @Query('limit') limit?: string,
+  ) {
+    return this.teachersService.search({
+      subject,
+      minPrice: minPrice ? Number(minPrice) : undefined,
+      maxPrice: maxPrice ? Number(maxPrice) : undefined,
+      rating: rating ? Number(rating) : undefined,
+      radius: radius ? Number(radius) : undefined,
+      page: page ? Number(page) : 1,
+      limit: limit ? Number(limit) : 20,
+    });
+  }
+
   @Get()
   findAll(@Query('q') q?: string) {
     return this.teachersService.findAll(q);

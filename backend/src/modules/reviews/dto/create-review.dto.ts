@@ -1,8 +1,8 @@
-import { IsInt, IsOptional, IsString, IsUUID, Max, Min } from 'class-validator';
+import { IsBoolean, IsInt, IsOptional, IsString, IsUUID, Max, Min } from 'class-validator';
 
 export class CreateReviewDto {
   @IsUUID()
-  teacherId!: string;
+  bookingId!: string;
 
   @IsInt()
   @Min(1)
@@ -11,5 +11,9 @@ export class CreateReviewDto {
 
   @IsOptional()
   @IsString()
-  comment?: string;
+  reviewText?: string;
+
+  @IsOptional()
+  @IsBoolean()
+  isPublic?: boolean;
 }

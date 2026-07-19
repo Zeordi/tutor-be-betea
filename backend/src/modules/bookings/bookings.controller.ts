@@ -1,4 +1,4 @@
-import { Body, Controller, Param, Post, Req } from '@nestjs/common';
+import { Body, Controller, Param, Post, Put, Req } from '@nestjs/common';
 import { BookingsService } from './bookings.service';
 import { CreateBookingDto } from './dto/create-booking.dto';
 
@@ -11,13 +11,20 @@ export class BookingsController {
     return this.bookingsService.createBooking(req.user?.id || '', dto);
   }
 
-  @Post(':id/confirm')
-  confirm(
+  @Put(':id/confirm')
+  confirmPut(
     @Param('id') id: string,
     @Req() req: { user?: { id: string; teacherProfile?: { id: string } } },
   ) {
-    const teacherId = req.user?.teacherProfile?.id || req.user?.id || '';
-    return this.bookingsService.confirmBooking(id, teacherId);
+    return this.confirm(id, req);
+  }
+
+  @Post(':id/confirm')
+  confirmPost(
+    @Param('id') id: string,
+    @Req() req: { user?: { id: string; teacherProfile?: { id: string } } },
+  ) {
+    return this.confirm(id, req);
   }
 
   @Post(':id/complete')
@@ -36,5 +43,13 @@ export class BookingsController {
     @Body('reason') reason: string,
   ) {
     return this.bookingsService.cancelBooking(id, req.user?.id || '', reason || 'Cancelled by user');
+  }
+
+  private confirm(
+    id: string,
+    req: { user?: { id: string; teacherProfile?: { id: string } } },
+  ) {
+    const teacherId = req.user?.teacherProfile?.id || req.user?.id || '';
+    return this.bookingsService.confirmBooking(id, teacherId);
   }
 }
