@@ -36,6 +36,10 @@ cd docker && docker compose up --build
 - **Teacher** — profile, availability, bookings, earnings, verification
 - **Admin** — verifications, users, disputes, analytics
 
+## Deployment
+
+See [docs/DEPLOYMENT.md](./docs/DEPLOYMENT.md) for environment variables, Docker Compose, CI/CD, and monitoring.
+
 ## License
 
 MIT — see [LICENSE](./LICENSE).

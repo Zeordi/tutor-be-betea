@@ -12,6 +12,7 @@ import { AdminModule } from './modules/admin/admin.module';
 import { NotificationsModule } from './modules/notifications/notifications.module';
 import { PrismaModule } from './prisma/prisma.module';
 import { config, validationSchema } from './config/config';
+import { HealthController } from './health/health.controller';
 
 @Module({
   imports: [
@@ -31,5 +32,6 @@ import { config, validationSchema } from './config/config';
     AdminModule,
     NotificationsModule,
   ],
+  controllers: [HealthController],
 })
 export class AppModule {}
