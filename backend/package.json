@@ -34,6 +34,7 @@
     "@nestjs/websockets": "^10.2.10",
     "@prisma/client": "^5.7.0",
     "@types/bcrypt": "^5.0.2",
+    "@vercel/node": "^5.8.26",
     "aws-sdk": "^2.1506.0",
     "bcrypt": "^5.1.1",
     "bull": "^4.11.5",

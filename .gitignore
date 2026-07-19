@@ -31,3 +31,8 @@ Thumbs.db
 # misc
 *.tsbuildinfo
 .turbo/
+
+.vercel
+.env.local
+frontend/.vercel
+backend/.vercel
