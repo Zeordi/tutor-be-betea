@@ -6,9 +6,9 @@ import { AppModule } from './app.module';
 import { HttpExceptionFilter } from './common/filters/http-exception.filter';
 import { LoggingInterceptor } from './common/interceptors/logging.interceptor';
 import { TransformInterceptor } from './common/interceptors/transform.interceptor';
-import * as compression from 'compression';
-import * as cors from 'cors';
-import * as helmet from 'helmet';
+import compression from 'compression';
+import cors from 'cors';
+import helmet from 'helmet';
 
 async function bootstrap() {
   const logger = new Logger('Bootstrap');

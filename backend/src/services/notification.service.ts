@@ -97,7 +97,7 @@ export class NotificationService {
             type,
             title,
             message,
-            data,
+            data: data as object,
           },
         }),
       ),
