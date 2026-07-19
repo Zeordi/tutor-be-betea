@@ -12,28 +12,23 @@
 - Frontend: `zeordis-projects/tutor-be-betea` (root: `frontend/`)
 - Backend: `zeordis-projects/tutor-be-betea-api` (root: `backend/`)
 
-## Database (required for API)
+## Database
 
-Neon marketplace terms must be accepted once in the browser:
+Neon Postgres resource **`tutor-be-betea-db`** is connected to:
 
-1. Open: https://vercel.com/zeordis-projects/~/integrations/accept-terms/neon?source=cli
-2. Accept Neon / Vercel marketplace terms
-3. Then run:
+- `tutor-be-betea` (frontend)
+- `tutor-be-betea-api` (backend)
 
-```bash
-cd frontend
-npx vercel integration add neon --plan free_v3 -m region=iad1 -m auth=false --name tutor-be-betea-db -e production -e preview
-npx vercel integration resource connect tutor-be-betea-db tutor-be-betea-api
-```
+Schema applied via Prisma (`20260719190000_init`). Dashboard:
 
-Or from the Vercel dashboard: Storage → Create Database → Neon → connect to `tutor-be-betea-api`.
+https://vercel.com/d/dashboard/integrations/neon/icfg_ftuxOhzYAV3O3bhlxzfMkd8X/resources/store_pznjCsOwcfX41Twu
 
-Then migrate:
+To re-migrate locally (after `vercel env pull`):
 
 ```bash
 cd backend
-npx prisma db push
-# or: npx prisma migrate deploy
+npx vercel env pull .env --environment=production --yes
+npx prisma migrate deploy
 ```
 
 ## Redeploy
