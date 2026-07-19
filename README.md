@@ -36,6 +36,10 @@ cd docker && docker compose up --build
 - **Teacher** — profile, availability, bookings, earnings, verification
 - **Admin** — verifications, users, disputes, analytics
 
+## Design system
+
+See [docs/DESIGN_SYSTEM.md](./docs/DESIGN_SYSTEM.md) for colors, typography, spacing, and component guidance (tokens in `frontend/app/globals.css`).
+
 ## Deployment
 
 See [docs/DEPLOYMENT.md](./docs/DEPLOYMENT.md) for environment variables, Docker Compose, CI/CD, and monitoring.

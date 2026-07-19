@@ -1,20 +1,21 @@
 import type { Metadata } from 'next';
-import { Fraunces, Source_Sans_3 } from 'next/font/google';
+import { Inter, Poppins } from 'next/font/google';
 import { Providers } from './providers';
 import './globals.css';
 
-const display = Fraunces({
+const sans = Inter({
   subsets: ['latin'],
-  variable: '--font-display',
+  variable: '--font-geist-sans',
 });
 
-const sans = Source_Sans_3({
+const display = Poppins({
   subsets: ['latin'],
-  variable: '--font-sans',
+  weight: ['400', '500', '600', '700', '800'],
+  variable: '--font-geist-display',
 });
 
 export const metadata: Metadata = {
-  title: 'BeTea Tutor',
+  title: 'Tutor Be Betea',
   description: 'Find trusted tutors for your family',
   manifest: '/manifest.json',
 };
