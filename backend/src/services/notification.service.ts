@@ -65,6 +65,22 @@ export class NotificationService {
     );
   }
 
+  async sendPushNotification(params: {
+    userId: string;
+    title: string;
+    body: string;
+    data?: Record<string, unknown>;
+  }) {
+    this.logger.log(`Push notification to=${params.userId} title=${params.title}`);
+    return this.createForUsers(
+      [params.userId],
+      NotificationType.MESSAGE,
+      params.title,
+      params.body,
+      params.data || {},
+    );
+  }
+
   private async createForUsers(
     userIds: string[],
     type: NotificationType,
