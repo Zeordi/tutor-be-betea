@@ -17,4 +17,8 @@ export class CacheService {
   async set(key: string, value: unknown, ttlSeconds = 60) {
     this.store.set(key, { value, expiresAt: Date.now() + ttlSeconds * 1000 });
   }
+
+  async del(key: string) {
+    this.store.delete(key);
+  }
 }
