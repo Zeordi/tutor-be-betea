@@ -9,21 +9,38 @@ import { apiClient } from '@/lib/api/client';
 import { ENDPOINTS } from '@/lib/api/endpoints';
 
 export function RegisterForm() {
-  const [form, setForm] = useState({ name: '', email: '', password: '', role: 'PARENT' });
+  const [form, setForm] = useState({
+    fullName: '',
+    email: '',
+    phone: '',
+    password: '',
+    userType: 'PARENT',
+  });
   const [message, setMessage] = useState('');
+  const [error, setError] = useState('');
 
   async function onSubmit(e: React.FormEvent) {
     e.preventDefault();
-    await apiClient.post(ENDPOINTS.auth.register, form);
-    setMessage('Check your email to verify your account.');
+    setError('');
+    try {
+      await apiClient.post(ENDPOINTS.auth.register, form);
+      setMessage('Check your email to verify your account.');
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Registration failed');
+    }
   }
 
   return (
     <form onSubmit={onSubmit} className="space-y-4 rounded-lg border bg-white p-6 shadow-sm">
       <h1 className="font-display text-2xl">Create account</h1>
       <div>
-        <Label htmlFor="name">Name</Label>
-        <Input id="name" value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} required />
+        <Label htmlFor="fullName">Full name</Label>
+        <Input
+          id="fullName"
+          value={form.fullName}
+          onChange={(e) => setForm({ ...form, fullName: e.target.value })}
+          required
+        />
       </div>
       <div>
         <Label htmlFor="email">Email</Label>
@@ -32,6 +49,15 @@ export function RegisterForm() {
           type="email"
           value={form.email}
           onChange={(e) => setForm({ ...form, email: e.target.value })}
+          required
+        />
+      </div>
+      <div>
+        <Label htmlFor="phone">Phone</Label>
+        <Input
+          id="phone"
+          value={form.phone}
+          onChange={(e) => setForm({ ...form, phone: e.target.value })}
           required
         />
       </div>
@@ -46,8 +72,12 @@ export function RegisterForm() {
         />
       </div>
       <div>
-        <Label htmlFor="role">I am a</Label>
-        <Select id="role" value={form.role} onChange={(e) => setForm({ ...form, role: e.target.value })}>
+        <Label htmlFor="userType">I am a</Label>
+        <Select
+          id="userType"
+          value={form.userType}
+          onChange={(e) => setForm({ ...form, userType: e.target.value })}
+        >
           <option value="PARENT">Parent</option>
           <option value="TEACHER">Teacher</option>
         </Select>
@@ -56,6 +86,7 @@ export function RegisterForm() {
         Register
       </Button>
       {message && <p className="text-sm text-brand-700">{message}</p>}
+      {error && <p className="text-sm text-red-600">{error}</p>}
     </form>
   );
 }

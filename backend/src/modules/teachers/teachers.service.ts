@@ -1,4 +1,4 @@
-import { Injectable } from '@nestjs/common';
+import { BadRequestException, Injectable, NotFoundException } from '@nestjs/common';
 import { PrismaService } from '../../prisma/prisma.service';
 import { CreateTeacherProfileDto } from './dto/create-teacher-profile.dto';
 import { UpdateTeacherProfileDto } from './dto/update-teacher-profile.dto';
@@ -112,21 +112,63 @@ export class TeachersService {
     });
   }
 
-  async create(dto: CreateTeacherProfileDto) {
-    return {
-      id: crypto.randomUUID(),
-      ...dto,
-    };
+  async create(userId: string, dto: CreateTeacherProfileDto) {
+    const user = await this.prisma.user.findUnique({ where: { id: userId } });
+    if (!user) throw new NotFoundException('User not found');
+
+    const existing = await this.prisma.teacherProfile.findUnique({ where: { userId } });
+    if (existing) throw new BadRequestException('Teacher profile already exists');
+
+    return this.prisma.teacherProfile.create({
+      data: {
+        userId,
+        bio: dto.bio,
+        subjects: dto.subjects,
+        hourlyRate: dto.hourlyRate,
+        experienceYears: dto.experienceYears ?? 0,
+        verificationStatus: VerificationStatus.PENDING,
+      },
+      include: {
+        user: {
+          select: { fullName: true, profileImage: true, phone: true },
+        },
+      },
+    });
   }
 
-  async update(dto: UpdateTeacherProfileDto) {
-    if (!dto.id) return null;
+  async update(userId: string, dto: UpdateTeacherProfileDto) {
+    const profile = await this.prisma.teacherProfile.findUnique({ where: { userId } });
+    if (!profile) throw new NotFoundException('Teacher profile not found');
+    return this.updateById(profile.id, dto);
+  }
+
+  async updateById(id: string, dto: UpdateTeacherProfileDto) {
+    const profile = await this.prisma.teacherProfile.findUnique({ where: { id } });
+    if (!profile) throw new NotFoundException('Teacher profile not found');
+
     return this.prisma.teacherProfile.update({
-      where: { id: dto.id },
+      where: { id },
       data: {
         ...(dto.bio != null ? { bio: dto.bio } : {}),
         ...(dto.subjects != null ? { subjects: dto.subjects } : {}),
+        ...(dto.languages != null ? { languages: dto.languages } : {}),
         ...(dto.hourlyRate != null ? { hourlyRate: dto.hourlyRate } : {}),
+        ...(dto.experienceYears != null ? { experienceYears: dto.experienceYears } : {}),
+        ...(dto.education != null ? { education: dto.education as object } : {}),
+        ...(dto.serviceRadiusKm != null ? { serviceRadiusKm: dto.serviceRadiusKm } : {}),
+        ...(dto.isAvailable != null ? { isAvailable: dto.isAvailable } : {}),
+        ...(dto.introVideoUrl != null ? { introVideoUrl: dto.introVideoUrl } : {}),
+      },
+      include: {
+        user: {
+          select: {
+            id: true,
+            email: true,
+            fullName: true,
+            phone: true,
+            profileImage: true,
+          },
+        },
       },
     });
   }

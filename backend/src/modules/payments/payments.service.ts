@@ -12,14 +12,58 @@ export class PaymentsService {
     private readonly stripeService: StripeService,
   ) {}
 
-  create(dto: CreatePaymentDto) {
+  async create(dto: CreatePaymentDto) {
+    const booking = await this.prisma.booking.findUnique({ where: { id: dto.bookingId } });
+    if (!booking) throw new NotFoundException('Booking not found');
+
+    const amount = dto.amount ?? Number(booking.totalAmount);
+    if (amount < 0.5) throw new BadRequestException('Amount must be at least 0.50');
+
+    const existing = await this.prisma.payment.findFirst({
+      where: { bookingId: booking.id, status: { in: ['PENDING', 'SUCCEEDED'] } },
+      orderBy: { createdAt: 'desc' },
+    });
+    if (existing?.status === 'SUCCEEDED') {
+      throw new BadRequestException('Booking already paid');
+    }
+
+    const intent = await this.stripeService.createPaymentIntent({
+      amount,
+      bookingId: booking.id,
+      parentId: booking.parentId,
+      description: `Payment for booking ${booking.id}`,
+    });
+
+    const payment = existing
+      ? await this.prisma.payment.update({
+          where: { id: existing.id },
+          data: {
+            stripePaymentIntent: intent.id,
+            amount,
+            status: 'PENDING',
+            paymentMethod: 'card',
+            metadata: { currency: dto.currency || 'usd' },
+          },
+        })
+      : await this.prisma.payment.create({
+          data: {
+            bookingId: booking.id,
+            stripePaymentIntent: intent.id,
+            amount,
+            status: 'PENDING',
+            paymentMethod: 'card',
+            metadata: { currency: dto.currency || 'usd' },
+          },
+        });
+
     return {
-      id: crypto.randomUUID(),
-      bookingId: dto.bookingId,
-      amount: dto.amount,
+      id: payment.id,
+      bookingId: booking.id,
+      amount,
       currency: dto.currency || 'usd',
-      status: 'requires_payment_method',
-      clientSecret: `pi_test_${crypto.randomUUID()}_secret`,
+      status: payment.status,
+      clientSecret: intent.client_secret,
+      stripePaymentIntent: intent.id,
     };
   }
 

@@ -4,9 +4,10 @@ export class CreatePaymentDto {
   @IsUUID()
   bookingId!: string;
 
+  @IsOptional()
   @IsNumber()
   @Min(0.5)
-  amount!: number;
+  amount?: number;
 
   @IsOptional()
   @IsString()

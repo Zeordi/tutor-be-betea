@@ -1,11 +1,19 @@
 import { Type } from 'class-transformer';
-import { IsArray, IsInt, IsString, Max, Min, ValidateNested } from 'class-validator';
+import { IsArray, IsInt, IsOptional, IsString, Max, Min, ValidateNested } from 'class-validator';
 
 class AvailabilitySlotDto {
+  @IsOptional()
   @IsInt()
   @Min(0)
   @Max(6)
-  weekday!: number;
+  dayOfWeek?: number;
+
+  /** @deprecated Prefer dayOfWeek */
+  @IsOptional()
+  @IsInt()
+  @Min(0)
+  @Max(6)
+  weekday?: number;
 
   @IsString()
   startTime!: string;

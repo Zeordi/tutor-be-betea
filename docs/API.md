@@ -101,8 +101,9 @@ Response:
 
 ```http
 GET /teachers/search?subject=math&minPrice=20&maxPrice=60&rating=4&radius=10&page=1&limit=20
-Authorization: Bearer {accessToken}
 ```
+
+Public endpoint (no auth required).
 
 Response:
 

@@ -1,4 +1,4 @@
-import { IsArray, IsNumber, IsOptional, IsString, Min } from 'class-validator';
+import { IsArray, IsInt, IsNumber, IsOptional, IsString, Min } from 'class-validator';
 
 export class CreateTeacherProfileDto {
   @IsOptional()
@@ -12,4 +12,9 @@ export class CreateTeacherProfileDto {
   @IsNumber()
   @Min(0)
   hourlyRate!: number;
+
+  @IsOptional()
+  @IsInt()
+  @Min(0)
+  experienceYears?: number;
 }

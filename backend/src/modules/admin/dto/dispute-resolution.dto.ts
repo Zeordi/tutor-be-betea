@@ -1,4 +1,4 @@
-import { IsEnum, IsString, IsUUID } from 'class-validator';
+import { IsEnum, IsNumber, IsOptional, IsString, IsUUID, Min } from 'class-validator';
 
 export enum DisputeResolution {
   REFUND = 'REFUND',
@@ -15,4 +15,9 @@ export class DisputeResolutionDto {
 
   @IsString()
   notes!: string;
+
+  @IsOptional()
+  @IsNumber()
+  @Min(0)
+  refundAmount?: number;
 }

@@ -1,50 +1,45 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, NotFoundException } from '@nestjs/common';
+import { PrismaService } from '../../prisma/prisma.service';
 import { UpdateUserDto } from './dto/update-user.dto';
-
-type UserRecord = {
-  id: string;
-  email: string;
-  name: string;
-  role: string;
-  passwordHash: string;
-};
 
 @Injectable()
 export class UsersService {
-  private users: UserRecord[] = [];
-
-  async create(data: Omit<UserRecord, 'id'> & { id?: string }) {
-    const user: UserRecord = {
-      id: data.id || crypto.randomUUID(),
-      email: data.email,
-      name: data.name,
-      role: data.role,
-      passwordHash: data.passwordHash,
-    };
-    this.users.push(user);
-    return user;
-  }
+  constructor(private readonly prisma: PrismaService) {}
 
   async findByEmail(email: string) {
-    return this.users.find((u) => u.email === email) || null;
+    return this.prisma.user.findUnique({ where: { email } });
   }
 
   async findById(id: string) {
-    const user = this.users.find((u) => u.id === id);
+    if (!id) return null;
+    const user = await this.prisma.user.findUnique({
+      where: { id },
+      include: { teacherProfile: true },
+    });
     if (!user) return null;
     const { passwordHash: _, ...safe } = user;
     return safe;
   }
 
   async findAll() {
-    return this.users.map(({ passwordHash: _, ...safe }) => safe);
+    const users = await this.prisma.user.findMany({
+      orderBy: { createdAt: 'desc' },
+      include: { teacherProfile: true },
+    });
+    return users.map(({ passwordHash: _, ...safe }) => safe);
   }
 
   async update(id: string, dto: UpdateUserDto) {
-    const user = this.users.find((u) => u.id === id);
-    if (!user) return null;
-    if (dto.name) user.name = dto.name;
-    if (dto.email) user.email = dto.email;
+    if (!id) throw new NotFoundException('User not found');
+    const user = await this.prisma.user.update({
+      where: { id },
+      data: {
+        ...(dto.fullName != null ? { fullName: dto.fullName } : {}),
+        ...(dto.email != null ? { email: dto.email } : {}),
+        ...(dto.phone != null ? { phone: dto.phone } : {}),
+        ...(dto.profileImage != null ? { profileImage: dto.profileImage } : {}),
+      },
+    });
     const { passwordHash: _, ...safe } = user;
     return safe;
   }

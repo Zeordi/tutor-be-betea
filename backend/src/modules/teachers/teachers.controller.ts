@@ -1,50 +1,68 @@
-import { Body, Controller, Get, Param, Patch, Post, Query } from '@nestjs/common';
+import {
+  Controller,
+  Get,
+  Post,
+  Put,
+  Body,
+  Param,
+  Query,
+  Req,
+  UseGuards,
+} from '@nestjs/common';
 import { TeachersService } from './teachers.service';
 import { CreateTeacherProfileDto } from './dto/create-teacher-profile.dto';
 import { UpdateTeacherProfileDto } from './dto/update-teacher-profile.dto';
+import { SearchTeachersDto } from './dto/search-teachers.dto';
+import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
+import { RolesGuard } from '../auth/guards/roles.guard';
+import { Roles } from '../auth/decorators/roles.decorator';
+import { Public } from '../auth/decorators/public.decorator';
 
 @Controller('teachers')
+@UseGuards(JwtAuthGuard, RolesGuard)
 export class TeachersController {
   constructor(private readonly teachersService: TeachersService) {}
 
+  @Public()
   @Get('search')
-  search(
-    @Query('subject') subject?: string,
-    @Query('minPrice') minPrice?: string,
-    @Query('maxPrice') maxPrice?: string,
-    @Query('rating') rating?: string,
-    @Query('radius') radius?: string,
-    @Query('page') page?: string,
-    @Query('limit') limit?: string,
-  ) {
-    return this.teachersService.search({
-      subject,
-      minPrice: minPrice ? Number(minPrice) : undefined,
-      maxPrice: maxPrice ? Number(maxPrice) : undefined,
-      rating: rating ? Number(rating) : undefined,
-      radius: radius ? Number(radius) : undefined,
-      page: page ? Number(page) : 1,
-      limit: limit ? Number(limit) : 20,
-    });
+  search(@Query() query: SearchTeachersDto) {
+    return this.teachersService.search(query);
   }
 
+  @Post()
+  @Roles('TEACHER')
+  create(@Req() req: any, @Body() createTeacherDto: CreateTeacherProfileDto) {
+    return this.teachersService.create(req.user.id, createTeacherDto);
+  }
+
+  @Public()
   @Get()
-  findAll(@Query('q') q?: string) {
-    return this.teachersService.findAll(q);
+  findAll() {
+    return this.teachersService.findAll();
   }
 
+  @Public()
   @Get(':id')
   findOne(@Param('id') id: string) {
     return this.teachersService.findOne(id);
   }
 
-  @Post('profile')
-  create(@Body() dto: CreateTeacherProfileDto) {
-    return this.teachersService.create(dto);
+  @Put('me')
+  @Roles('TEACHER')
+  updateMe(@Req() req: any, @Body() updateTeacherDto: UpdateTeacherProfileDto) {
+    return this.teachersService.update(req.user.id, updateTeacherDto);
   }
 
-  @Patch('profile')
-  update(@Body() dto: UpdateTeacherProfileDto) {
-    return this.teachersService.update(dto);
+  @Put(':id')
+  @Roles('TEACHER', 'ADMIN')
+  update(
+    @Req() req: any,
+    @Param('id') id: string,
+    @Body() updateTeacherDto: UpdateTeacherProfileDto,
+  ) {
+    if (req.user.userType === 'ADMIN') {
+      return this.teachersService.updateById(id, updateTeacherDto);
+    }
+    return this.teachersService.update(req.user.id, updateTeacherDto);
   }
 }

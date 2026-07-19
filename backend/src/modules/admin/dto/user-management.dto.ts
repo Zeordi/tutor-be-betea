@@ -11,4 +11,8 @@ export class UserManagementDto {
   @IsOptional()
   @IsBoolean()
   emailVerified?: boolean;
+
+  @IsOptional()
+  @IsBoolean()
+  approveVerification?: boolean;
 }
