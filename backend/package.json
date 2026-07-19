@@ -57,7 +57,8 @@
     "stripe": "^14.14.0",
     "twilio": "^4.19.3",
     "uuid": "^9.0.1",
-    "winston": "^3.11.0"
+    "winston": "^3.11.0",
+    "joi": "^17.11.0"
   },
   "devDependencies": {
     "@nestjs/cli": "^10.2.1",
@@ -89,7 +90,8 @@
     "ts-loader": "^9.5.1",
     "ts-node": "^10.9.2",
     "tsconfig-paths": "^4.2.0",
-    "typescript": "^5.3.3"
+    "typescript": "^5.3.3",
+    "@types/joi": "^17.2.3"
   },
   "jest": {
     "moduleFileExtensions": [

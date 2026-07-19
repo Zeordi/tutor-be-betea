@@ -1,0 +1,41 @@
+import * as Joi from 'joi';
+
+export const config = () => ({
+  PORT: parseInt(process.env.PORT || '4000', 10),
+  NODE_ENV: process.env.NODE_ENV || 'development',
+  FRONTEND_URL: process.env.FRONTEND_URL || 'http://localhost:3000',
+  DATABASE_URL: process.env.DATABASE_URL,
+  JWT_SECRET: process.env.JWT_SECRET || 'dev-secret',
+  JWT_EXPIRES_IN: process.env.JWT_EXPIRES_IN || '7d',
+  STRIPE_SECRET_KEY: process.env.STRIPE_SECRET_KEY,
+  STRIPE_WEBHOOK_SECRET: process.env.STRIPE_WEBHOOK_SECRET,
+  VERIFF_API_KEY: process.env.VERIFF_API_KEY,
+  VERIFF_BASE_URL: process.env.VERIFF_BASE_URL,
+  EMAIL_HOST: process.env.EMAIL_HOST,
+  EMAIL_PORT: parseInt(process.env.EMAIL_PORT || '587', 10),
+  EMAIL_USER: process.env.EMAIL_USER,
+  EMAIL_PASS: process.env.EMAIL_PASS,
+  AWS_S3_BUCKET: process.env.AWS_S3_BUCKET,
+  AWS_REGION: process.env.AWS_REGION,
+  REDIS_URL: process.env.REDIS_URL,
+});
+
+export const validationSchema = Joi.object({
+  PORT: Joi.number().default(4000),
+  NODE_ENV: Joi.string().valid('development', 'production', 'test').default('development'),
+  FRONTEND_URL: Joi.string().uri().default('http://localhost:3000'),
+  DATABASE_URL: Joi.string().required(),
+  JWT_SECRET: Joi.string().required(),
+  JWT_EXPIRES_IN: Joi.string().default('7d'),
+  STRIPE_SECRET_KEY: Joi.string().optional().allow(''),
+  STRIPE_WEBHOOK_SECRET: Joi.string().optional().allow(''),
+  VERIFF_API_KEY: Joi.string().optional().allow(''),
+  VERIFF_BASE_URL: Joi.string().optional().allow(''),
+  EMAIL_HOST: Joi.string().optional().allow(''),
+  EMAIL_PORT: Joi.number().optional(),
+  EMAIL_USER: Joi.string().optional().allow(''),
+  EMAIL_PASS: Joi.string().optional().allow(''),
+  AWS_S3_BUCKET: Joi.string().optional().allow(''),
+  AWS_REGION: Joi.string().optional().allow(''),
+  REDIS_URL: Joi.string().optional().allow(''),
+});
