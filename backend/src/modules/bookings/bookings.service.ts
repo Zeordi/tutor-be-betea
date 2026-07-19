@@ -1,29 +1,292 @@
-import { Injectable } from '@nestjs/common';
+// src/modules/bookings/bookings.service.ts
+import { Injectable, BadRequestException, NotFoundException } from '@nestjs/common';
+import { PrismaService } from '../../prisma/prisma.service';
+import { StripeService } from '../../services/stripe.service';
+import { NotificationService } from '../../services/notification.service';
 import { CreateBookingDto } from './dto/create-booking.dto';
-import { UpdateBookingDto } from './dto/update-booking.dto';
+import { BookingStatus } from '@prisma/client';
 
 @Injectable()
 export class BookingsService {
-  private bookings: Array<CreateBookingDto & { id: string; status: string }> = [];
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly stripeService: StripeService,
+    private readonly notificationService: NotificationService,
+  ) {}
 
-  findAll() {
-    return this.bookings;
-  }
+  async createBooking(parentId: string, createBookingDto: CreateBookingDto) {
+    const { teacherId, bookingDate, startTime, endTime, studentName, studentAge, learningGoals, isTrialLesson } = createBookingDto;
 
-  findOne(id: string) {
-    return this.bookings.find((b) => b.id === id) || null;
-  }
+    // Check teacher exists and is available
+    const teacher = await this.prisma.teacherProfile.findUnique({
+      where: { id: teacherId },
+      include: { user: true },
+    });
 
-  create(dto: CreateBookingDto) {
-    const booking = { id: crypto.randomUUID(), status: 'PENDING', ...dto };
-    this.bookings.push(booking);
+    if (!teacher) {
+      throw new NotFoundException('Teacher not found');
+    }
+
+    if (teacher.verificationStatus !== 'APPROVED') {
+      throw new BadRequestException('Teacher is not verified');
+    }
+
+    if (!teacher.isAvailable) {
+      throw new BadRequestException('Teacher is currently unavailable');
+    }
+
+    // Check availability
+    const isAvailable = await this.checkAvailability(teacherId, bookingDate, startTime, endTime);
+    if (!isAvailable) {
+      throw new BadRequestException('Teacher is not available at this time');
+    }
+
+    // Calculate duration and amount
+    const durationHours = this.calculateDuration(startTime, endTime);
+    const hourlyRate = Number(teacher.hourlyRate);
+    const totalAmount = parseFloat((hourlyRate * durationHours).toFixed(2));
+    const platformFee = parseFloat((totalAmount * 0.15).toFixed(2));
+    const teacherPayout = parseFloat((totalAmount - platformFee).toFixed(2));
+
+    // Create booking
+    const booking = await this.prisma.booking.create({
+      data: {
+        teacherId,
+        parentId,
+        studentName,
+        studentAge,
+        learningGoals,
+        bookingDate: new Date(bookingDate),
+        startTime,
+        endTime,
+        durationHours,
+        totalAmount,
+        platformFee,
+        teacherPayout,
+        isTrialLesson: isTrialLesson || false,
+        status: BookingStatus.PENDING,
+      },
+    });
+
+    // Send notifications
+    await this.notificationService.sendBookingRequestNotification({
+      bookingId: booking.id,
+      teacherId,
+      parentId,
+    });
+
     return booking;
   }
 
-  update(id: string, dto: UpdateBookingDto) {
-    const booking = this.bookings.find((b) => b.id === id);
-    if (!booking) return null;
-    Object.assign(booking, dto);
-    return booking;
+  async confirmBooking(bookingId: string, teacherId: string) {
+    const booking = await this.prisma.booking.findUnique({
+      where: { id: bookingId },
+      include: { teacher: { include: { user: true } }, parent: true },
+    });
+
+    if (!booking) {
+      throw new NotFoundException('Booking not found');
+    }
+
+    if (booking.teacherId !== teacherId) {
+      throw new BadRequestException('Not authorized to confirm this booking');
+    }
+
+    if (booking.status !== 'PENDING') {
+      throw new BadRequestException('Booking is not in pending state');
+    }
+
+    // Create Stripe payment intent
+    const paymentIntent = await this.stripeService.createPaymentIntent({
+      amount: Number(booking.totalAmount),
+      bookingId: booking.id,
+      parentId: booking.parentId,
+      description: `Tutoring session with ${booking.teacher.user.fullName}`,
+    });
+
+    // Update booking status
+    const updatedBooking = await this.prisma.booking.update({
+      where: { id: bookingId },
+      data: {
+        status: BookingStatus.CONFIRMED,
+      },
+    });
+
+    // Create payment record
+    await this.prisma.payment.create({
+      data: {
+        bookingId: booking.id,
+        stripePaymentIntent: paymentIntent.id,
+        amount: booking.totalAmount,
+        paymentMethod: 'CARD',
+        status: 'PENDING',
+      },
+    });
+
+    // Send notification
+    await this.notificationService.sendBookingConfirmedNotification({
+      bookingId: booking.id,
+      teacherId,
+      parentId: booking.parentId,
+    });
+
+    return {
+      booking: updatedBooking,
+      clientSecret: paymentIntent.client_secret,
+    };
+  }
+
+  async completeBooking(bookingId: string, teacherId: string) {
+    const booking = await this.prisma.booking.findUnique({
+      where: { id: bookingId },
+    });
+
+    if (!booking) {
+      throw new NotFoundException('Booking not found');
+    }
+
+    if (booking.teacherId !== teacherId) {
+      throw new BadRequestException('Not authorized to complete this booking');
+    }
+
+    if (booking.status !== 'CONFIRMED' && booking.status !== 'IN_PROGRESS') {
+      throw new BadRequestException('Booking cannot be completed');
+    }
+
+    // Update booking status
+    const updatedBooking = await this.prisma.booking.update({
+      where: { id: bookingId },
+      data: {
+        status: BookingStatus.COMPLETED,
+        completedAt: new Date(),
+      },
+    });
+
+    // Release payment to teacher
+    await this.stripeService.releasePayment({
+      bookingId: booking.id,
+      amount: Number(booking.teacherPayout),
+      teacherId: booking.teacherId,
+    });
+
+    // Update teacher stats
+    await this.prisma.teacherProfile.update({
+      where: { id: booking.teacherId },
+      data: {
+        totalStudents: { increment: 1 },
+        totalEarnings: { increment: booking.teacherPayout },
+      },
+    });
+
+    // Send notification
+    await this.notificationService.sendLessonCompletedNotification({
+      bookingId: booking.id,
+      teacherId,
+      parentId: booking.parentId,
+    });
+
+    return updatedBooking;
+  }
+
+  async cancelBooking(bookingId: string, userId: string, reason: string) {
+    const booking = await this.prisma.booking.findUnique({
+      where: { id: bookingId },
+      include: { teacher: true },
+    });
+
+    if (!booking) {
+      throw new NotFoundException('Booking not found');
+    }
+
+    if (booking.parentId !== userId && booking.teacher.userId !== userId) {
+      throw new BadRequestException('Not authorized to cancel this booking');
+    }
+
+    if (booking.status === 'COMPLETED' || booking.status === 'CANCELLED') {
+      throw new BadRequestException('Booking cannot be cancelled');
+    }
+
+    const updatedBooking = await this.prisma.booking.update({
+      where: { id: bookingId },
+      data: {
+        status: BookingStatus.CANCELLED,
+        cancellationReason: reason,
+        cancelledAt: new Date(),
+      },
+    });
+
+    // Process refund if payment was made
+    const payment = await this.prisma.payment.findFirst({
+      where: { bookingId, status: 'SUCCEEDED' },
+    });
+
+    if (payment) {
+      await this.stripeService.refundPayment(payment.stripePaymentIntent);
+      await this.prisma.payment.update({
+        where: { id: payment.id },
+        data: { status: 'REFUNDED' },
+      });
+    }
+
+    await this.notificationService.sendBookingCancelledNotification({
+      bookingId: booking.id,
+      teacherId: booking.teacherId,
+      parentId: booking.parentId,
+      reason,
+    });
+
+    return updatedBooking;
+  }
+
+  private async checkAvailability(teacherId: string, date: string | Date, startTime: string, endTime: string): Promise<boolean> {
+    const dayOfWeek = new Date(date).getDay();
+
+    // Check teacher availability
+    const availability = await this.prisma.availability.findFirst({
+      where: {
+        teacherId,
+        dayOfWeek,
+        isRecurring: true,
+        startTime: { lte: startTime },
+        endTime: { gte: endTime },
+      },
+    });
+
+    if (!availability) {
+      return false;
+    }
+
+    // Check for overlapping bookings
+    const overlappingBookings = await this.prisma.booking.findMany({
+      where: {
+        teacherId,
+        bookingDate: new Date(date),
+        status: {
+          in: [BookingStatus.PENDING, BookingStatus.CONFIRMED, BookingStatus.IN_PROGRESS],
+        },
+        OR: [
+          {
+            AND: [
+              { startTime: { lte: startTime } },
+              { endTime: { gt: startTime } },
+            ],
+          },
+          {
+            AND: [
+              { startTime: { lt: endTime } },
+              { endTime: { gte: endTime } },
+            ],
+          },
+        ],
+      },
+    });
+
+    return overlappingBookings.length === 0;
+  }
+
+  private calculateDuration(startTime: string, endTime: string): number {
+    const [startHour, startMinute] = startTime.split(':').map(Number);
+    const [endHour, endMinute] = endTime.split(':').map(Number);
+    return parseFloat(((endHour - startHour) + (endMinute - startMinute) / 60).toFixed(1));
   }
 }
