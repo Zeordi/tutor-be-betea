@@ -1,10 +1,17 @@
 // src/modules/bookings/bookings.service.ts
-import { Injectable, BadRequestException, NotFoundException } from '@nestjs/common';
+import { Injectable, BadRequestException, NotFoundException, ForbiddenException } from '@nestjs/common';
 import { PrismaService } from '../../prisma/prisma.service';
 import { StripeService } from '../../services/stripe.service';
 import { NotificationService } from '../../services/notification.service';
 import { CreateBookingDto } from './dto/create-booking.dto';
-import { BookingStatus } from '@prisma/client';
+import { ListBookingsDto } from './dto/list-bookings.dto';
+import { BookingStatus, Prisma } from '@prisma/client';
+
+type AuthCaller = {
+  id: string;
+  userType?: string;
+  teacherProfile?: { id: string } | null;
+};
 
 @Injectable()
 export class BookingsService {
@@ -13,6 +20,194 @@ export class BookingsService {
     private readonly stripeService: StripeService,
     private readonly notificationService: NotificationService,
   ) {}
+
+  private bookingInclude = {
+    teacher: {
+      include: {
+        user: {
+          select: { fullName: true, profileImage: true, email: true },
+        },
+      },
+    },
+    parent: {
+      select: { id: true, fullName: true, email: true, profileImage: true },
+    },
+    payments: {
+      orderBy: { createdAt: 'desc' as const },
+      take: 3,
+      select: {
+        id: true,
+        status: true,
+        amount: true,
+        stripePaymentIntent: true,
+        createdAt: true,
+      },
+    },
+  };
+
+  private serializeBooking(booking: {
+    id: string;
+    teacherId: string;
+    parentId: string;
+    studentName: string;
+    studentAge: number;
+    learningGoals: string | null;
+    bookingDate: Date;
+    startTime: string;
+    endTime: string;
+    durationHours: Prisma.Decimal | number;
+    status: BookingStatus;
+    totalAmount: Prisma.Decimal | number;
+    platformFee: Prisma.Decimal | number;
+    teacherPayout: Prisma.Decimal | number;
+    isTrialLesson: boolean;
+    cancellationReason: string | null;
+    cancelledAt: Date | null;
+    completedAt: Date | null;
+    createdAt: Date;
+    updatedAt: Date;
+    teacher?: {
+      id: string;
+      subjects: unknown;
+      hourlyRate: Prisma.Decimal | number;
+      user: { fullName: string; profileImage: string | null; email?: string };
+    };
+    parent?: {
+      id: string;
+      fullName: string;
+      email: string;
+      profileImage: string | null;
+    };
+    payments?: Array<{
+      id: string;
+      status: string;
+      amount: Prisma.Decimal | number;
+      stripePaymentIntent: string | null;
+      createdAt: Date;
+    }>;
+  }) {
+    return {
+      id: booking.id,
+      teacherId: booking.teacherId,
+      parentId: booking.parentId,
+      studentName: booking.studentName,
+      studentAge: booking.studentAge,
+      learningGoals: booking.learningGoals,
+      bookingDate: booking.bookingDate,
+      startTime: booking.startTime,
+      endTime: booking.endTime,
+      durationHours: Number(booking.durationHours),
+      status: booking.status,
+      totalAmount: Number(booking.totalAmount),
+      platformFee: Number(booking.platformFee),
+      teacherPayout: Number(booking.teacherPayout),
+      isTrialLesson: booking.isTrialLesson,
+      cancellationReason: booking.cancellationReason,
+      cancelledAt: booking.cancelledAt,
+      completedAt: booking.completedAt,
+      createdAt: booking.createdAt,
+      updatedAt: booking.updatedAt,
+      teacher: booking.teacher
+        ? {
+            id: booking.teacher.id,
+            name: booking.teacher.user.fullName,
+            image: booking.teacher.user.profileImage || '',
+            subjects: Array.isArray(booking.teacher.subjects)
+              ? booking.teacher.subjects.map(String)
+              : [],
+            hourlyRate: Number(booking.teacher.hourlyRate),
+          }
+        : undefined,
+      parent: booking.parent
+        ? {
+            id: booking.parent.id,
+            name: booking.parent.fullName,
+            email: booking.parent.email,
+            image: booking.parent.profileImage || '',
+          }
+        : undefined,
+      payments: (booking.payments || []).map((p) => ({
+        id: p.id,
+        status: p.status,
+        amount: Number(p.amount),
+        stripePaymentIntent: p.stripePaymentIntent,
+        createdAt: p.createdAt,
+      })),
+    };
+  }
+
+  async listBookings(caller: AuthCaller, query: ListBookingsDto) {
+    const page = query.page || 1;
+    const limit = query.limit || 20;
+    const skip = (page - 1) * limit;
+
+    const where: Prisma.BookingWhereInput = {};
+
+    if (caller.userType === 'PARENT') {
+      where.parentId = caller.id;
+    } else if (caller.userType === 'TEACHER') {
+      const teacherId = caller.teacherProfile?.id;
+      if (!teacherId) {
+        return { data: [], total: 0, page, totalPages: 1 };
+      }
+      where.teacherId = teacherId;
+    } else if (caller.userType !== 'ADMIN') {
+      throw new ForbiddenException('Not allowed to list bookings');
+    }
+
+    if (query.status) {
+      where.status = query.status;
+    }
+
+    if (query.q?.trim()) {
+      const needle = query.q.trim();
+      where.OR = [
+        { studentName: { contains: needle, mode: 'insensitive' } },
+        { learningGoals: { contains: needle, mode: 'insensitive' } },
+        { teacher: { user: { fullName: { contains: needle, mode: 'insensitive' } } } },
+        { parent: { fullName: { contains: needle, mode: 'insensitive' } } },
+      ];
+    }
+
+    const [rows, total] = await Promise.all([
+      this.prisma.booking.findMany({
+        where,
+        include: this.bookingInclude,
+        orderBy: [{ bookingDate: 'desc' }, { startTime: 'desc' }],
+        skip,
+        take: limit,
+      }),
+      this.prisma.booking.count({ where }),
+    ]);
+
+    return {
+      data: rows.map((b) => this.serializeBooking(b)),
+      total,
+      page,
+      totalPages: Math.max(1, Math.ceil(total / limit)),
+    };
+  }
+
+  async getBooking(bookingId: string, caller: AuthCaller) {
+    const booking = await this.prisma.booking.findUnique({
+      where: { id: bookingId },
+      include: this.bookingInclude,
+    });
+    if (!booking) throw new NotFoundException('Booking not found');
+
+    const isParent = caller.userType === 'PARENT' && booking.parentId === caller.id;
+    const isTeacher =
+      caller.userType === 'TEACHER' &&
+      caller.teacherProfile?.id &&
+      booking.teacherId === caller.teacherProfile.id;
+    const isAdmin = caller.userType === 'ADMIN';
+
+    if (!isParent && !isTeacher && !isAdmin) {
+      throw new ForbiddenException('Not authorized to view this booking');
+    }
+
+    return this.serializeBooking(booking);
+  }
 
   async createBooking(parentId: string, createBookingDto: CreateBookingDto) {
     const { teacherId, bookingDate, startTime, endTime, studentName, studentAge, learningGoals, isTrialLesson } = createBookingDto;

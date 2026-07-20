@@ -15,8 +15,8 @@ export const ENDPOINTS = {
   },
   teachers: {
     list: '/teachers',
+    search: '/teachers/search',
     byId: (id: string) => `/teachers/${id}`,
-    profile: '/teachers/profile',
     availability: '/teachers/availability',
     verification: '/teachers/verification',
   },
@@ -24,6 +24,15 @@ export const ENDPOINTS = {
     list: '/bookings',
     create: '/bookings',
     byId: (id: string) => `/bookings/${id}`,
+    confirm: (id: string) => `/bookings/${id}/confirm`,
+    complete: (id: string) => `/bookings/${id}/complete`,
+    cancel: (id: string) => `/bookings/${id}/cancel`,
+  },
+  favorites: {
+    list: '/favorites',
+    ids: '/favorites/ids',
+    create: '/favorites',
+    remove: (teacherId: string) => `/favorites/${teacherId}`,
   },
   payments: {
     create: '/payments',
@@ -34,6 +43,7 @@ export const ENDPOINTS = {
   },
   reviews: {
     create: '/reviews',
+    byTeacher: (teacherId: string) => `/reviews/teacher/${teacherId}`,
   },
   admin: {
     users: '/admin/users',

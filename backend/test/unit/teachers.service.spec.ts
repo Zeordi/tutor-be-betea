@@ -35,12 +35,12 @@ describe('TeachersService', () => {
         availability: [{ dayOfWeek: 1 }],
       },
     ]);
-    prisma.teacherProfile.count.mockResolvedValue(1);
 
     const result = await service.search({ subject: 'math', page: 1, limit: 10 });
     expect(result.data).toHaveLength(1);
     expect(result.data[0].name).toBe('Ada');
     expect(result.total).toBe(1);
+    expect(prisma.teacherProfile.count).not.toHaveBeenCalled();
   });
 
   it('creates a teacher profile for a user', async () => {

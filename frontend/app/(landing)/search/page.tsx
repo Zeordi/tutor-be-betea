@@ -7,6 +7,7 @@ import { motion } from 'framer-motion';
 import { Search, Star, Shield, MapPin, Loader2 } from 'lucide-react';
 import { SiteFooter, SiteHeader } from '@/components/layout/site-chrome';
 import { apiClient } from '@/lib/api/client';
+import { ENDPOINTS } from '@/lib/api/endpoints';
 
 type TeacherCard = {
   id: string;
@@ -29,48 +30,6 @@ type SearchResponse = {
   totalPages: number;
 };
 
-const fallbackTeachers: TeacherCard[] = [
-  {
-    id: 'demo-1',
-    name: 'Sara Bekele',
-    subject: 'Mathematics',
-    rating: 4.9,
-    reviews: 28,
-    price: 450,
-    distance: 'Nearby',
-    image: '',
-    verified: true,
-    experience: 6,
-    availability: ['Mon', 'Wed', 'Fri'],
-  },
-  {
-    id: 'demo-2',
-    name: 'Daniel Hailu',
-    subject: 'Physics',
-    rating: 4.7,
-    reviews: 19,
-    price: 500,
-    distance: 'Nearby',
-    image: '',
-    verified: true,
-    experience: 4,
-    availability: ['Tue', 'Thu'],
-  },
-  {
-    id: 'demo-3',
-    name: 'Hanna Tadesse',
-    subject: 'English',
-    rating: 4.8,
-    reviews: 34,
-    price: 400,
-    distance: 'Nearby',
-    image: '',
-    verified: true,
-    experience: 5,
-    availability: ['Sat', 'Sun'],
-  },
-];
-
 function PublicSearchContent() {
   const searchParams = useSearchParams();
   const initialQuery = searchParams.get('q') || '';
@@ -78,8 +37,8 @@ function PublicSearchContent() {
   const [subject, setSubject] = useState(initialQuery);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
-  const [teachers, setTeachers] = useState<TeacherCard[]>(fallbackTeachers);
-  const [usingLiveData, setUsingLiveData] = useState(false);
+  const [teachers, setTeachers] = useState<TeacherCard[]>([]);
+  const [total, setTotal] = useState(0);
 
   async function runSearch(nextSubject?: string) {
     setLoading(true);
@@ -91,14 +50,16 @@ function PublicSearchContent() {
       params.set('page', '1');
       params.set('limit', '12');
 
-      const result = await apiClient.get<SearchResponse>(`/teachers/search?${params.toString()}`);
+      const result = await apiClient.get<SearchResponse>(
+        `${ENDPOINTS.teachers.search}?${params.toString()}`,
+      );
       const rows = Array.isArray(result?.data) ? result.data : [];
       setTeachers(rows);
-      setUsingLiveData(true);
-    } catch {
-      setUsingLiveData(false);
-      setTeachers(fallbackTeachers);
-      setError('Live teacher search is temporarily unavailable. Showing sample profiles.');
+      setTotal(result?.total ?? rows.length);
+    } catch (err) {
+      setTeachers([]);
+      setTotal(0);
+      setError(err instanceof Error ? err.message : 'Teacher search is temporarily unavailable.');
     } finally {
       setLoading(false);
     }
@@ -118,9 +79,9 @@ function PublicSearchContent() {
   }
 
   const heading = useMemo(() => {
-    if (usingLiveData && teachers.length === 0) return 'No teachers matched that search yet';
+    if (!loading && !error && teachers.length === 0) return 'No teachers matched that search yet';
     return 'Find verified teachers near you';
-  }, [usingLiveData, teachers.length]);
+  }, [loading, error, teachers.length]);
 
   return (
     <>
@@ -131,8 +92,8 @@ function PublicSearchContent() {
           </p>
           <h1 className="mt-3 text-4xl md:text-5xl font-bold text-gray-900 leading-tight">{heading}</h1>
           <p className="mt-4 text-lg text-gray-600">
-            Search by subject to discover local tutors. Create a parent account to book a home
-            session, message teachers, and manage lessons.
+            Live listings of verified tutors. Create a parent account to book a home session, save
+            favorites, and manage lessons.
           </p>
         </motion.div>
 
@@ -162,6 +123,11 @@ function PublicSearchContent() {
         </form>
 
         {error ? <p className="mt-4 text-sm text-amber-700">{error}</p> : null}
+        {!loading && !error ? (
+          <p className="mt-4 text-sm text-gray-600">
+            Showing <span className="font-semibold">{total}</span> teachers
+          </p>
+        ) : null}
       </section>
 
       <section className="container mx-auto px-4 mt-10">
@@ -198,16 +164,16 @@ function PublicSearchContent() {
                 </span>
               </div>
 
-              <div className="mt-4 flex items-center justify-between">
+              <div className="mt-4 flex items-center justify-between gap-3">
                 <p className="font-semibold text-gray-900">
-                  {teacher.price ? `${teacher.price} ETB` : 'Rate on request'}
+                  {teacher.price ? `$${teacher.price}` : 'Rate on request'}
                   <span className="text-sm font-normal text-gray-500"> / hr</span>
                 </p>
                 <Link
-                  href="/register"
+                  href={`/login?callbackUrl=${encodeURIComponent(`/parent/teacher/${teacher.id}`)}`}
                   className="text-sm font-medium text-tutor-green-700 hover:text-tutor-green-800"
                 >
-                  Book after signup
+                  View & book
                 </Link>
               </div>
             </motion.article>

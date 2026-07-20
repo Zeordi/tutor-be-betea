@@ -37,8 +37,8 @@ export class TeachersController {
 
   @Public()
   @Get()
-  findAll() {
-    return this.teachersService.findAll();
+  findAll(@Query('q') q?: string) {
+    return this.teachersService.findAll(q);
   }
 
   @Public()

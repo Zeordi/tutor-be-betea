@@ -1,11 +1,50 @@
-import { Body, Controller, Param, Post, Put, Req } from '@nestjs/common';
+import {
+  Body,
+  Controller,
+  Get,
+  Param,
+  Post,
+  Put,
+  Query,
+  Req,
+} from '@nestjs/common';
 import { BookingsService } from './bookings.service';
 import { CreateBookingDto } from './dto/create-booking.dto';
+import { ListBookingsDto } from './dto/list-bookings.dto';
 import { Roles } from '../auth/decorators/roles.decorator';
 
 @Controller('bookings')
 export class BookingsController {
   constructor(private readonly bookingsService: BookingsService) {}
+
+  @Get()
+  @Roles('PARENT', 'TEACHER', 'ADMIN')
+  list(
+    @Req() req: { user?: { id: string; userType?: string; teacherProfile?: { id: string } } },
+    @Query() query: ListBookingsDto,
+  ) {
+    return this.bookingsService.listBookings(
+      {
+        id: req.user?.id || '',
+        userType: req.user?.userType,
+        teacherProfile: req.user?.teacherProfile,
+      },
+      query,
+    );
+  }
+
+  @Get(':id')
+  @Roles('PARENT', 'TEACHER', 'ADMIN')
+  getOne(
+    @Param('id') id: string,
+    @Req() req: { user?: { id: string; userType?: string; teacherProfile?: { id: string } } },
+  ) {
+    return this.bookingsService.getBooking(id, {
+      id: req.user?.id || '',
+      userType: req.user?.userType,
+      teacherProfile: req.user?.teacherProfile,
+    });
+  }
 
   @Post()
   @Roles('PARENT')

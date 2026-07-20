@@ -9,6 +9,13 @@ describe('BookingsController (e2e)', () => {
   let app: INestApplication;
   const bookingsService = {
     createBooking: jest.fn().mockResolvedValue({ id: 'b1', status: 'PENDING' }),
+    listBookings: jest.fn().mockResolvedValue({
+      data: [{ id: 'b1', status: 'PENDING' }],
+      total: 1,
+      page: 1,
+      totalPages: 1,
+    }),
+    getBooking: jest.fn().mockResolvedValue({ id: 'b1', status: 'PENDING' }),
     confirmBooking: jest.fn().mockResolvedValue({
       booking: { id: 'b1', status: 'PENDING' },
       clientSecret: 'pi_secret',
@@ -67,6 +74,20 @@ describe('BookingsController (e2e)', () => {
     expect(bookingsService.createBooking).toHaveBeenCalledWith(
       'u1',
       expect.objectContaining({ teacherId: 't1' }),
+    );
+  });
+
+  it('GET /api/bookings lists bookings for current user', async () => {
+    const res = await request(app.getHttpServer()).get('/api/bookings').expect(200);
+    expect(res.body.data || res.body).toBeTruthy();
+    expect(bookingsService.listBookings).toHaveBeenCalled();
+  });
+
+  it('GET /api/bookings/:id returns one booking', async () => {
+    await request(app.getHttpServer()).get('/api/bookings/b1').expect(200);
+    expect(bookingsService.getBooking).toHaveBeenCalledWith(
+      'b1',
+      expect.objectContaining({ id: 'u1' }),
     );
   });
 });

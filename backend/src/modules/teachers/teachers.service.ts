@@ -37,40 +37,48 @@ export class TeachersService {
       where.avgRating = { gte: params.rating };
     }
 
-    const [teachers, total] = await Promise.all([
-      this.prisma.teacherProfile.findMany({
-        where,
-        include: {
-          user: true,
-          availability: true,
-        },
-        skip,
-        take: limit,
-        orderBy: { avgRating: 'desc' },
-      }),
-      this.prisma.teacherProfile.count({ where }),
-    ]);
+    // Subject is stored as JSON; filter then paginate so totals stay accurate.
+    const teachers = await this.prisma.teacherProfile.findMany({
+      where,
+      include: {
+        user: true,
+        availability: true,
+      },
+      orderBy: { avgRating: 'desc' },
+    });
+
+    const needle = params.subject?.trim().toLowerCase();
+    const filtered = needle
+      ? teachers.filter((t) => {
+          const subjects = Array.isArray(t.subjects) ? t.subjects : [];
+          const name = t.user.fullName?.toLowerCase() || '';
+          const bio = t.bio?.toLowerCase() || '';
+          return (
+            subjects.some((s) => String(s).toLowerCase().includes(needle)) ||
+            name.includes(needle) ||
+            bio.includes(needle)
+          );
+        })
+      : teachers;
+
+    const total = filtered.length;
+    const pageSlice = filtered.slice(skip, skip + limit);
 
     const dayNames = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
-    const data = teachers
-      .filter((t) => {
-        if (!params.subject) return true;
-        const subjects = Array.isArray(t.subjects) ? t.subjects : [];
-        return subjects.some((s) => String(s).toLowerCase().includes(params.subject!.toLowerCase()));
-      })
-      .map((t) => ({
-        id: t.id,
-        name: t.user.fullName,
-        subject: Array.isArray(t.subjects) && t.subjects[0] ? String(t.subjects[0]) : 'General',
-        rating: Number(t.avgRating),
-        reviews: t.totalReviews,
-        price: Number(t.hourlyRate),
-        distance: `${params.radius ?? 10} km`,
-        image: t.user.profileImage || '',
-        verified: t.verificationStatus === VerificationStatus.APPROVED,
-        experience: t.experienceYears,
-        availability: t.availability.map((a) => dayNames[a.dayOfWeek] || String(a.dayOfWeek)),
-      }));
+    const data = pageSlice.map((t) => ({
+      id: t.id,
+      name: t.user.fullName,
+      subject: Array.isArray(t.subjects) && t.subjects[0] ? String(t.subjects[0]) : 'General',
+      subjects: Array.isArray(t.subjects) ? t.subjects.map(String) : [],
+      rating: Number(t.avgRating),
+      reviews: t.totalReviews,
+      price: Number(t.hourlyRate),
+      distance: `${params.radius ?? 10} km`,
+      image: t.user.profileImage || '',
+      verified: t.verificationStatus === VerificationStatus.APPROVED,
+      experience: t.experienceYears,
+      availability: t.availability.map((a) => dayNames[a.dayOfWeek] || String(a.dayOfWeek)),
+    }));
 
     return {
       data,
@@ -97,7 +105,7 @@ export class TeachersService {
   }
 
   async findOne(id: string) {
-    return this.prisma.teacherProfile.findUnique({
+    const teacher = await this.prisma.teacherProfile.findUnique({
       where: { id },
       include: {
         user: {
@@ -107,9 +115,13 @@ export class TeachersService {
             phone: true,
           },
         },
-        availability: true,
+        availability: {
+          orderBy: { dayOfWeek: 'asc' },
+        },
       },
     });
+    if (!teacher) throw new NotFoundException('Teacher not found');
+    return teacher;
   }
 
   async create(userId: string, dto: CreateTeacherProfileDto) {
