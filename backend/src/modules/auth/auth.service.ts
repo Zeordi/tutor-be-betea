@@ -177,11 +177,15 @@ export class AuthService {
 
     const token = uuidv4();
     await this.cacheService.set(`password_reset:${token}`, user.id, 3600); // 1 hour
-    await this.emailService.sendPasswordResetEmail({
-      email: user.email,
-      name: user.fullName,
-      token,
-    });
+    try {
+      await this.emailService.sendPasswordResetEmail({
+        email: user.email,
+        name: user.fullName,
+        token,
+      });
+    } catch {
+      // Don't leak provider failures to clients; token remains usable if email is retried later.
+    }
 
     return { message: 'If that email is registered, a reset link was sent' };
   }

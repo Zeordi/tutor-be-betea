@@ -32,4 +32,15 @@
 
 ## SMTP note
 
-Without SMTP credentials, emails are logged on the API (dev fallback). Set production SMTP on Railway for real delivery.
+Railway **blocks outbound SMTP** (ports 587/465 time out to Gmail). HTTPS works.
+
+Use **Resend** (HTTP API) in production:
+
+1. Create a free account at https://resend.com
+2. Create an API key
+3. Set on Railway `api` service:
+   - `RESEND_API_KEY=re_...`
+   - `EMAIL_FROM=Tutor Be Betea <onboarding@resend.dev>` (Resend test sender), or your verified domain
+4. Redeploy `api`
+
+Gmail `EMAIL_HOST`/`EMAIL_USER`/`EMAIL_PASS` still work for **local/Docker** SMTP, but not from Railway.
