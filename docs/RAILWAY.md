@@ -25,10 +25,18 @@ Railway project: `tutor-be-betea-api` (service `api`). Dashboard: https://railwa
 | `JWT_SECRET` / `JWT_REFRESH_SECRET` | Same as Vercel API for session continuity |
 | `FRONTEND_URL` | `https://tutor-be-betea.vercel.app` |
 | `ADMIN_EMAIL` / `ADMIN_TEAM_EMAILS` | Team admin allowlist |
+| `REDIS_URL` | Railway Redis (`${{Redis.REDIS_URL}}`) — required for durable auth tokens |
 | `NODE_ENV` | `production` |
 | `PORT` | Set automatically by Railway |
 
-Optional: `REDIS_URL`, Stripe, email, Veriff, AWS.
+### Launch integrations (set before go-live)
+
+| Variable | Notes |
+|----------|--------|
+| `STRIPE_SECRET_KEY` / `STRIPE_WEBHOOK_SECRET` | See `docs/INTEGRATIONS.md` — webhook URL below |
+| `AWS_REGION` / `AWS_S3_BUCKET` / `AWS_ACCESS_KEY_ID` / `AWS_SECRET_ACCESS_KEY` | Teacher verification uploads |
+
+Optional later: email / Resend, Veriff.
 
 ### Stripe webhooks (booking confirmation)
 
@@ -36,7 +44,7 @@ Booking confirmation is payment-gated. Point Stripe at:
 
 `https://api-production-53a9.up.railway.app/api/payments/webhooks/stripe`
 
-Required vars: `STRIPE_SECRET_KEY`, `STRIPE_WEBHOOK_SECRET`. Nest is started with `rawBody: true` so signature verification works. Details: `docs/PAYMENTS.md`.
+Nest is started with `rawBody: true` so signature verification works. Full steps: `docs/PAYMENTS.md` and `docs/INTEGRATIONS.md`.
 
 ## Deploy / redeploy
 
