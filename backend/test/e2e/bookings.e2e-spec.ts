@@ -9,7 +9,11 @@ describe('BookingsController (e2e)', () => {
   let app: INestApplication;
   const bookingsService = {
     createBooking: jest.fn().mockResolvedValue({ id: 'b1', status: 'PENDING' }),
-    confirmBooking: jest.fn().mockResolvedValue({ id: 'b1', status: 'CONFIRMED' }),
+    confirmBooking: jest.fn().mockResolvedValue({
+      booking: { id: 'b1', status: 'PENDING' },
+      clientSecret: 'pi_secret',
+      stripePaymentIntent: 'pi_1',
+    }),
     completeBooking: jest.fn().mockResolvedValue({ id: 'b1', status: 'COMPLETED' }),
     cancelBooking: jest.fn().mockResolvedValue({ id: 'b1', status: 'CANCELLED' }),
   };

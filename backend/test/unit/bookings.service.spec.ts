@@ -1,3 +1,4 @@
+import { BadRequestException } from '@nestjs/common';
 import { BookingsService } from '../../src/modules/bookings/bookings.service';
 import { PrismaService } from '../../src/prisma/prisma.service';
 import { StripeService } from '../../src/services/stripe.service';
@@ -6,19 +7,21 @@ import { NotificationService } from '../../src/services/notification.service';
 describe('BookingsService', () => {
   let service: BookingsService;
   const prisma = {
-    teacherProfile: { findUnique: jest.fn() },
+    teacherProfile: { findUnique: jest.fn(), update: jest.fn() },
     booking: {
       create: jest.fn(),
       findUnique: jest.fn(),
       findFirst: jest.fn(),
+      findMany: jest.fn(),
       update: jest.fn(),
     },
-    availability: { findMany: jest.fn() },
-    payment: { create: jest.fn() },
+    availability: { findFirst: jest.fn(), findMany: jest.fn() },
+    payment: { create: jest.fn(), findFirst: jest.fn(), update: jest.fn() },
   };
   const stripeService = {
     createPaymentIntent: jest.fn(),
     releasePayment: jest.fn(),
+    refundPayment: jest.fn(),
   };
   const notificationService = {
     sendBookingRequestNotification: jest.fn(),
@@ -45,10 +48,6 @@ describe('BookingsService', () => {
       isAvailable: true,
       user: { fullName: 'Teacher' },
     });
-    prisma.availability.findMany.mockResolvedValue([
-      { dayOfWeek: new Date('2026-07-20T10:00:00Z').getUTCDay(), startTime: '09:00', endTime: '17:00' },
-    ]);
-    prisma.booking.findFirst.mockResolvedValue(null);
     prisma.booking.create.mockResolvedValue({
       id: 'b1',
       teacherId: 't1',
@@ -56,7 +55,6 @@ describe('BookingsService', () => {
       totalAmount: 40,
     });
 
-    // Bypass complex availability calendar by stubbing private method if present
     jest.spyOn(service as never, 'checkAvailability' as never).mockResolvedValue(true as never);
 
     const result = await service.createBooking('p1', {
@@ -75,7 +73,7 @@ describe('BookingsService', () => {
     );
   });
 
-  it('confirms booking and creates payment intent', async () => {
+  it('teacher accept keeps booking PENDING and returns clientSecret', async () => {
     prisma.booking.findUnique.mockResolvedValue({
       id: 'b1',
       teacherId: 't1',
@@ -84,15 +82,85 @@ describe('BookingsService', () => {
       totalAmount: 40,
       teacher: { user: { fullName: 'Teacher' } },
     });
-    stripeService.createPaymentIntent.mockResolvedValue({ id: 'pi_1' });
-    prisma.booking.update.mockResolvedValue({ id: 'b1', status: 'CONFIRMED' });
+    stripeService.createPaymentIntent.mockResolvedValue({
+      id: 'pi_1',
+      client_secret: 'pi_1_secret',
+    });
+    prisma.payment.findFirst.mockResolvedValue(null);
     prisma.payment.create.mockResolvedValue({ id: 'pay1' });
 
     const result = await service.confirmBooking('b1', 't1');
-    expect(result.booking.status).toBe('CONFIRMED');
-    expect(result.clientSecret).toBeUndefined();
-    expect(stripeService.createPaymentIntent).toHaveBeenCalled();
-    expect(notificationService.sendBookingConfirmedNotification).toHaveBeenCalled();
+
+    expect(result.booking.status).toBe('PENDING');
+    expect(result.clientSecret).toBe('pi_1_secret');
+    expect(result.stripePaymentIntent).toBe('pi_1');
+    expect(prisma.booking.update).not.toHaveBeenCalled();
+    expect(stripeService.createPaymentIntent).toHaveBeenCalledWith(
+      expect.objectContaining({ bookingId: 'b1', parentId: 'p1', amount: 40 }),
+    );
+    expect(prisma.payment.create).toHaveBeenCalledWith(
+      expect.objectContaining({
+        data: expect.objectContaining({
+          bookingId: 'b1',
+          stripePaymentIntent: 'pi_1',
+          status: 'PENDING',
+        }),
+      }),
+    );
+    expect(notificationService.sendBookingConfirmedNotification).not.toHaveBeenCalled();
+  });
+
+  it('teacher re-accept updates existing PENDING payment with a new intent', async () => {
+    prisma.booking.findUnique.mockResolvedValue({
+      id: 'b1',
+      teacherId: 't1',
+      parentId: 'p1',
+      status: 'PENDING',
+      totalAmount: 40,
+      teacher: { user: { fullName: 'Teacher' } },
+    });
+    stripeService.createPaymentIntent.mockResolvedValue({
+      id: 'pi_2',
+      client_secret: 'pi_2_secret',
+    });
+    prisma.payment.findFirst.mockResolvedValue({ id: 'pay1', status: 'PENDING' });
+    prisma.payment.update.mockResolvedValue({ id: 'pay1' });
+
+    const result = await service.confirmBooking('b1', 't1');
+
+    expect(result.clientSecret).toBe('pi_2_secret');
+    expect(prisma.payment.update).toHaveBeenCalledWith(
+      expect.objectContaining({
+        where: { id: 'pay1' },
+        data: expect.objectContaining({ stripePaymentIntent: 'pi_2', status: 'PENDING' }),
+      }),
+    );
+    expect(prisma.payment.create).not.toHaveBeenCalled();
+  });
+
+  it('rejects confirm when booking is already CONFIRMED', async () => {
+    prisma.booking.findUnique.mockResolvedValue({
+      id: 'b1',
+      teacherId: 't1',
+      status: 'CONFIRMED',
+      teacher: { user: { fullName: 'Teacher' } },
+    });
+
+    await expect(service.confirmBooking('b1', 't1')).rejects.toBeInstanceOf(BadRequestException);
+    expect(stripeService.createPaymentIntent).not.toHaveBeenCalled();
+  });
+
+  it('completeBooking requires SUCCEEDED payment', async () => {
+    prisma.booking.findUnique.mockResolvedValue({
+      id: 'b1',
+      teacherId: 't1',
+      parentId: 'p1',
+      status: 'CONFIRMED',
+      teacherPayout: 34,
+    });
+    prisma.payment.findFirst.mockResolvedValue(null);
+
+    await expect(service.completeBooking('b1', 't1')).rejects.toBeInstanceOf(BadRequestException);
+    expect(stripeService.releasePayment).not.toHaveBeenCalled();
   });
 });
-

@@ -221,7 +221,7 @@ Response:
 }
 ```
 
-### Confirm Booking (Teacher)
+### Confirm Booking (Teacher accept)
 
 ```http
 PUT /bookings/{id}/confirm
@@ -230,15 +230,19 @@ Authorization: Bearer {accessToken}
 
 (`POST /bookings/{id}/confirm` is also accepted.)
 
+Teacher accept does **not** set `CONFIRMED`. Booking stays `PENDING` until Stripe webhook confirms payment. See `docs/PAYMENTS.md`.
+
 Response:
 
 ```json
 {
   "booking": {
     "id": "uuid",
-    "status": "CONFIRMED"
+    "status": "PENDING"
   },
-  "clientSecret": "pi_xxx_secret_xxx"
+  "clientSecret": "pi_xxx_secret_xxx",
+  "stripePaymentIntent": "pi_xxx",
+  "message": "Teacher accepted. Parent must complete payment to confirm the booking."
 }
 ```
 
@@ -246,17 +250,17 @@ Response:
 
 | Method | Path | Description |
 |--------|------|-------------|
-| POST | `/bookings/{id}/complete` | Mark lesson completed + release payout |
+| POST | `/bookings/{id}/complete` | Mark lesson completed + release payout (requires SUCCEEDED payment) |
 | POST | `/bookings/{id}/cancel` | Cancel booking (`{ "reason": "..." }`) |
 
 ---
 
 ## Payments
 
-### Process Payment
+### Pay / retry (after teacher accept)
 
 ```http
-POST /payments/process
+POST /payments
 Authorization: Bearer {accessToken}
 ```
 
@@ -264,29 +268,42 @@ Request body:
 
 ```json
 {
-  "bookingId": "uuid",
-  "paymentMethodId": "pm_xxx"
+  "bookingId": "uuid"
 }
 ```
+
+Only the booking parent (or admin) may call this. Amount is taken from the booking. Requires a payment row created by teacher accept.
 
 Response:
 
 ```json
 {
-  "success": true,
-  "paymentId": "uuid",
-  "status": "SUCCEEDED",
-  "transactionId": "pi_xxx"
+  "id": "uuid",
+  "bookingId": "uuid",
+  "amount": 45.0,
+  "currency": "usd",
+  "status": "PENDING",
+  "clientSecret": "pi_xxx_secret_xxx",
+  "stripePaymentIntent": "pi_xxx"
 }
 ```
+
+Parent confirms the PaymentIntent client-side (Stripe.js). Booking becomes `CONFIRMED` only when Stripe calls the webhook.
+
+### Deprecated: process
+
+```http
+POST /payments/process
+```
+
+Returns **410 Gone**. Do not mark payments succeeded from the API.
 
 Also available:
 
 | Method | Path | Description |
 |--------|------|-------------|
-| POST | `/payments` | Create payment intent |
-| POST | `/payments/refund` | Refund a payment |
-| POST | `/payments/webhooks/stripe` | Stripe webhook |
+| POST | `/payments/refund` | Refund a payment (admin) |
+| POST | `/payments/webhooks/stripe` | Stripe webhook (raw body + signature) |
 
 ---
 

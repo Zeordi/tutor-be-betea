@@ -14,6 +14,7 @@ async function bootstrap(): Promise<Express> {
   const expressApp = express();
   const app = await NestFactory.create(AppModule, new ExpressAdapter(expressApp), {
     logger: ['error', 'warn', 'log'],
+    rawBody: true,
   });
 
   app.enableCors({
