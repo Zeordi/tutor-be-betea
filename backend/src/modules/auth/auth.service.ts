@@ -1,5 +1,9 @@
 // src/modules/auth/auth.service.ts
-import { Injectable, UnauthorizedException, BadRequestException } from '@nestjs/common';
+import {
+  Injectable,
+  UnauthorizedException,
+  BadRequestException,
+} from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
 import { ConfigService } from '@nestjs/config';
 import * as bcrypt from 'bcrypt';
@@ -27,7 +31,6 @@ export class AuthService {
       throw new BadRequestException('Admin accounts cannot be self-registered');
     }
 
-    // Check if user exists
     const existingUser = await this.prisma.user.findFirst({
       where: {
         OR: [{ email }, { phone }],
@@ -38,10 +41,8 @@ export class AuthService {
       throw new BadRequestException('User already exists with this email or phone');
     }
 
-    // Hash password
     const hashedPassword = await bcrypt.hash(password, 12);
 
-    // Create user
     const user = await this.prisma.user.create({
       data: {
         email,
@@ -54,7 +55,6 @@ export class AuthService {
       },
     });
 
-    // Create teacher profile if user is a teacher
     if (userType === 'TEACHER') {
       await this.prisma.teacherProfile.create({
         data: {
@@ -65,21 +65,8 @@ export class AuthService {
       });
     }
 
-    // Send verification email
-    const verificationToken = uuidv4();
-    await this.cacheService.set(
-      `email_verification:${verificationToken}`,
-      user.id,
-      86400, // 24 hours
-    );
+    await this.issueEmailVerification(user.id, user.email, user.fullName);
 
-    await this.emailService.sendVerificationEmail({
-      email: user.email,
-      name: user.fullName,
-      token: verificationToken,
-    });
-
-    // Generate tokens
     const tokens = await this.generateTokens(user);
 
     return {
@@ -108,19 +95,16 @@ export class AuthService {
       throw new UnauthorizedException('Admin access is restricted to the platform team');
     }
 
-    // Verify password
     const isPasswordValid = await bcrypt.compare(password, user.passwordHash);
     if (!isPasswordValid) {
       throw new UnauthorizedException('Invalid credentials');
     }
 
-    // Update last login
     await this.prisma.user.update({
       where: { id: user.id },
       data: { lastLoginAt: new Date() },
     });
 
-    // Generate tokens
     const tokens = await this.generateTokens(user);
 
     return {
@@ -135,17 +119,24 @@ export class AuthService {
         secret: this.configService.get<string>('JWT_REFRESH_SECRET'),
       });
 
+      const stored = await this.cacheService.get<string>(`refresh_token:${payload.sub}`);
+      if (!stored || stored !== refreshToken) {
+        throw new UnauthorizedException('Invalid refresh token');
+      }
+
       const user = await this.prisma.user.findUnique({
         where: { id: payload.sub },
       });
 
-      if (!user) {
+      if (!user || !user.isActive) {
         throw new UnauthorizedException('Invalid refresh token');
       }
 
-      const tokens = await this.generateTokens(user);
-      return tokens;
+      // Rotate refresh token
+      await this.cacheService.del(`refresh_token:${user.id}`);
+      return this.generateTokens(user);
     } catch (error) {
+      if (error instanceof UnauthorizedException) throw error;
       throw new UnauthorizedException('Invalid refresh token');
     }
   }
@@ -166,8 +157,59 @@ export class AuthService {
     return { message: 'Email verified successfully' };
   }
 
+  async resendVerification(email: string) {
+    const user = await this.prisma.user.findUnique({ where: { email } });
+    // Always return success to avoid email enumeration
+    if (!user || user.isVerified) {
+      return { message: 'If that account exists and is unverified, a new email was sent' };
+    }
+
+    await this.issueEmailVerification(user.id, user.email, user.fullName);
+    return { message: 'If that account exists and is unverified, a new email was sent' };
+  }
+
+  async forgotPassword(email: string) {
+    const user = await this.prisma.user.findUnique({ where: { email } });
+    // Always return success to avoid email enumeration
+    if (!user || !user.isActive) {
+      return { message: 'If that email is registered, a reset link was sent' };
+    }
+
+    const token = uuidv4();
+    await this.cacheService.set(`password_reset:${token}`, user.id, 3600); // 1 hour
+    await this.emailService.sendPasswordResetEmail({
+      email: user.email,
+      name: user.fullName,
+      token,
+    });
+
+    return { message: 'If that email is registered, a reset link was sent' };
+  }
+
+  async resetPassword(token: string, newPassword: string) {
+    const userId = await this.cacheService.get<string>(`password_reset:${token}`);
+    if (!userId) {
+      throw new BadRequestException('Invalid or expired reset token');
+    }
+
+    const passwordHash = await bcrypt.hash(newPassword, 12);
+    await this.prisma.user.update({
+      where: { id: userId },
+      data: { passwordHash },
+    });
+
+    await this.cacheService.del(`password_reset:${token}`);
+    // Invalidate existing refresh sessions
+    await this.cacheService.del(`refresh_token:${userId}`);
+
+    return { message: 'Password updated successfully' };
+  }
+
   async logout(userId: string) {
-    await this.cacheService.del(`user_session:${userId}`);
+    if (!userId) {
+      throw new UnauthorizedException('Not authenticated');
+    }
+    await this.cacheService.del(`refresh_token:${userId}`);
     return { message: 'Logged out successfully' };
   }
 
@@ -176,6 +218,16 @@ export class AuthService {
     if (!user || !user.isActive) return null;
     const isPasswordValid = await bcrypt.compare(password, user.passwordHash);
     return isPasswordValid ? this.sanitizeUser(user) : null;
+  }
+
+  private async issueEmailVerification(userId: string, email: string, name: string) {
+    const verificationToken = uuidv4();
+    await this.cacheService.set(`email_verification:${verificationToken}`, userId, 86400);
+    await this.emailService.sendVerificationEmail({
+      email,
+      name,
+      token: verificationToken,
+    });
   }
 
   private async generateTokens(user: any) {
@@ -192,17 +244,16 @@ export class AuthService {
       expiresIn: this.configService.get<string>('JWT_REFRESH_EXPIRATION', '7d'),
     });
 
-    // Store refresh token in cache
     await this.cacheService.set(
       `refresh_token:${user.id}`,
       refreshToken,
-      7 * 24 * 60 * 60, // 7 days
+      7 * 24 * 60 * 60,
     );
 
     return {
       accessToken,
       refreshToken,
-      expiresIn: 15 * 60, // 15 minutes in seconds
+      expiresIn: 15 * 60,
     };
   }
 
@@ -221,7 +272,6 @@ export class AuthService {
       .map((e) => e.trim().toLowerCase())
       .filter(Boolean);
 
-    // If no allowlist is configured, keep existing ADMIN accounts working in local/dev.
     if (!allowlist.length) return true;
     return allowlist.includes(email.toLowerCase());
   }

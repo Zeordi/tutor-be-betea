@@ -1,15 +1,20 @@
-import { IsEmail, IsOptional, IsString, MinLength } from 'class-validator';
+import { IsEmail, IsString, MinLength } from 'class-validator';
 
-export class ResetPasswordDto {
+export class ForgotPasswordDto {
   @IsEmail()
   email!: string;
+}
 
-  @IsOptional()
+export class ResetPasswordDto {
+  @IsString()
+  token!: string;
+
   @IsString()
   @MinLength(8)
-  newPassword?: string;
+  newPassword!: string;
+}
 
-  @IsOptional()
-  @IsString()
-  token?: string;
+export class ResendVerificationDto {
+  @IsEmail()
+  email!: string;
 }

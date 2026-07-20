@@ -2,6 +2,11 @@ export const ENDPOINTS = {
   auth: {
     login: '/auth/login',
     register: '/auth/register',
+    refresh: '/auth/refresh',
+    logout: '/auth/logout',
+    verifyEmail: '/auth/verify-email',
+    resendVerification: '/auth/resend-verification',
+    forgotPassword: '/auth/forgot-password',
     resetPassword: '/auth/reset-password',
   },
   users: {
