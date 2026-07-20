@@ -4,7 +4,7 @@
 
 - Protect `/parent/*` and `/teacher/*` (not only `/admin/*`)
 - Durable refresh/logout tokens via Redis
-- Working verify-email + forgot/reset-password flows
+- Optional verify-email + forgot/reset-password flows
 - Remove non-functional Google/Facebook buttons
 
 ## Backend
@@ -16,31 +16,35 @@
   - `POST /api/auth/resend-verification`
   - `POST /api/auth/forgot-password`
   - `POST /api/auth/reset-password`
-- `EmailService` sends via SMTP when `EMAIL_HOST`/`EMAIL_USER`/`EMAIL_PASS` are set
+- `EmailService` tries SMTP/Resend when configured, otherwise **logs** the message
+- Email send failures **do not** fail registration or password-reset request handlers that catch them
+- New accounts are created with `isVerified: true` until a real sending domain is available
 
 ## Frontend
 
 - Middleware matcher: `/admin`, `/teacher`, `/parent`, `/dashboard`
-- Role gates + email-verification gate for parent/teacher
+- Role gates for parent/teacher/admin (email-verification gate removed)
 - NextAuth JWT refresh using `/auth/refresh`
-- Real `/verify-email` and `/reset-password` pages
+- `/verify-email` and `/reset-password` pages remain available but are not required to use the app
 
 ## Railway
 
 - Redis service added to `tutor-be-betea-api`
 - `api` service `REDIS_URL=${{Redis.REDIS_URL}}`
 
-## SMTP note
+## Email note
 
-Railway **blocks outbound SMTP** (ports 587/465 time out to Gmail). HTTPS works.
+Railway **blocks outbound SMTP** (ports 587/465 time out to Gmail).
 
-Use **Resend** (HTTP API) in production:
+Do **not** rely on Resend’s `onboarding@resend.dev` test sender for production signup —
+without a verified domain it only delivers to the Resend account owner and breaks other addresses.
 
-1. Create a free account at https://resend.com
-2. Create an API key
-3. Set on Railway `api` service:
-   - `RESEND_API_KEY=re_...`
-   - `EMAIL_FROM=Tutor Be Betea <onboarding@resend.dev>` (Resend test sender), or your verified domain
-4. Redeploy `api`
+Until you own a domain:
 
-Gmail `EMAIL_HOST`/`EMAIL_USER`/`EMAIL_PASS` still work for **local/Docker** SMTP, but not from Railway.
+- Leave `RESEND_API_KEY` unset
+- Signup/login work without sending mail (messages are logged)
+
+Later, with a verified domain:
+
+1. Set `RESEND_API_KEY` and `EMAIL_FROM=Tutor Be Betea <noreply@yourdomain.com>`
+2. Optionally re-enable an email-verification gate in middleware

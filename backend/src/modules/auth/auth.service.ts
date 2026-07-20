@@ -50,7 +50,7 @@ export class AuthService {
         fullName,
         phone,
         userType,
-        isVerified: false,
+        isVerified: true,
         isActive: true,
       },
     });
@@ -65,7 +65,13 @@ export class AuthService {
       });
     }
 
-    await this.issueEmailVerification(user.id, user.email, user.fullName);
+    // Email delivery is optional until a real domain/provider is configured.
+    // Never fail registration because outbound email is unavailable.
+    try {
+      await this.issueEmailVerification(user.id, user.email, user.fullName);
+    } catch (err) {
+      // already logged inside EmailService; account remains usable
+    }
 
     const tokens = await this.generateTokens(user);
 
@@ -164,7 +170,11 @@ export class AuthService {
       return { message: 'If that account exists and is unverified, a new email was sent' };
     }
 
-    await this.issueEmailVerification(user.id, user.email, user.fullName);
+    try {
+      await this.issueEmailVerification(user.id, user.email, user.fullName);
+    } catch {
+      // Email provider optional — do not fail the public resend endpoint.
+    }
     return { message: 'If that account exists and is unverified, a new email was sent' };
   }
 
