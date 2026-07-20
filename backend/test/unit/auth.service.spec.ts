@@ -105,4 +105,34 @@ describe('AuthService', () => {
       service.login({ email: 'p@example.com', password: 'SecurePass1' }),
     ).rejects.toBeInstanceOf(UnauthorizedException);
   });
+
+  it('rotates refresh tokens only when stored token matches', async () => {
+    jwtService.verify.mockReturnValue({ sub: 'u1' });
+    cacheService.get.mockResolvedValue('stored-refresh');
+    prisma.user.findUnique.mockResolvedValue({
+      id: 'u1',
+      email: 'p@example.com',
+      isActive: true,
+      userType: 'PARENT',
+      isVerified: true,
+    });
+
+    const result = await service.refreshToken('stored-refresh');
+    expect(cacheService.del).toHaveBeenCalledWith('refresh_token:u1');
+    expect(result.accessToken).toBe('token');
+  });
+
+  it('rejects refresh when stored token does not match', async () => {
+    jwtService.verify.mockReturnValue({ sub: 'u1' });
+    cacheService.get.mockResolvedValue('other-token');
+    await expect(service.refreshToken('stored-refresh')).rejects.toBeInstanceOf(
+      UnauthorizedException,
+    );
+  });
+
+  it('clears refresh token on logout', async () => {
+    const result = await service.logout('u1');
+    expect(cacheService.del).toHaveBeenCalledWith('refresh_token:u1');
+    expect(result.message).toMatch(/Logged out/i);
+  });
 });

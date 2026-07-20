@@ -33,7 +33,25 @@ export function Header() {
             <span className="hidden text-slate-500 sm:inline">{data.user.email}</span>
             <button
               type="button"
-              onClick={() => signOut({ callbackUrl: '/login' })}
+              onClick={async () => {
+                try {
+                  if (data.accessToken) {
+                    await fetch(
+                      `${process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:4000/api'}/auth/logout`,
+                      {
+                        method: 'POST',
+                        headers: {
+                          Authorization: `Bearer ${data.accessToken}`,
+                          'Content-Type': 'application/json',
+                        },
+                      },
+                    );
+                  }
+                } catch {
+                  // Still clear local session
+                }
+                await signOut({ callbackUrl: '/login' });
+              }}
               className="rounded-md px-2 py-1 text-slate-600 hover:bg-slate-100"
             >
               Sign out
