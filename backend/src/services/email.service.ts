@@ -49,30 +49,42 @@ export class EmailService {
     const from =
       this.config.get<string>('EMAIL_FROM') ||
       this.config.get<string>('EMAIL_USER') ||
-      'Tutor Be Betea <onboarding@resend.dev>';
+      'Tutor Be Betea <noreply@localhost>';
 
+    // Resend is optional. Without a verified domain it rejects most recipients —
+    // never throw from here so signup/login keep working.
     if (this.resendApiKey) {
-      const res = await fetch('https://api.resend.com/emails', {
-        method: 'POST',
-        headers: {
-          Authorization: `Bearer ${this.resendApiKey}`,
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          from,
-          to: [to],
-          subject,
-          text,
-          html: html || text.replace(/\n/g, '<br/>'),
-        }),
-      });
-      const body = (await res.json().catch(() => ({}))) as { id?: string; message?: string };
-      if (!res.ok) {
-        this.logger.error(`Resend failed: ${res.status} ${body.message || JSON.stringify(body)}`);
-        throw new Error(body.message || `Resend send failed (${res.status})`);
+      try {
+        const res = await fetch('https://api.resend.com/emails', {
+          method: 'POST',
+          headers: {
+            Authorization: `Bearer ${this.resendApiKey}`,
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            from,
+            to: [to],
+            subject,
+            text,
+            html: html || text.replace(/\n/g, '<br/>'),
+          }),
+        });
+        const body = (await res.json().catch(() => ({}))) as { id?: string; message?: string };
+        if (!res.ok) {
+          this.logger.warn(
+            `Resend unavailable (${res.status}): ${body.message || JSON.stringify(body)} — logging email instead`,
+          );
+          this.logger.log(`[email-fallback] to=${to} subject=${subject}\n${text}`);
+          return { to, subject, queued: true, delivered: false, mode: 'log' };
+        }
+        this.logger.log(`Email sent via Resend to=${to} id=${body.id}`);
+        return { to, subject, queued: true, delivered: true, mode: 'resend', id: body.id };
+      } catch (err) {
+        const message = err instanceof Error ? err.message : String(err);
+        this.logger.warn(`Resend error: ${message} — logging email instead`);
+        this.logger.log(`[email-fallback] to=${to} subject=${subject}\n${text}`);
+        return { to, subject, queued: true, delivered: false, mode: 'log' };
       }
-      this.logger.log(`Email sent via Resend to=${to} id=${body.id}`);
-      return { to, subject, queued: true, delivered: true, mode: 'resend', id: body.id };
     }
 
     if (this.transporter) {
@@ -95,8 +107,9 @@ export class EmailService {
         };
       } catch (err) {
         const message = err instanceof Error ? err.message : String(err);
-        this.logger.error(`SMTP send failed: ${message}`);
-        throw err;
+        this.logger.warn(`SMTP send failed: ${message} — logging email instead`);
+        this.logger.log(`[email-fallback] to=${to} subject=${subject}\n${text}`);
+        return { to, subject, queued: true, delivered: false, mode: 'log' };
       }
     }
 

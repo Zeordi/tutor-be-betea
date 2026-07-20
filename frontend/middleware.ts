@@ -11,7 +11,6 @@ export default withAuth(
   function middleware(req) {
     const token = req.nextauth.token;
     const role = token?.role as string | undefined;
-    const isVerified = Boolean(token?.isVerified);
     const path = req.nextUrl.pathname;
 
     const loginRedirect = (error?: string) => {
@@ -28,9 +27,6 @@ export default withAuth(
 
     if (path.startsWith('/teacher')) {
       if (role !== 'TEACHER') return loginRedirect('TeacherAccessRequired');
-      if (!isVerified) {
-        return NextResponse.redirect(new URL('/verify-email?required=1', req.url));
-      }
       return NextResponse.next();
     }
 
@@ -39,9 +35,6 @@ export default withAuth(
         // Admins can peek parent surfaces if needed; teachers cannot.
         if (role === 'ADMIN') return NextResponse.next();
         return loginRedirect('ParentAccessRequired');
-      }
-      if (!isVerified) {
-        return NextResponse.redirect(new URL('/verify-email?required=1', req.url));
       }
       return NextResponse.next();
     }

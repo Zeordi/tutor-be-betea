@@ -46,7 +46,7 @@ describe('AuthService', () => {
       fullName: 'Parent',
       phone: '+251911111111',
       userType: 'PARENT',
-      isVerified: false,
+      isVerified: true,
       passwordHash: 'hashed',
     });
 
@@ -58,6 +58,11 @@ describe('AuthService', () => {
       userType: 'PARENT' as never,
     });
 
+    expect(prisma.user.create).toHaveBeenCalledWith(
+      expect.objectContaining({
+        data: expect.objectContaining({ isVerified: true }),
+      }),
+    );
     expect(prisma.teacherProfile.create).not.toHaveBeenCalled();
     expect(emailService.sendVerificationEmail).toHaveBeenCalled();
     expect(result.accessToken).toBe('token');

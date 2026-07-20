@@ -29,13 +29,24 @@ async function request<T>(path: string, options: RequestOptions = {}): Promise<T
   };
 
   if (!res.ok) {
-    const message =
-      payload?.message ||
-      payload?.error ||
-      (typeof payload === 'object' && payload && 'data' in payload
-        ? String((payload as { data?: { message?: string } }).data?.message || '')
-        : '') ||
-      `Request failed: ${res.status}`;
+    const rawMessage = payload?.message ?? payload?.error;
+    let message = `Request failed: ${res.status}`;
+    if (typeof rawMessage === 'string' && rawMessage.trim()) {
+      message = rawMessage;
+    } else if (Array.isArray(rawMessage)) {
+      message = rawMessage.map(String).join(', ');
+    } else if (rawMessage && typeof rawMessage === 'object') {
+      const nested = rawMessage as { message?: string | string[] };
+      if (typeof nested.message === 'string') message = nested.message;
+      else if (Array.isArray(nested.message)) message = nested.message.map(String).join(', ');
+    } else if (
+      typeof payload === 'object' &&
+      payload &&
+      'data' in payload &&
+      (payload as { data?: { message?: string } }).data?.message
+    ) {
+      message = String((payload as { data?: { message?: string } }).data?.message);
+    }
     throw new Error(message);
   }
 

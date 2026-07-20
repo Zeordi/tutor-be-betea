@@ -84,18 +84,28 @@ export default function RegisterPage() {
         userType: data.userType.toUpperCase(),
       });
 
-      toast.success('Account created successfully! Please verify your email.');
+      toast.success('Account created successfully!');
 
       // Auto-login
-      await signIn('credentials', {
+      const signedIn = await signIn('credentials', {
         email: data.email,
         password: data.password,
         redirect: false,
       });
 
-      router.push('/verify-email');
-    } catch (error: any) {
-      toast.error(error.message || 'Something went wrong. Please try again.');
+      if (signedIn?.error) {
+        toast.error('Account created — please sign in.');
+        router.push('/login');
+        return;
+      }
+
+      router.push(data.userType === 'teacher' ? '/teacher/dashboard' : '/parent/dashboard');
+    } catch (error: unknown) {
+      const message =
+        error instanceof Error && error.message && error.message !== '[object Object]'
+          ? error.message
+          : 'Something went wrong. Please try again.';
+      toast.error(message);
     } finally {
       setLoading(false);
     }
