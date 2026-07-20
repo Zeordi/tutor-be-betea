@@ -27,3 +27,12 @@ On Vercel, set the same `ADMIN_*` vars on **tutor-be-betea-api**, then seed once
 1. Open https://tutor-be-betea.vercel.app/login
 2. Use a seeded team admin email/password
 3. You are redirected to `/admin/dashboard` (Admin Control)
+
+### Live ops pages (wired to `/api/admin/*`)
+| Page | API | Actions |
+|------|-----|---------|
+| `/admin/users` | `GET` / `PATCH /admin/users` | Search, enable/disable, mark email verified, approve teacher verification |
+| `/admin/verifications` | `GET /admin/verifications` + users `PATCH` | Pending queue + history; approve via `{ approveVerification: true }` |
+| `/admin/disputes` | `GET` / `PATCH /admin/disputes` | Open queue + history; **RELEASE** or full **REFUND** only (no partial — Stripe refunds are full) |
+
+Bookings, analytics, and settings under `/admin/*` remain placeholders.
