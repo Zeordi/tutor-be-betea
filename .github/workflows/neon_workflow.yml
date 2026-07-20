@@ -7,13 +7,53 @@ on:
       - reopened
       - synchronize
       - closed
+  workflow_dispatch:
+    inputs:
+      validate_only:
+        description: 'Only validate Neon credentials (no branch create)'
+        type: boolean
+        default: true
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
 
 jobs:
+  validate_neon:
+    name: Validate Neon credentials
+    if: github.event_name == 'workflow_dispatch' && inputs.validate_only
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check Neon project access
+        env:
+          NEON_API_KEY: ${{ secrets.NEON_API_KEY }}
+          NEON_PROJECT_ID: ${{ vars.NEON_PROJECT_ID || 'odd-boat-86392327' }}
+        run: |
+          set -euo pipefail
+          if [ -z "${NEON_API_KEY}" ]; then
+            echo "NEON_API_KEY secret is empty"
+            exit 1
+          fi
+          code=$(curl -sS -o /tmp/neon_project.json -w "%{http_code}" \
+            -H "Authorization: Bearer ${NEON_API_KEY}" \
+            -H "Accept: application/json" \
+            "https://console.neon.tech/api/v2/projects/${NEON_PROJECT_ID}")
+          echo "Neon API HTTP status: ${code}"
+          if [ "${code}" != "200" ]; then
+            head -c 300 /tmp/neon_project.json || true
+            exit 1
+          fi
+          python3 - <<'PY'
+          import json
+          data=json.load(open('/tmp/neon_project.json'))
+          project=data.get('project') or data
+          print('project_id=', project.get('id'))
+          print('project_name=', project.get('name'))
+          print('NEON_CREDENTIALS_OK')
+          PY
+
   setup:
     name: Setup
+    if: github.event_name == 'pull_request'
     outputs:
       branch: ${{ steps.branch_name.outputs.current_branch }}
     runs-on: ubuntu-latest
@@ -48,14 +88,6 @@ jobs:
           api_key: ${{ secrets.NEON_API_KEY }}
           expires_at: ${{ env.EXPIRES_AT }}
 
-      # The step above creates a new Neon branch.
-      # You may want to do something with the new branch, such as run migrations, run tests
-      # on it, or send the connection details to a hosting platform environment.
-      # The branch DATABASE_URL is available to you via:
-      # "${{ steps.create_neon_branch.outputs.db_url_with_pooler }}".
-      # It's important you don't log the DATABASE_URL as output as it contains a username and
-      # password for your database.
-
       - name: Checkout
         uses: actions/checkout@v4
 
@@ -75,15 +107,6 @@ jobs:
         run: npx prisma migrate deploy
         env:
           DATABASE_URL: ${{ steps.create_neon_branch.outputs.db_url_with_pooler }}
-
-      # Following the step above, which runs database migrations, you may want to check
-      # for schema changes in your database. We recommend using the following action to
-      # post a comment to your pull request with the schema diff. For this action to work,
-      # you also need to give permissions to the workflow job to be able to post comments
-      # and read your repository contents.
-      #
-      # You can also check out https://github.com/neondatabase/schema-diff-action for more
-      # information on how to use the schema diff action.
 
   delete_neon_branch:
     name: Delete Neon Branch
