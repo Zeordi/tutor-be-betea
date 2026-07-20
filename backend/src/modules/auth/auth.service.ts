@@ -23,6 +23,10 @@ export class AuthService {
   async register(registerDto: RegisterDto) {
     const { email, password, fullName, phone, userType } = registerDto;
 
+    if ((userType as string) === 'ADMIN') {
+      throw new BadRequestException('Admin accounts cannot be self-registered');
+    }
+
     // Check if user exists
     const existingUser = await this.prisma.user.findFirst({
       where: {
@@ -98,6 +102,10 @@ export class AuthService {
 
     if (!user.isActive) {
       throw new UnauthorizedException('Account is deactivated');
+    }
+
+    if (user.userType === 'ADMIN' && !this.isAllowedAdminEmail(user.email)) {
+      throw new UnauthorizedException('Admin access is restricted to the platform team');
     }
 
     // Verify password
@@ -201,5 +209,20 @@ export class AuthService {
   private sanitizeUser(user: any) {
     const { passwordHash, ...sanitized } = user;
     return sanitized;
+  }
+
+  private isAllowedAdminEmail(email: string) {
+    const raw =
+      this.configService.get<string>('ADMIN_TEAM_EMAILS') ||
+      this.configService.get<string>('ADMIN_EMAIL') ||
+      '';
+    const allowlist = raw
+      .split(',')
+      .map((e) => e.trim().toLowerCase())
+      .filter(Boolean);
+
+    // If no allowlist is configured, keep existing ADMIN accounts working in local/dev.
+    if (!allowlist.length) return true;
+    return allowlist.includes(email.toLowerCase());
   }
 }

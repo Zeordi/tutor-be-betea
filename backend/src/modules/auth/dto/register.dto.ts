@@ -1,7 +1,7 @@
 import { Transform } from 'class-transformer';
-import { IsEmail, IsEnum, IsString, MinLength } from 'class-validator';
-import { UserType } from '@prisma/client';
+import { IsEmail, IsIn, IsString, MinLength } from 'class-validator';
 
+/** Public registration is limited to PARENT and TEACHER. ADMIN is seed/team-only. */
 export class RegisterDto {
   @IsString()
   @MinLength(2)
@@ -21,6 +21,6 @@ export class RegisterDto {
   @Transform(({ value }) =>
     typeof value === 'string' ? value.toUpperCase() : value,
   )
-  @IsEnum(UserType)
-  userType!: UserType;
+  @IsIn(['PARENT', 'TEACHER'])
+  userType!: 'PARENT' | 'TEACHER';
 }

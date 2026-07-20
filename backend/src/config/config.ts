@@ -21,6 +21,8 @@ export const config = () => ({
   AWS_S3_BUCKET: process.env.AWS_S3_BUCKET,
   AWS_REGION: process.env.AWS_REGION,
   REDIS_URL: process.env.REDIS_URL,
+  ADMIN_EMAIL: process.env.ADMIN_EMAIL,
+  ADMIN_TEAM_EMAILS: process.env.ADMIN_TEAM_EMAILS,
 });
 
 export const validationSchema = Joi.object({
@@ -44,4 +46,6 @@ export const validationSchema = Joi.object({
   AWS_S3_BUCKET: Joi.string().optional().allow(''),
   AWS_REGION: Joi.string().optional().allow(''),
   REDIS_URL: Joi.string().optional().allow(''),
+  ADMIN_EMAIL: Joi.string().email().optional().allow(''),
+  ADMIN_TEAM_EMAILS: Joi.string().optional().allow(''),
 });

@@ -10,7 +10,7 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { Mail, Lock, Eye, EyeOff, ArrowRight } from 'lucide-react';
 import toast from 'react-hot-toast';
-import { signIn } from 'next-auth/react';
+import { getSession, signIn } from 'next-auth/react';
 
 const loginSchema = z.object({
   email: z.string().email('Invalid email address'),
@@ -61,7 +61,15 @@ export default function LoginPage() {
         toast.error('Invalid email or password');
       } else {
         toast.success('Welcome back!');
-        router.push('/dashboard');
+        const session = await getSession();
+        const role = session?.user?.role;
+        if (role === 'ADMIN') {
+          router.push('/admin/dashboard');
+        } else if (role === 'TEACHER') {
+          router.push('/teacher/dashboard');
+        } else {
+          router.push('/parent/dashboard');
+        }
       }
     } catch (error) {
       toast.error('Something went wrong. Please try again.');

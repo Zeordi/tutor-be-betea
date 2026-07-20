@@ -1,12 +1,14 @@
 'use client';
 
 import { useState } from 'react';
-import { signIn } from 'next-auth/react';
+import { getSession, signIn } from 'next-auth/react';
+import { useRouter } from 'next/navigation';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 
 export function LoginForm() {
+  const router = useRouter();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
@@ -14,8 +16,17 @@ export function LoginForm() {
   async function onSubmit(e: React.FormEvent) {
     e.preventDefault();
     setLoading(true);
-    await signIn('credentials', { email, password, callbackUrl: '/parent/dashboard' });
-    setLoading(false);
+    try {
+      const result = await signIn('credentials', { email, password, redirect: false });
+      if (result?.error) return;
+      const session = await getSession();
+      const role = session?.user?.role;
+      if (role === 'ADMIN') router.push('/admin/dashboard');
+      else if (role === 'TEACHER') router.push('/teacher/dashboard');
+      else router.push('/parent/dashboard');
+    } finally {
+      setLoading(false);
+    }
   }
 
   return (
