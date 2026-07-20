@@ -2,7 +2,8 @@ name: Deploy
 
 # Production is Railway (API) + Vercel (frontend).
 # This workflow verifies a production build on every main push.
-# Optional Railway redeploy runs when RAILWAY_TOKEN is configured.
+# Redeploy the API with: cd backend && npx @railway/cli@latest up -d -y
+# Frontend production deploys via Vercel (not SSH/docker).
 
 on:
   workflow_dispatch:
@@ -58,20 +59,3 @@ jobs:
           NEXTAUTH_URL: https://tutor-be-betea.vercel.app
           NEXTAUTH_SECRET: ci-build-placeholder-not-used-in-prod
         run: npm run build
-
-  railway:
-    name: Redeploy Railway API
-    needs: verify
-    runs-on: ubuntu-latest
-    if: ${{ secrets.RAILWAY_TOKEN != '' }}
-    steps:
-      - uses: actions/checkout@v4
-
-      - name: Install Railway CLI
-        run: npm i -g @railway/cli
-
-      - name: Deploy backend service
-        working-directory: backend
-        env:
-          RAILWAY_TOKEN: ${{ secrets.RAILWAY_TOKEN }}
-        run: railway up -d -y --service api

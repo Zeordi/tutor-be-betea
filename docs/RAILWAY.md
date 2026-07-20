@@ -47,7 +47,7 @@ npx @railway/cli@latest up -d -y
 npx @railway/cli@latest domain  # once, generate public HTTPS
 ```
 
-GitHub Actions workflow **Deploy** (`.github/workflows/deploy.yml`) verifies backend tests + frontend production build on every `main` push. It will also run `railway up` when repository secret `RAILWAY_TOKEN` is set (optional). Frontend production traffic is served by Vercel auto-deploy, not the old SSH/docker path.
+GitHub Actions workflow **Deploy** (`.github/workflows/deploy.yml`) verifies backend tests + frontend production build on every `main` push. Frontend production traffic is served by Vercel auto-deploy. API redeploys are done with Railway CLI (above), not the old SSH/docker path.
 
 ## Point the frontend at Railway
 
