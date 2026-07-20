@@ -1,9 +1,20 @@
-import { BadRequestException, Injectable, NotFoundException } from '@nestjs/common';
+import {
+  BadRequestException,
+  ForbiddenException,
+  GoneException,
+  Injectable,
+  NotFoundException,
+} from '@nestjs/common';
+import { BookingStatus } from '@prisma/client';
 import { PrismaService } from '../../prisma/prisma.service';
 import { StripeService } from '../../services/stripe.service';
 import { CreatePaymentDto } from './dto/create-payment.dto';
-import { ProcessPaymentDto } from './dto/process-payment.dto';
 import { RefundDto } from './dto/refund.dto';
+
+type AuthCaller = {
+  id: string;
+  userType?: string;
+};
 
 @Injectable()
 export class PaymentsService {
@@ -12,18 +23,38 @@ export class PaymentsService {
     private readonly stripeService: StripeService,
   ) {}
 
-  async create(dto: CreatePaymentDto) {
+  /**
+   * Parent resumes / retries payment for a teacher-accepted booking.
+   * Amount always comes from the booking — never from the client.
+   */
+  async create(dto: CreatePaymentDto, caller: AuthCaller) {
     const booking = await this.prisma.booking.findUnique({ where: { id: dto.bookingId } });
     if (!booking) throw new NotFoundException('Booking not found');
 
-    const amount = dto.amount ?? Number(booking.totalAmount);
+    this.assertCanPay(booking.parentId, caller);
+
+    if (booking.status === BookingStatus.CANCELLED || booking.status === BookingStatus.COMPLETED) {
+      throw new BadRequestException('Booking cannot be paid in its current state');
+    }
+
+    if (booking.status === BookingStatus.CONFIRMED || booking.status === BookingStatus.IN_PROGRESS) {
+      throw new BadRequestException('Booking is already paid / confirmed');
+    }
+
+    const amount = Number(booking.totalAmount);
     if (amount < 0.5) throw new BadRequestException('Amount must be at least 0.50');
 
+    // PaymentIntent is created when the teacher accepts. This endpoint only retries.
     const existing = await this.prisma.payment.findFirst({
-      where: { bookingId: booking.id, status: { in: ['PENDING', 'SUCCEEDED'] } },
+      where: { bookingId: booking.id },
       orderBy: { createdAt: 'desc' },
     });
-    if (existing?.status === 'SUCCEEDED') {
+    if (!existing) {
+      throw new BadRequestException(
+        'Teacher must accept the booking before payment. Use the clientSecret from PUT /bookings/:id/confirm.',
+      );
+    }
+    if (existing.status === 'SUCCEEDED') {
       throw new BadRequestException('Booking already paid');
     }
 
@@ -41,8 +72,8 @@ export class PaymentsService {
             stripePaymentIntent: intent.id,
             amount,
             status: 'PENDING',
-            paymentMethod: 'card',
-            metadata: { currency: dto.currency || 'usd' },
+            paymentMethod: 'CARD',
+            metadata: { currency: 'usd' },
           },
         })
       : await this.prisma.payment.create({
@@ -51,8 +82,8 @@ export class PaymentsService {
             stripePaymentIntent: intent.id,
             amount,
             status: 'PENDING',
-            paymentMethod: 'card',
-            metadata: { currency: dto.currency || 'usd' },
+            paymentMethod: 'CARD',
+            metadata: { currency: 'usd' },
           },
         });
 
@@ -60,61 +91,21 @@ export class PaymentsService {
       id: payment.id,
       bookingId: booking.id,
       amount,
-      currency: dto.currency || 'usd',
+      currency: 'usd',
       status: payment.status,
       clientSecret: intent.client_secret,
       stripePaymentIntent: intent.id,
     };
   }
 
-  async process(dto: ProcessPaymentDto) {
-    const booking = await this.prisma.booking.findUnique({ where: { id: dto.bookingId } });
-    if (!booking) throw new NotFoundException('Booking not found');
-
-    let payment = await this.prisma.payment.findFirst({
-      where: { bookingId: dto.bookingId },
-    });
-
-    if (!payment) {
-      const intent = await this.stripeService.createPaymentIntent({
-        amount: Number(booking.totalAmount),
-        bookingId: booking.id,
-        parentId: booking.parentId,
-        description: `Payment for booking ${booking.id}`,
-      });
-
-      payment = await this.prisma.payment.create({
-        data: {
-          bookingId: booking.id,
-          stripePaymentIntent: intent.id,
-          amount: booking.totalAmount,
-          paymentMethod: dto.paymentMethodId,
-          status: 'SUCCEEDED',
-          transactionId: intent.id,
-        },
-      });
-    } else {
-      payment = await this.prisma.payment.update({
-        where: { id: payment.id },
-        data: {
-          paymentMethod: dto.paymentMethodId,
-          status: 'SUCCEEDED',
-          transactionId: payment.stripePaymentIntent,
-        },
-      });
-    }
-
-    await this.prisma.booking.update({
-      where: { id: booking.id },
-      data: { status: 'CONFIRMED' },
-    });
-
-    return {
-      success: true,
-      paymentId: payment.id,
-      status: 'SUCCEEDED',
-      transactionId: payment.transactionId || payment.stripePaymentIntent,
-    };
+  /**
+   * @deprecated Server-side "mark paid" is removed. Parents must confirm the
+   * PaymentIntent client-side; Stripe webhook confirms the booking.
+   */
+  async process(_dto: unknown, _caller: AuthCaller) {
+    throw new GoneException(
+      'POST /payments/process is removed. Use the clientSecret from teacher accept (or POST /payments) with Stripe.js; booking confirms via webhook.',
+    );
   }
 
   async refund(dto: RefundDto) {
@@ -126,5 +117,12 @@ export class PaymentsService {
       data: { status: 'REFUNDED', refundAmount: dto.amount },
     });
     return { paymentId: dto.paymentId, status: 'REFUNDED', amount: dto.amount };
+  }
+
+  private assertCanPay(parentId: string, caller: AuthCaller) {
+    if (caller.userType === 'ADMIN') return;
+    if (caller.id !== parentId) {
+      throw new ForbiddenException('You can only pay for your own bookings');
+    }
   }
 }

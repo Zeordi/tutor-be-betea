@@ -1,4 +1,4 @@
-import { CanActivate, ExecutionContext, INestApplication } from '@nestjs/common';
+import { CanActivate, ExecutionContext, GoneException, INestApplication } from '@nestjs/common';
 import { Test } from '@nestjs/testing';
 import request from 'supertest';
 import { PaymentsController } from '../../src/modules/payments/payments.controller';
@@ -23,7 +23,11 @@ describe('PaymentsController (e2e)', () => {
       clientSecret: 'secret',
       status: 'PENDING',
     }),
-    process: jest.fn().mockResolvedValue({ success: true, paymentId: 'pay1' }),
+    process: jest.fn().mockRejectedValue(
+      new GoneException(
+        'POST /payments/process is removed. Use the clientSecret from teacher accept (or POST /payments) with Stripe.js; booking confirms via webhook.',
+      ),
+    ),
     refund: jest.fn().mockResolvedValue({ paymentId: 'pay1', status: 'REFUNDED' }),
   };
 
@@ -47,13 +51,31 @@ describe('PaymentsController (e2e)', () => {
     await app.close();
   });
 
-  it('POST /api/payments creates a payment intent', async () => {
+  it('POST /api/payments creates a payment intent for the authenticated parent', async () => {
     const res = await request(app.getHttpServer())
       .post('/api/payments')
-      .send({ bookingId: '11111111-1111-1111-1111-111111111111', amount: 40 })
+      .send({ bookingId: '11111111-1111-1111-1111-111111111111' })
       .expect(201);
 
     expect(res.body.clientSecret).toBe('secret');
-    expect(paymentsService.create).toHaveBeenCalled();
+    expect(paymentsService.create).toHaveBeenCalledWith(
+      expect.objectContaining({ bookingId: '11111111-1111-1111-1111-111111111111' }),
+      expect.objectContaining({ id: 'u1', userType: 'PARENT' }),
+    );
+  });
+
+  it('POST /api/payments/process returns 410 Gone', async () => {
+    await request(app.getHttpServer())
+      .post('/api/payments/process')
+      .send({
+        bookingId: '11111111-1111-1111-1111-111111111111',
+        paymentMethodId: 'pm_xxx',
+      })
+      .expect(410);
+
+    expect(paymentsService.process).toHaveBeenCalledWith(
+      expect.objectContaining({ bookingId: '11111111-1111-1111-1111-111111111111' }),
+      expect.objectContaining({ id: 'u1', userType: 'PARENT' }),
+    );
   });
 });

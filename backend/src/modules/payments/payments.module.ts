@@ -3,12 +3,13 @@ import { PaymentsController } from './payments.controller';
 import { PaymentsService } from './payments.service';
 import { StripeWebhookController } from './webhooks/stripe-webhook.controller';
 import { StripeService } from '../../services/stripe.service';
+import { NotificationService } from '../../services/notification.service';
 import { PrismaModule } from '../../prisma/prisma.module';
 
 @Module({
   imports: [PrismaModule],
   controllers: [PaymentsController, StripeWebhookController],
-  providers: [PaymentsService, StripeService],
+  providers: [PaymentsService, StripeService, NotificationService],
   exports: [PaymentsService, StripeService],
 })
 export class PaymentsModule {}
