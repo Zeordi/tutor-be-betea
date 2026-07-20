@@ -1,4 +1,4 @@
-import { BadRequestException } from '@nestjs/common';
+import { BadRequestException, ForbiddenException } from '@nestjs/common';
 import { BookingsService } from '../../src/modules/bookings/bookings.service';
 import { PrismaService } from '../../src/prisma/prisma.service';
 import { StripeService } from '../../src/services/stripe.service';
@@ -13,6 +13,7 @@ describe('BookingsService', () => {
       findUnique: jest.fn(),
       findFirst: jest.fn(),
       findMany: jest.fn(),
+      count: jest.fn(),
       update: jest.fn(),
     },
     availability: { findFirst: jest.fn(), findMany: jest.fn() },
@@ -162,5 +163,90 @@ describe('BookingsService', () => {
 
     await expect(service.completeBooking('b1', 't1')).rejects.toBeInstanceOf(BadRequestException);
     expect(stripeService.releasePayment).not.toHaveBeenCalled();
+  });
+
+  it('lists bookings for the parent', async () => {
+    prisma.booking.findMany.mockResolvedValue([
+      {
+        id: 'b1',
+        teacherId: 't1',
+        parentId: 'p1',
+        studentName: 'Kid',
+        studentAge: 10,
+        learningGoals: null,
+        bookingDate: new Date('2026-07-20'),
+        startTime: '10:00',
+        endTime: '11:00',
+        durationHours: 1,
+        status: 'PENDING',
+        totalAmount: 40,
+        platformFee: 6,
+        teacherPayout: 34,
+        isTrialLesson: false,
+        cancellationReason: null,
+        cancelledAt: null,
+        completedAt: null,
+        createdAt: new Date(),
+        updatedAt: new Date(),
+        teacher: {
+          id: 't1',
+          subjects: ['Math'],
+          hourlyRate: 40,
+          user: { fullName: 'Ada', profileImage: null },
+        },
+        parent: { id: 'p1', fullName: 'Parent', email: 'p@x.com', profileImage: null },
+        payments: [],
+      },
+    ]);
+    prisma.booking.count.mockResolvedValue(1);
+
+    const result = await service.listBookings(
+      { id: 'p1', userType: 'PARENT' },
+      { page: 1, limit: 20 },
+    );
+    expect(result.total).toBe(1);
+    expect(result.data[0].teacher?.name).toBe('Ada');
+    expect(prisma.booking.findMany).toHaveBeenCalledWith(
+      expect.objectContaining({
+        where: expect.objectContaining({ parentId: 'p1' }),
+      }),
+    );
+  });
+
+  it('getBooking enforces ownership', async () => {
+    prisma.booking.findUnique.mockResolvedValue({
+      id: 'b1',
+      teacherId: 't1',
+      parentId: 'p1',
+      studentName: 'Kid',
+      studentAge: 10,
+      learningGoals: null,
+      bookingDate: new Date('2026-07-20'),
+      startTime: '10:00',
+      endTime: '11:00',
+      durationHours: 1,
+      status: 'PENDING',
+      totalAmount: 40,
+      platformFee: 6,
+      teacherPayout: 34,
+      isTrialLesson: false,
+      cancellationReason: null,
+      cancelledAt: null,
+      completedAt: null,
+      createdAt: new Date(),
+      updatedAt: new Date(),
+      teacher: {
+        id: 't1',
+        subjects: ['Math'],
+        hourlyRate: 40,
+        user: { fullName: 'Ada', profileImage: null },
+      },
+      parent: { id: 'p1', fullName: 'Parent', email: 'p@x.com', profileImage: null },
+      payments: [],
+    });
+
+    await expect(
+      service.getBooking('b1', { id: 'other', userType: 'PARENT' }),
+    ).rejects.toBeInstanceOf(ForbiddenException);
   });
 });

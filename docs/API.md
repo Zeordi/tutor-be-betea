@@ -184,6 +184,22 @@ Also available:
 
 ## Bookings
 
+### List bookings
+
+```http
+GET /bookings?status=PENDING&page=1&limit=20
+Authorization: Bearer {accessToken}
+```
+
+Role-aware: parents see their requests, teachers see theirs, admins see all.
+
+### Get booking
+
+```http
+GET /bookings/{id}
+Authorization: Bearer {accessToken}
+```
+
 ### Create Booking
 
 ```http
@@ -252,6 +268,19 @@ Response:
 |--------|------|-------------|
 | POST | `/bookings/{id}/complete` | Mark lesson completed + release payout (requires SUCCEEDED payment) |
 | POST | `/bookings/{id}/cancel` | Cancel booking (`{ "reason": "..." }`) |
+
+---
+
+## Favorites
+
+Parent-only. Schema already had `Favorite`; these routes expose it.
+
+| Method | Path | Description |
+|--------|------|-------------|
+| GET | `/favorites` | List saved teachers |
+| GET | `/favorites/ids` | Teacher id list for heart toggles |
+| POST | `/favorites` | Body `{ "teacherId": "uuid" }` |
+| DELETE | `/favorites/{teacherId}` | Remove favorite |
 
 ---
 

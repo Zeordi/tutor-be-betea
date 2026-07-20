@@ -11,6 +11,7 @@ import { ChatModule } from './modules/chat/chat.module';
 import { ReviewsModule } from './modules/reviews/reviews.module';
 import { AdminModule } from './modules/admin/admin.module';
 import { NotificationsModule } from './modules/notifications/notifications.module';
+import { FavoritesModule } from './modules/favorites/favorites.module';
 import { PrismaModule } from './prisma/prisma.module';
 import { config, validationSchema } from './config/config';
 import { HealthController } from './health/health.controller';
@@ -30,6 +31,7 @@ import { RolesGuard } from './modules/auth/guards/roles.guard';
     TeachersModule,
     BookingsModule,
     PaymentsModule,
+    FavoritesModule,
     ChatModule,
     ReviewsModule,
     AdminModule,
