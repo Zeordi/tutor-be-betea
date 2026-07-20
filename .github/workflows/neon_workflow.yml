@@ -66,7 +66,7 @@ jobs:
     name: Create Neon Branch
     outputs:
       db_url: ${{ steps.create_neon_branch.outputs.db_url }}
-      db_url_with_pooler: ${{ steps.create_neon_branch.outputs.db_url_with_pooler }}
+      db_url_pooled: ${{ steps.create_neon_branch.outputs.db_url_pooled }}
     needs: setup
     if: |
       github.event_name == 'pull_request' && (
@@ -84,9 +84,11 @@ jobs:
         uses: neondatabase/create-branch-action@v6
         with:
           project_id: ${{ vars.NEON_PROJECT_ID || 'odd-boat-86392327' }}
-          branch_name: preview/pr-${{ github.event.number }}-${{ needs.setup.outputs.branch }}
+          # Stable name per PR (no git path slashes)
+          branch_name: preview/pr-${{ github.event.number }}
           api_key: ${{ secrets.NEON_API_KEY }}
           expires_at: ${{ env.EXPIRES_AT }}
+          prisma: true
 
       - name: Checkout
         uses: actions/checkout@v4
@@ -104,9 +106,15 @@ jobs:
 
       - name: Run Migrations
         working-directory: backend
-        run: npx prisma migrate deploy
+        run: |
+          if [ -z "${DATABASE_URL}" ]; then
+            echo "DATABASE_URL is empty — Neon create-branch action did not return a connection string"
+            exit 1
+          fi
+          npx prisma migrate deploy
         env:
-          DATABASE_URL: ${{ steps.create_neon_branch.outputs.db_url_with_pooler }}
+          # v6 output is db_url_pooled (not db_url_with_pooler)
+          DATABASE_URL: ${{ steps.create_neon_branch.outputs.db_url_pooled || steps.create_neon_branch.outputs.db_url }}
 
   delete_neon_branch:
     name: Delete Neon Branch
@@ -118,5 +126,5 @@ jobs:
         uses: neondatabase/delete-branch-action@v3
         with:
           project_id: ${{ vars.NEON_PROJECT_ID || 'odd-boat-86392327' }}
-          branch: preview/pr-${{ github.event.number }}-${{ needs.setup.outputs.branch }}
+          branch: preview/pr-${{ github.event.number }}
           api_key: ${{ secrets.NEON_API_KEY }}

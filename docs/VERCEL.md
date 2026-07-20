@@ -5,7 +5,10 @@
 | App | URL |
 |-----|-----|
 | Frontend | https://tutor-be-betea.vercel.app |
-| API (project) | https://tutor-be-betea-api.vercel.app |
+| API (Railway, primary) | https://api-production-53a9.up.railway.app |
+| API (Vercel, legacy serverless) | https://tutor-be-betea-api.vercel.app |
+
+Realtime Socket.IO and long-lived Nest processes run on Railway. See `docs/RAILWAY.md`.
 
 ## Projects
 
