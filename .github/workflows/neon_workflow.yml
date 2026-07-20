@@ -43,7 +43,7 @@ jobs:
         id: create_neon_branch
         uses: neondatabase/create-branch-action@v6
         with:
-          project_id: ${{ vars.NEON_PROJECT_ID }}
+          project_id: ${{ vars.NEON_PROJECT_ID || 'odd-boat-86392327' }}
           branch_name: preview/pr-${{ github.event.number }}-${{ needs.setup.outputs.branch }}
           api_key: ${{ secrets.NEON_API_KEY }}
           expires_at: ${{ env.EXPIRES_AT }}
