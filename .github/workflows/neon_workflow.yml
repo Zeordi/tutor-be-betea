@@ -84,8 +84,8 @@ jobs:
         uses: neondatabase/create-branch-action@v6
         with:
           project_id: ${{ vars.NEON_PROJECT_ID || 'odd-boat-86392327' }}
-          # Neon branch names: avoid extra slashes from git branch paths
-          branch_name: preview/pr-${{ github.event.number }}-${{ github.event.pull_request.number }}
+          # Stable name per PR (no git path slashes)
+          branch_name: preview/pr-${{ github.event.number }}
           api_key: ${{ secrets.NEON_API_KEY }}
           expires_at: ${{ env.EXPIRES_AT }}
           prisma: true
@@ -126,5 +126,5 @@ jobs:
         uses: neondatabase/delete-branch-action@v3
         with:
           project_id: ${{ vars.NEON_PROJECT_ID || 'odd-boat-86392327' }}
-          branch: preview/pr-${{ github.event.number }}-${{ github.event.pull_request.number }}
+          branch: preview/pr-${{ github.event.number }}
           api_key: ${{ secrets.NEON_API_KEY }}
