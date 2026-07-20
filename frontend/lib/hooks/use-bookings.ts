@@ -21,6 +21,7 @@ export type BookingRow = {
   isTrialLesson: boolean;
   teacher?: {
     id: string;
+    userId?: string;
     name: string;
     image?: string;
     subjects?: string[];

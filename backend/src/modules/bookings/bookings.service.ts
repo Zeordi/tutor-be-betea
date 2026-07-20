@@ -68,6 +68,7 @@ export class BookingsService {
     updatedAt: Date;
     teacher?: {
       id: string;
+      userId: string;
       subjects: unknown;
       hourlyRate: Prisma.Decimal | number;
       user: { fullName: string; profileImage: string | null; email?: string };
@@ -110,6 +111,7 @@ export class BookingsService {
       teacher: booking.teacher
         ? {
             id: booking.teacher.id,
+            userId: booking.teacher.userId,
             name: booking.teacher.user.fullName,
             image: booking.teacher.user.profileImage || '',
             subjects: Array.isArray(booking.teacher.subjects)

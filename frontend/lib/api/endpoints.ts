@@ -39,7 +39,7 @@ export const ENDPOINTS = {
     refund: '/payments/refund',
   },
   chat: {
-    conversations: '/chat/conversations',
+    history: '/chat/history',
   },
   reviews: {
     create: '/reviews',
