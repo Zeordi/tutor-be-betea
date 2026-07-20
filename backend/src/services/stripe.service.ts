@@ -1,16 +1,20 @@
 // src/services/stripe.service.ts
-import { Injectable, BadRequestException } from '@nestjs/common';
+import { Injectable, BadRequestException, Logger } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import Stripe from 'stripe';
+import { BookingStatus, PaymentStatus } from '@prisma/client';
 import { PrismaService } from '../prisma/prisma.service';
+import { NotificationService } from './notification.service';
 
 @Injectable()
 export class StripeService {
+  private readonly logger = new Logger(StripeService.name);
   private stripe: Stripe;
 
   constructor(
     private readonly configService: ConfigService,
     private readonly prisma: PrismaService,
+    private readonly notificationService: NotificationService,
   ) {
     this.stripe = new Stripe(configService.get<string>('STRIPE_SECRET_KEY') || 'sk_test_xxx', {
       apiVersion: '2023-10-16' as Stripe.LatestApiVersion,
@@ -53,7 +57,6 @@ export class StripeService {
 
     let stripeAccountId = teacher.stripeAccountId;
 
-    // Create Stripe account if teacher doesn't have one
     if (!stripeAccountId) {
       const account = await this.stripe.accounts.create({
         type: 'express',
@@ -74,7 +77,6 @@ export class StripeService {
       });
     }
 
-    // Create transfer to teacher
     const transfer = await this.stripe.transfers.create({
       amount: Math.round(data.amount * 100),
       currency: 'usd',
@@ -89,11 +91,9 @@ export class StripeService {
   }
 
   async refundPayment(paymentIntentId: string) {
-    const refund = await this.stripe.refunds.create({
+    return this.stripe.refunds.create({
       payment_intent: paymentIntentId,
     });
-
-    return refund;
   }
 
   async createAccountLink(teacherId: string, returnUrl: string) {
@@ -109,18 +109,20 @@ export class StripeService {
       throw new BadRequestException('Teacher does not have a Stripe account');
     }
 
-    const accountLink = await this.stripe.accountLinks.create({
+    return this.stripe.accountLinks.create({
       account: teacher.stripeAccountId,
       refresh_url: `${returnUrl}?refresh=true`,
       return_url: `${returnUrl}?success=true`,
       type: 'account_onboarding',
     });
-
-    return accountLink;
   }
 
   async handleWebhook(body: Buffer, signature: string) {
     const webhookSecret = this.configService.get<string>('STRIPE_WEBHOOK_SECRET') || '';
+    if (!webhookSecret) {
+      throw new BadRequestException('STRIPE_WEBHOOK_SECRET is not configured');
+    }
+
     const event = this.stripe.webhooks.constructEvent(body, signature, webhookSecret);
 
     switch (event.type) {
@@ -133,51 +135,93 @@ export class StripeService {
       case 'charge.refunded':
         await this.handleRefund(event.data.object as Stripe.Charge);
         break;
+      default:
+        this.logger.debug(`Unhandled Stripe event: ${event.type}`);
     }
 
     return { received: true };
   }
 
   private async handlePaymentSuccess(paymentIntent: Stripe.PaymentIntent) {
-    await this.prisma.payment.update({
+    const payment = await this.prisma.payment.findUnique({
       where: { stripePaymentIntent: paymentIntent.id },
-      data: {
-        status: 'SUCCEEDED',
-        transactionId: paymentIntent.id,
-      },
+      include: { booking: true },
     });
 
-    // Confirm booking
-    const payment = await this.prisma.payment.findFirst({
-      where: { stripePaymentIntent: paymentIntent.id },
-    });
+    if (!payment) {
+      this.logger.warn(`No payment row for intent ${paymentIntent.id}`);
+      return;
+    }
 
-    if (payment) {
-      await this.prisma.booking.update({
-        where: { id: payment.bookingId },
-        data: { status: 'CONFIRMED' },
+    if (payment.status === PaymentStatus.SUCCEEDED) {
+      return;
+    }
+
+    if (
+      payment.booking.status === BookingStatus.CANCELLED ||
+      payment.booking.status === BookingStatus.COMPLETED
+    ) {
+      this.logger.warn(
+        `Ignoring payment success for booking ${payment.bookingId} in status ${payment.booking.status}`,
+      );
+      await this.prisma.payment.update({
+        where: { id: payment.id },
+        data: {
+          status: PaymentStatus.SUCCEEDED,
+          transactionId: paymentIntent.id,
+        },
       });
+      return;
+    }
+
+    const booking = await this.prisma.$transaction(async (tx) => {
+      await tx.payment.update({
+        where: { id: payment.id },
+        data: {
+          status: PaymentStatus.SUCCEEDED,
+          transactionId: paymentIntent.id,
+        },
+      });
+
+      return tx.booking.update({
+        where: { id: payment.bookingId },
+        data: { status: BookingStatus.CONFIRMED },
+      });
+    });
+
+    try {
+      await this.notificationService.sendBookingConfirmedNotification({
+        bookingId: booking.id,
+        teacherId: booking.teacherId,
+        parentId: booking.parentId,
+      });
+    } catch (err) {
+      this.logger.warn(
+        `Confirmed notification failed for booking ${booking.id}: ${
+          err instanceof Error ? err.message : String(err)
+        }`,
+      );
     }
   }
 
   private async handlePaymentFailed(paymentIntent: Stripe.PaymentIntent) {
-    await this.prisma.payment.update({
+    await this.prisma.payment.updateMany({
       where: { stripePaymentIntent: paymentIntent.id },
-      data: { status: 'FAILED' },
+      data: { status: PaymentStatus.FAILED },
     });
   }
 
   private async handleRefund(charge: Stripe.Charge) {
     const paymentIntentId = charge.payment_intent as string;
-    if (paymentIntentId) {
-      await this.prisma.payment.update({
-        where: { stripePaymentIntent: paymentIntentId },
-        data: {
-          status: 'REFUNDED',
-          refundId: charge.id,
-          refundAmount: charge.amount_refunded / 100,
-        },
-      });
-    }
+    if (!paymentIntentId) return;
+
+    await this.prisma.payment.updateMany({
+      where: { stripePaymentIntent: paymentIntentId },
+      data: {
+        status: PaymentStatus.REFUNDED,
+        refundId: charge.id,
+        refundAmount: charge.amount_refunded / 100,
+      },
+    });
   }
 }

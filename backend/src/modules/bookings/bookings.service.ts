@@ -92,11 +92,11 @@ export class BookingsService {
       throw new BadRequestException('Not authorized to confirm this booking');
     }
 
-    if (booking.status !== 'PENDING') {
-      throw new BadRequestException('Booking is not in pending state');
+    // Accept only while unpaid/pending. Payment webhook moves booking to CONFIRMED.
+    if (booking.status !== BookingStatus.PENDING) {
+      throw new BadRequestException('Booking is not awaiting teacher acceptance / payment');
     }
 
-    // Create Stripe payment intent
     const paymentIntent = await this.stripeService.createPaymentIntent({
       amount: Number(booking.totalAmount),
       bookingId: booking.id,
@@ -104,35 +104,39 @@ export class BookingsService {
       description: `Tutoring session with ${booking.teacher.user.fullName}`,
     });
 
-    // Update booking status
-    const updatedBooking = await this.prisma.booking.update({
-      where: { id: bookingId },
-      data: {
-        status: BookingStatus.CONFIRMED,
-      },
+    const existingPayment = await this.prisma.payment.findFirst({
+      where: { bookingId: booking.id, status: { in: ['PENDING', 'FAILED'] } },
+      orderBy: { createdAt: 'desc' },
     });
 
-    // Create payment record
-    await this.prisma.payment.create({
-      data: {
-        bookingId: booking.id,
-        stripePaymentIntent: paymentIntent.id,
-        amount: booking.totalAmount,
-        paymentMethod: 'CARD',
-        status: 'PENDING',
-      },
-    });
+    if (existingPayment) {
+      await this.prisma.payment.update({
+        where: { id: existingPayment.id },
+        data: {
+          stripePaymentIntent: paymentIntent.id,
+          amount: booking.totalAmount,
+          paymentMethod: 'CARD',
+          status: 'PENDING',
+        },
+      });
+    } else {
+      await this.prisma.payment.create({
+        data: {
+          bookingId: booking.id,
+          stripePaymentIntent: paymentIntent.id,
+          amount: booking.totalAmount,
+          paymentMethod: 'CARD',
+          status: 'PENDING',
+        },
+      });
+    }
 
-    // Send notification
-    await this.notificationService.sendBookingConfirmedNotification({
-      bookingId: booking.id,
-      teacherId,
-      parentId: booking.parentId,
-    });
-
+    // Booking stays PENDING until Stripe webhook confirms payment.
     return {
-      booking: updatedBooking,
+      booking,
       clientSecret: paymentIntent.client_secret,
+      stripePaymentIntent: paymentIntent.id,
+      message: 'Teacher accepted. Parent must complete payment to confirm the booking.',
     };
   }
 
@@ -153,7 +157,13 @@ export class BookingsService {
       throw new BadRequestException('Booking cannot be completed');
     }
 
-    // Update booking status
+    const paid = await this.prisma.payment.findFirst({
+      where: { bookingId, status: 'SUCCEEDED' },
+    });
+    if (!paid) {
+      throw new BadRequestException('Cannot complete booking before payment succeeds');
+    }
+
     const updatedBooking = await this.prisma.booking.update({
       where: { id: bookingId },
       data: {
@@ -162,14 +172,12 @@ export class BookingsService {
       },
     });
 
-    // Release payment to teacher
     await this.stripeService.releasePayment({
       bookingId: booking.id,
       amount: Number(booking.teacherPayout),
       teacherId: booking.teacherId,
     });
 
-    // Update teacher stats
     await this.prisma.teacherProfile.update({
       where: { id: booking.teacherId },
       data: {
@@ -178,7 +186,6 @@ export class BookingsService {
       },
     });
 
-    // Send notification
     await this.notificationService.sendLessonCompletedNotification({
       bookingId: booking.id,
       teacherId,
