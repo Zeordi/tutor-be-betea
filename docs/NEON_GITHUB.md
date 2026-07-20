@@ -27,3 +27,16 @@ That is a **Neon CLI OAuth bug**, not a problem with your account. Do **not** us
      Name: `NEON_API_KEY`
 
 After the secret exists, the `neon_workflow.yml` PR branch create/delete job will run on the next pull request.
+
+### Troubleshooting: empty `DATABASE_URL` on migrate
+
+`neondatabase/create-branch-action@v6` outputs:
+
+- `db_url`
+- `db_url_pooled` (pooled connection string)
+
+It no longer outputs `db_url_with_pooler`. If the workflow still references the old name, Prisma fails with:
+
+`You must provide a nonempty URL` / `DATABASE_URL resolved to an empty string`
+
+That failure is **only** the PR Neon preview-branch CI job. It does **not** affect Railway production, Vercel, or the main Neon database.
