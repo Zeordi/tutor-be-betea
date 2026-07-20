@@ -4,7 +4,7 @@
 | Item | Status |
 |------|--------|
 | `NEON_PROJECT_ID` (Actions **variable**) | ✅ Set (`odd-boat-86392327`) |
-| `NEON_API_KEY` (Actions **secret**) | ⏳ Needs Neon Console key |
+| `NEON_API_KEY` (Actions **secret**) | ✅ Set |
 
 ### Important: ignore `neonctl` / `oauth2.neon.tech` errors
 
