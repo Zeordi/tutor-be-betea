@@ -77,6 +77,12 @@ function BookingCard({
       </div>
 
       <div className="mt-4 flex flex-wrap gap-2">
+        <Link
+          href={`/parent/messages?bookingId=${booking.id}`}
+          className="rounded-lg border border-gray-200 px-3 py-2 text-sm hover:bg-gray-50"
+        >
+          Message
+        </Link>
         {booking.teacherId ? (
           <Link
             href={`/parent/teacher/${booking.teacherId}`}

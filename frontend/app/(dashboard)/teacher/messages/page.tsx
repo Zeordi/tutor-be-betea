@@ -1,8 +1,16 @@
-export default function Page() {
+'use client';
+
+import { Suspense } from 'react';
+import { MessagesWorkspace } from '@/components/chat/messages-workspace';
+
+export default function TeacherMessagesPage() {
   return (
-    <main className="mx-auto max-w-5xl p-6">
-      <h1 className="text-2xl font-semibold tracking-tight text-slate-900">Messages</h1>
-      <p className="mt-2 text-slate-600">Chat with parents</p>
-    </main>
+    <Suspense
+      fallback={
+        <main className="mx-auto max-w-6xl p-6 text-slate-600">Loading messages…</main>
+      }
+    >
+      <MessagesWorkspace role="teacher" />
+    </Suspense>
   );
 }

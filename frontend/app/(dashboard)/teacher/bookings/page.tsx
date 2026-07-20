@@ -1,6 +1,7 @@
 'use client';
 
 import { useMemo, useState } from 'react';
+import Link from 'next/link';
 import { Loader2 } from 'lucide-react';
 import { useBookings, type BookingRow } from '@/lib/hooks/use-bookings';
 
@@ -113,6 +114,12 @@ export default function TeacherBookingsPage() {
         </div>
 
         <div className="mt-4 flex flex-wrap gap-2">
+          <Link
+            href={`/teacher/messages?bookingId=${booking.id}`}
+            className="rounded-lg border border-gray-200 px-3 py-2 text-sm hover:bg-gray-50"
+          >
+            Message
+          </Link>
           {booking.status === 'PENDING' ? (
             <button
               type="button"

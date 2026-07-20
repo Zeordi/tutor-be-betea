@@ -482,10 +482,11 @@ const socket = io('http://localhost:4000/chat', {
 ```js
 socket.emit('send-message', {
   bookingId: 'uuid',
-  receiverId: 'uuid',
   message: 'Hello!'
 });
 ```
+
+Receiver is derived server-side from the booking participants (parent ↔ teacher user). Clients should not send `conversationId` or `body`.
 
 ### Listen for New Messages
 
@@ -493,15 +494,19 @@ socket.emit('send-message', {
 socket.on('new-message', (message) => {
   console.log('New message:', message);
 });
+
+socket.on('message-sent', (message) => {
+  console.log('Own message confirmed:', message);
+});
 ```
 
 ### Typing Indicator
 
 ```js
 socket.emit('typing', {
-  receiverId: 'uuid',
+  bookingId: 'uuid',
   isTyping: true
 });
 ```
 
-Other events: `message-sent`, `mark-read`, `message-read`, `get-chat-history`, `chat-history`, `user-online`, `user-offline`, `unread-count`.
+Other events: `mark-read`, `message-read`, `get-chat-history`, `chat-history`, `user-online`, `user-offline`, `unread-count`.

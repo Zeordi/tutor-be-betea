@@ -1,7 +1,9 @@
-export class ChatResponseDto {
+export class ChatMessageDto {
   id!: string;
-  conversationId!: string;
-  body!: string;
+  bookingId!: string;
   senderId!: string;
+  receiverId!: string;
+  message!: string;
   createdAt!: string;
+  isRead!: boolean;
 }

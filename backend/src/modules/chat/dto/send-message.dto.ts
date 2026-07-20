@@ -1,13 +1,15 @@
-import { IsString, IsUUID, MinLength } from 'class-validator';
+import { IsOptional, IsString, IsUUID, MinLength } from 'class-validator';
 
+/** Socket/REST send payload for booking-threaded chat. */
 export class SendMessageDto {
   @IsUUID()
-  conversationId!: string;
+  bookingId!: string;
 
   @IsString()
   @MinLength(1)
-  body!: string;
+  message!: string;
 
-  @IsUUID()
-  senderId!: string;
+  @IsOptional()
+  @IsString()
+  attachment?: string;
 }
