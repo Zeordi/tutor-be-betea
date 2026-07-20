@@ -4,6 +4,7 @@ import { useMemo, useState } from 'react';
 import Link from 'next/link';
 import { Loader2 } from 'lucide-react';
 import { useBookings, type BookingRow } from '@/lib/hooks/use-bookings';
+import { PayBookingButton } from '@/components/payments/pay-booking-button';
 
 function formatDate(value: string) {
   try {
@@ -35,10 +36,12 @@ function StatusBadge({ status }: { status: string }) {
 function BookingCard({
   booking,
   onCancel,
+  onPaid,
   busyId,
 }: {
   booking: BookingRow;
   onCancel: (id: string) => void;
+  onPaid: () => void;
   busyId: string | null;
 }) {
   const paymentStatus = booking.payments?.[0]?.status;
@@ -76,7 +79,7 @@ function BookingCard({
         ) : null}
       </div>
 
-      <div className="mt-4 flex flex-wrap gap-2">
+      <div className="mt-4 flex flex-wrap items-start gap-2">
         <Link
           href={`/parent/messages?bookingId=${booking.id}`}
           className="rounded-lg border border-gray-200 px-3 py-2 text-sm hover:bg-gray-50"
@@ -91,6 +94,13 @@ function BookingCard({
             View teacher
           </Link>
         ) : null}
+        <PayBookingButton
+          bookingId={booking.id}
+          amount={booking.totalAmount}
+          paymentStatus={paymentStatus}
+          bookingStatus={booking.status}
+          onPaid={onPaid}
+        />
         {booking.status !== 'CANCELLED' && booking.status !== 'COMPLETED' ? (
           <button
             type="button"
@@ -170,6 +180,11 @@ export default function ParentBookingsPage() {
               key={booking.id}
               booking={booking}
               onCancel={onCancel}
+              onPaid={() => {
+                void refresh();
+                // Webhook may lag a second — soft refresh again
+                window.setTimeout(() => void refresh(), 2500);
+              }}
               busyId={busyId}
             />
           ))}
@@ -184,6 +199,7 @@ export default function ParentBookingsPage() {
               key={booking.id}
               booking={booking}
               onCancel={onCancel}
+              onPaid={() => void refresh()}
               busyId={busyId}
             />
           ))}

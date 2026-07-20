@@ -19,6 +19,7 @@ export const ENDPOINTS = {
     byId: (id: string) => `/teachers/${id}`,
     availability: '/teachers/availability',
     verification: '/teachers/verification',
+    verificationUploadUrl: '/teachers/verification/upload-url',
   },
   bookings: {
     list: '/bookings',

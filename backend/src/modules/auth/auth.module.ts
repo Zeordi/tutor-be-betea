@@ -27,6 +27,6 @@ import { CacheService } from '../../services/cache.service';
   ],
   controllers: [AuthController],
   providers: [AuthService, JwtStrategy, LocalStrategy, EmailService, CacheService],
-  exports: [AuthService, JwtModule],
+  exports: [AuthService, JwtModule, CacheService],
 })
 export class AuthModule {}

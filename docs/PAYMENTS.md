@@ -37,12 +37,20 @@ The webhook controller rejects requests without a signature or without `req.rawB
 
 ## Railway Stripe setup
 
+You need a Stripe **webhook endpoint** before bookings can leave `PENDING` after card payment.
+
 1. Set `STRIPE_SECRET_KEY` and `STRIPE_WEBHOOK_SECRET` on the Railway `api` service.
-2. Point Stripe webhook to:
+2. Set `NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY` on Vercel (parent Pay button).
+3. In Stripe Dashboard → Webhooks → Add endpoint:
+
    `https://api-production-53a9.up.railway.app/api/payments/webhooks/stripe`
-3. Subscribe at least to:
+
+4. Subscribe at least to:
    - `payment_intent.succeeded`
    - `payment_intent.payment_failed`
    - `charge.refunded`
+5. Paste the endpoint signing secret into Railway as `STRIPE_WEBHOOK_SECRET` and restart `api`.
 
-Do **not** use the Next.js stub at `frontend/app/api/webhooks/stripe` as the live Stripe target.
+Do **not** use the Next.js route at `frontend/app/api/webhooks/stripe` (returns 410).
+
+Parent UI: after teacher accept, `/parent/bookings` shows **Pay** and confirms the PaymentIntent with Stripe.js. Full checklist: `docs/INTEGRATIONS.md`.

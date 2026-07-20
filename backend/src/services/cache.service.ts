@@ -78,4 +78,18 @@ export class CacheService implements OnModuleDestroy {
     }
     this.memory.delete(key);
   }
+
+  backend(): 'redis' | 'memory' {
+    return this.redis ? 'redis' : 'memory';
+  }
+
+  async ping(): Promise<boolean> {
+    if (!this.redis) return false;
+    try {
+      const result = await this.redis.ping();
+      return result === 'PONG';
+    } catch {
+      return false;
+    }
+  }
 }

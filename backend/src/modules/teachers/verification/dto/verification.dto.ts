@@ -3,12 +3,12 @@ import { IsArray, IsOptional, IsString, IsUrl } from 'class-validator';
 export class VerificationDto {
   @IsOptional()
   @IsString()
-  @IsUrl()
+  @IsUrl({ require_tld: false })
   documentUrl?: string;
 
   @IsOptional()
   @IsArray()
-  @IsString({ each: true })
+  @IsUrl({ require_tld: false }, { each: true })
   documentUrls?: string[];
 
   @IsOptional()
