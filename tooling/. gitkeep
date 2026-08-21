@@ -1,1 +1,7 @@
-
+# This folder is reserved for internal tooling scripts such as:
+# - Database seed scripts
+# - Code generation
+# - Custom migration helpers
+# - Release scripts
+#
+# We will add files here only when needed.
