@@ -1,1 +1,6 @@
-
+# This folder will contain React Query / SWR hooks
+# Example future files:
+# - useTutor.ts
+# - useJobs.ts
+# - useContract.ts
+# - useChat.ts
