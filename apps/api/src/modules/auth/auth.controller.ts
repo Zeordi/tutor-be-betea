@@ -23,4 +23,19 @@ export class AuthController {
   async refresh(@Body("refreshToken") refreshToken: string) {
     return this.authService.refreshToken(refreshToken);
   }
+
+  @Post("otp/send")
+  @HttpCode(HttpStatus.OK)
+  async sendOtp(@Body("phoneNumber") phoneNumber: string) {
+    return this.authService.sendOtp(phoneNumber);
+}
+
+  @Post("otp/verify")
+  @HttpCode(HttpStatus.OK)
+  async verifyOtp(
+    @Body("phoneNumber") phoneNumber: string,
+    @Body("code") code: string,
+  ) {
+    return this.authService.verifyOtp(phoneNumber, code);
+  }
 }
