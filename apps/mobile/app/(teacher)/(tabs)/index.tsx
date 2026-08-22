@@ -1,53 +1,20 @@
+// apps/mobile/app/(teacher)/(tabs)/index.tsx
 import { View, Text, StyleSheet, ScrollView, Pressable, ActivityIndicator } from "react-native";
-import { useEffect, useState } from "react";
 import { useTheme } from "@/hooks/useTheme";
 import { useAuth } from "@/hooks/useAuth";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useRouter } from "expo-router";
-import { getToken } from "@/lib/api";
+import { Ionicons } from "@expo/vector-icons";
 
 export default function TeacherHomeScreen() {
   const { colors } = useTheme();
-  const { user } = useAuth();
+  const { user, loading } = useAuth();
   const router = useRouter();
-  const [stats, setStats] = useState({
-    activeContracts: 0,
-    availableJobs: 0,
-    connects: 0,
-    rating: 0,
-  });
-  const [loading, setLoading] = useState(true);
-
-  useEffect(() => {
-    async function load() {
-      try {
-        const token = await getToken();
-        // In production we will have a dedicated /teachers/me/dashboard endpoint
-        const profileRes = await fetch(
-          `${process.env.EXPO_PUBLIC_API_URL}/teachers/me/profile`,
-          { headers: { Authorization: `Bearer ${token}` } }
-        );
-        const profile = await profileRes.json();
-
-        setStats({
-          activeContracts: 0, // will come from contracts endpoint
-          availableJobs: 0,
-          connects: profile.connectsBalance || 0,
-          rating: profile.rating || 0,
-        });
-      } catch (e) {
-        console.log(e);
-      } finally {
-        setLoading(false);
-      }
-    }
-    load();
-  }, []);
 
   if (loading) {
     return (
       <View style={[styles.center, { backgroundColor: colors.background }]}>
-        <ActivityIndicator color={colors.primary} />
+        <ActivityIndicator size="large" color={colors.primary} />
       </View>
     );
   }
@@ -62,58 +29,70 @@ export default function TeacherHomeScreen() {
           Here’s your teaching overview
         </Text>
 
-        {/* Stats */}
+        {/* Earnings Summary */}
+        <Pressable
+          style={[styles.earningsCard, { backgroundColor: colors.primary }]}
+          onPress={() => router.push("/(teacher)/earnings")}
+        >
+          <Text style={styles.earningsLabel}>Available Balance</Text>
+          <Text style={styles.earningsAmount}>ETB 0.00</Text>
+          <Text style={styles.earningsSub}>Tap to view full earnings →</Text>
+        </Pressable>
+
+        {/* Quick Stats */}
         <View style={styles.statsRow}>
           <View style={[styles.statCard, { backgroundColor: colors.surface }]}>
-            <Text style={[styles.statValue, { color: colors.primary }]}>
-              {stats.activeContracts}
-            </Text>
-            <Text style={{ color: colors.textSecondary, fontSize: 13 }}>Active Contracts</Text>
+            <Text style={[styles.statValue, { color: colors.text }]}>0</Text>
+            <Text style={styles.statLabel}>Active Contracts</Text>
           </View>
           <View style={[styles.statCard, { backgroundColor: colors.surface }]}>
-            <Text style={[styles.statValue, { color: colors.primary }]}>
-              {stats.connects}
-            </Text>
-            <Text style={{ color: colors.textSecondary, fontSize: 13 }}>Connects</Text>
+            <Text style={[styles.statValue, { color: colors.text }]}>0</Text>
+            <Text style={styles.statLabel}>Open Jobs</Text>
           </View>
-        </View>
-
-        <View style={[styles.statCard, { backgroundColor: colors.surface, marginTop: 12 }]}>
-          <Text style={[styles.statValue, { color: colors.primary }]}>
-            ★ {Number(stats.rating).toFixed(1)}
-          </Text>
-          <Text style={{ color: colors.textSecondary, fontSize: 13 }}>Your Rating</Text>
         </View>
 
         {/* Quick Actions */}
         <Text style={[styles.sectionTitle, { color: colors.text }]}>Quick Actions</Text>
 
-        <Pressable
-          style={[styles.actionButton, { backgroundColor: colors.primary }]}
+        <ActionButton
+          title="Browse Available Jobs"
+          icon="briefcase"
+          colors={colors}
           onPress={() => router.push("/(teacher)/(tabs)/jobs")}
-        >
-          <Text style={styles.actionButtonText}>View Available Jobs</Text>
-        </Pressable>
-
-        <Pressable
-          style={[styles.actionButton, { backgroundColor: colors.surface, marginTop: 12 }]}
+        />
+        <ActionButton
+          title="Update My Location"
+          icon="location"
+          colors={colors}
+          onPress={() => router.push("/(teacher)/location")}
+        />
+        <ActionButton
+          title="Document Verification"
+          icon="shield-checkmark"
+          colors={colors}
           onPress={() => router.push("/(teacher)/verification")}
-        >
-          <Text style={[styles.actionButtonText, { color: colors.text }]}>
-            Document Verification
-          </Text>
-        </Pressable>
-
-        <Pressable
-          style={[styles.actionButton, { backgroundColor: colors.surface, marginTop: 12 }]}
-          onPress={() => router.push("/(teacher)/earnings")}
-        >
-          <Text style={[styles.actionButtonText, { color: colors.text }]}>
-            View Earnings
-          </Text>
-        </Pressable>
+        />
+        <ActionButton
+          title="Submit Progress Report"
+          icon="create"
+          colors={colors}
+          onPress={() => router.push("/(teacher)/progress/submit")}
+        />
       </ScrollView>
     </SafeAreaView>
+  );
+}
+
+function ActionButton({ title, icon, colors, onPress }: any) {
+  return (
+    <Pressable
+      style={[styles.actionBtn, { backgroundColor: colors.surface }]}
+      onPress={onPress}
+    >
+      <Ionicons name={icon} size={22} color={colors.primary} />
+      <Text style={[styles.actionBtnText, { color: colors.text }]}>{title}</Text>
+      <Ionicons name="chevron-forward" size={18} color={colors.textSecondary} />
+    </Pressable>
   );
 }
 
@@ -121,20 +100,32 @@ const styles = StyleSheet.create({
   container: { flex: 1 },
   center: { flex: 1, justifyContent: "center", alignItems: "center" },
   content: { padding: 20 },
-  greeting: { fontSize: 24, fontWeight: "700", marginBottom: 4 },
-  statsRow: { flexDirection: "row", gap: 12 },
+  greeting: { fontSize: 26, fontWeight: "700", marginBottom: 6 },
+  earningsCard: {
+    borderRadius: 20,
+    padding: 20,
+    marginBottom: 16,
+  },
+  earningsLabel: { color: "rgba(255,255,255,0.85)", fontSize: 14 },
+  earningsAmount: { color: "#fff", fontSize: 28, fontWeight: "700", marginTop: 6 },
+  earningsSub: { color: "rgba(255,255,255,0.75)", fontSize: 13, marginTop: 8 },
+  statsRow: { flexDirection: "row", gap: 12, marginBottom: 28 },
   statCard: {
     flex: 1,
-    padding: 16,
     borderRadius: 16,
+    padding: 16,
     alignItems: "center",
   },
-  statValue: { fontSize: 22, fontWeight: "700", marginBottom: 4 },
-  sectionTitle: { fontSize: 18, fontWeight: "700", marginTop: 32, marginBottom: 12 },
-  actionButton: {
-    paddingVertical: 16,
+  statValue: { fontSize: 22, fontWeight: "700" },
+  statLabel: { fontSize: 13, color: "#64748B", marginTop: 4 },
+  sectionTitle: { fontSize: 18, fontWeight: "700", marginBottom: 12 },
+  actionBtn: {
+    flexDirection: "row",
+    alignItems: "center",
+    padding: 16,
     borderRadius: 14,
-    alignItems: "center",
+    marginBottom: 10,
+    gap: 12,
   },
-  actionButtonText: { color: "#fff", fontSize: 16, fontWeight: "600" },
+  actionBtnText: { flex: 1, fontSize: 16, fontWeight: "600" },
 });
