@@ -1,50 +1,72 @@
 # Tutor Be Betea – End-to-End Testing Checklist
 
-## 1. Authentication
-- [ ] Send OTP to a real Ethiopian number
-- [ ] Verify OTP successfully
-- [ ] Register as Parent
-- [ ] Register as Teacher
+**Date:** _______________  
+**Tester:** _______________  
+**Environment:** Development / Staging
+
+---
+
+## A. Authentication
+- [ ] Send OTP to real Ethiopian number (+2519...)
+- [ ] Receive SMS within 30 seconds
+- [ ] Verify correct OTP → success
+- [ ] Verify wrong OTP → proper error
+- [ ] Register as **Parent**
+- [ ] Register as **Teacher**
 - [ ] Login with existing account
-- [ ] Logout works correctly
+- [ ] Logout clears token and redirects correctly
+- [ ] Protected routes redirect to login when not authenticated
 
-## 2. Teacher Flow
-- [ ] Create / Edit Teacher Profile
-- [ ] Set Location on Map
-- [ ] Upload National ID to Vault
-- [ ] Upload Degree to Vault
-- [ ] Upload Liveness Selfie
-- [ ] View Available Jobs
-- [ ] Apply to a Job
+## B. Teacher Flow
+- [ ] Complete Teacher Profile (bio, rates, subjects, grades)
+- [ ] Set location using map picker
+- [ ] Upload National ID → success message
+- [ ] Upload Degree → success message
+- [ ] Upload Liveness Selfie → success message
+- [ ] See “Uploaded ✓” status
+- [ ] View Available Jobs list
+- [ ] Apply to a job with message
 - [ ] View My Contracts
-- [ ] Check-in to a session (geofence)
+- [ ] Perform Check-in (inside geofence)
+- [ ] Perform Check-in (outside geofence) → warning shown
 - [ ] Submit Weekly Progress Report
-- [ ] View Earnings
-- [ ] Use Chat
+- [ ] View Earnings screen
+- [ ] Open Chat and send message
+- [ ] Try sending phone number in chat → should be masked
 
-## 3. Parent Flow
+## C. Parent Flow
 - [ ] Add a Child
 - [ ] View Children list
-- [ ] Find Tutors (with location)
-- [ ] Open Tutor Profile and see Trust Badges
-- [ ] Post a Job
+- [ ] Edit / view child details
+- [ ] Find Tutors near me
+- [ ] Open Tutor Profile → Trust Badges visible
+- [ ] Post a new Job
 - [ ] Create Contract + Fund Escrow
-- [ ] View Contracts
-- [ ] View Progress Reports
-- [ ] Use Chat
-- [ ] Receive Notifications
+- [ ] View Contracts list
+- [ ] Open Contract details
+- [ ] View Progress Report
+- [ ] Chat with Teacher
+- [ ] Receive notification after key actions
 
-## 4. Admin Flow
+## D. Admin Flow
 - [ ] Login to Admin Console
-- [ ] See pending verification documents
-- [ ] Approve document → Trust Badge issued
-- [ ] Reject document
-- [ ] View Audit Logs
-- [ ] View Dashboard stats
+- [ ] See pending documents in Verification Queue
+- [ ] Open document (decrypt works for admin only)
+- [ ] Approve document → Badge issued
+- [ ] Reject document → Teacher notified
+- [ ] Dashboard stats load correctly
+- [ ] Audit logs are recorded
 
-## 5. System Checks
-- [ ] Dark mode works on all screens
-- [ ] Pull-to-refresh works
+## E. System & UX
+- [ ] Dark mode works on all main screens
+- [ ] Light mode works on all main screens
+- [ ] Pull-to-refresh works on lists
 - [ ] Empty states appear correctly
-- [ ] Anti-poaching blocks phone numbers & Telegram in chat
-- [ ] Offline attendance sync (if tested)
+- [ ] Loading skeletons appear while fetching
+- [ ] Error states show “Try Again” button
+- [ ] App does not crash on poor network
+
+## Notes / Bugs Found
+- 
+- 
+-
