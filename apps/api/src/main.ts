@@ -14,13 +14,14 @@ async function bootstrap() {
   );
 
   app.enableCors({
-    origin: [
-      'http://localhost:3000', // web
-      'http://localhost:3001', // admin
-    ],
-    credentials: true,
-  });
-
+  origin: [
+    "http://localhost:3000",
+    "http://localhost:3001",
+    "http://localhost:8081", // Expo
+  ],
+  credentials: true,
+});
+  
   const port = process.env.PORT || 4000;
   await app.listen(port);
   console.log(`🚀 Tutor Be Betea API running on http://localhost:${port}`);
