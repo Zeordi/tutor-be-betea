@@ -2,7 +2,13 @@ import { Stack } from "expo-router";
 import { StatusBar } from "expo-status-bar";
 import { ThemeProvider } from "@/components/ThemeProvider";
 import { useTheme } from "@/hooks/useTheme";
+import * as Sentry from "@sentry/react-native";
 
+Sentry.init({
+  dsn: process.env.EXPO_PUBLIC_SENTRY_DSN,
+  enableInExpoDevelopment: true,
+  debug: __DEV__,
+});
 function RootLayoutNav() {
   const { isDark } = useTheme();
 
