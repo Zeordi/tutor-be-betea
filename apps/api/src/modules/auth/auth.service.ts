@@ -6,10 +6,46 @@ import { RegisterDto } from "./dto/register.dto";
 
 @Injectable()
 export class AuthService {
+  private otpStore = new Map<string, { code: string; expires: number }>();
+
   constructor(
     private readonly usersService: UsersService,
     private readonly jwtService: JwtService,
   ) {}
+
+  async sendOtp(phoneNumber: string) {
+    // Generate 6-digit code
+    const code = Math.floor(100000 + Math.random() * 900000).toString();
+
+    // Store with 5 minutes expiry
+    this.otpStore.set(phoneNumber, {
+      code,
+      expires: Date.now() + 5 * 60 * 1000,
+    });
+
+    // TODO: Integrate with real SMS provider (Twilio, Termii, Africa's Talking, or Telebirr SMS)
+    console.log(`[OTP] ${phoneNumber} → ${code}`);
+
+    return { message: "OTP sent successfully" };
+  }
+
+  async verifyOtp(phoneNumber: string, code: string) {
+    const stored = this.otpStore.get(phoneNumber);
+
+    if (!stored || stored.expires < Date.now()) {
+      throw new UnauthorizedException("OTP expired or not found");
+    }
+
+    if (stored.code !== code) {
+      throw new UnauthorizedException("Invalid OTP");
+    }
+
+    // OTP is valid – remove it
+    this.otpStore.delete(phoneNumber);
+
+    // Find or create user logic can go here
+    return { verified: true };
+  }
 
   async login(dto: LoginDto) {
     const user = await this.usersService.findByPhone(dto.phoneNumber);
