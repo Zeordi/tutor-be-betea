@@ -3,47 +3,43 @@ import { JwtService } from "@nestjs/jwt";
 import { UsersService } from "../users/users.service";
 import { LoginDto } from "./dto/login.dto";
 import { RegisterDto } from "./dto/register.dto";
+import { redis } from "../../config/redis";
 
 @Injectable()
 export class AuthService {
-  private otpStore = new Map<string, { code: string; expires: number }>();
-
   constructor(
     private readonly usersService: UsersService,
     private readonly jwtService: JwtService,
   ) {}
 
   async sendOtp(phoneNumber: string) {
-    // Generate 6-digit code
     const code = Math.floor(100000 + Math.random() * 900000).toString();
+    const key = `otp:${phoneNumber}`;
 
-    // Store with 5 minutes expiry
-    this.otpStore.set(phoneNumber, {
-      code,
-      expires: Date.now() + 5 * 60 * 1000,
-    });
+    // Store in Redis with 5 minutes TTL
+    await redis.set(key, code, "EX", 300);
 
-    // TODO: Integrate with real SMS provider (Twilio, Termii, Africa's Talking, or Telebirr SMS)
-    console.log(`[OTP] ${phoneNumber} → ${code}`);
+    // TODO: Send real SMS
+    console.log(`[OTP] Sent to ${phoneNumber}: ${code}`);
 
     return { message: "OTP sent successfully" };
   }
 
   async verifyOtp(phoneNumber: string, code: string) {
-    const stored = this.otpStore.get(phoneNumber);
+    const key = `otp:${phoneNumber}`;
+    const stored = await redis.get(key);
 
-    if (!stored || stored.expires < Date.now()) {
+    if (!stored) {
       throw new UnauthorizedException("OTP expired or not found");
     }
 
-    if (stored.code !== code) {
+    if (stored !== code) {
       throw new UnauthorizedException("Invalid OTP");
     }
 
-    // OTP is valid – remove it
-    this.otpStore.delete(phoneNumber);
+    // Delete after successful verification
+    await redis.del(key);
 
-    // Find or create user logic can go here
     return { verified: true };
   }
 
