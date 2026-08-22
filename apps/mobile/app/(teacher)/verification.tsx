@@ -50,7 +50,7 @@ export default function VerificationScreen() {
 
       const file = result.assets[0];
 
-      // Show preview if the file is an image
+      // Show preview for images
       if (file.mimeType?.startsWith("image/")) {
         updateState(documentType, {
           status: "uploading",
@@ -58,10 +58,7 @@ export default function VerificationScreen() {
           progress: 0,
         });
       } else {
-        updateState(documentType, {
-          status: "uploading",
-          progress: 0,
-        });
+        updateState(documentType, { status: "uploading", progress: 0 });
       }
 
       const token = await getToken();
@@ -75,19 +72,16 @@ export default function VerificationScreen() {
 
       formData.append("documentType", documentType);
 
-      // Fake progress for better UX
+      // Simulate progress (real progress needs XMLHttpRequest or similar)
       updateState(documentType, { progress: 40 });
 
-      const res = await fetch(
-        `${process.env.EXPO_PUBLIC_API_URL}/vault/upload`,
-        {
-          method: "POST",
-          headers: {
-            Authorization: `Bearer ${token}`,
-          },
-          body: formData,
-        }
-      );
+      const res = await fetch(`${process.env.EXPO_PUBLIC_API_URL}/vault/upload`, {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+        body: formData,
+      });
 
       updateState(documentType, { progress: 90 });
 
@@ -101,10 +95,7 @@ export default function VerificationScreen() {
         progress: 100,
       });
 
-      Alert.alert(
-        "Success",
-        `${label} uploaded successfully. Waiting for admin review.`
-      );
+      Alert.alert("Success", `${label} uploaded successfully. Waiting for admin review.`);
     } catch (error: any) {
       updateState(documentType, {
         status: "error",
@@ -117,17 +108,16 @@ export default function VerificationScreen() {
   return (
     <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]}>
       <ScrollView contentContainerStyle={styles.content}>
-        <Text style={[styles.title, { color: colors.text }]}>
-          Document Verification
-        </Text>
+        <Text style={[styles.title, { color: colors.text }]}>Document Verification</Text>
         <Text style={{ color: colors.textSecondary, marginTop: 8, lineHeight: 22 }}>
-          Upload your documents to the secure vault. Only authorized admins can
-          view them. After approval you will receive Trust Badges.
+          Upload your documents to the secure vault. Only authorized admins can view them.
+          After approval you will receive Trust Badges on your public profile.
         </Text>
 
         <UploadCard
           title="National ID / Fayda"
           description="Government issued ID"
+          documentType="NATIONAL_ID"
           state={states.NATIONAL_ID}
           colors={colors}
           onPress={() => pickAndUpload("NATIONAL_ID", "National ID")}
@@ -136,6 +126,7 @@ export default function VerificationScreen() {
         <UploadCard
           title="Degree / Transcript"
           description="University certificate"
+          documentType="DEGREE"
           state={states.DEGREE}
           colors={colors}
           onPress={() => pickAndUpload("DEGREE", "Degree")}
@@ -144,6 +135,7 @@ export default function VerificationScreen() {
         <UploadCard
           title="Liveness Selfie"
           description="Photo of yourself holding your ID"
+          documentType="LIVENESS_SELFIE"
           state={states.LIVENESS_SELFIE}
           colors={colors}
           onPress={() => pickAndUpload("LIVENESS_SELFIE", "Liveness Selfie")}
@@ -151,16 +143,8 @@ export default function VerificationScreen() {
 
         <View style={[styles.infoBox, { backgroundColor: colors.surface }]}>
           <Ionicons name="lock-closed" size={18} color={colors.primary} />
-          <Text
-            style={{
-              color: colors.textSecondary,
-              fontSize: 13,
-              lineHeight: 20,
-              flex: 1,
-            }}
-          >
-            All documents are encrypted with AES-256 and stored in a private
-            vault. They are never shown on your public profile.
+          <Text style={{ color: colors.textSecondary, fontSize: 13, lineHeight: 20, flex: 1 }}>
+            All documents are encrypted with AES-256 and stored in a private vault. They are never shown on your public profile.
           </Text>
         </View>
       </ScrollView>
@@ -177,6 +161,7 @@ function UploadCard({
 }: {
   title: string;
   description: string;
+  documentType: string;
   state: UploadState;
   colors: any;
   onPress: () => void;
@@ -185,39 +170,27 @@ function UploadCard({
 
   return (
     <Pressable
-      style={[
-        styles.card,
-        { backgroundColor: colors.surface, opacity: isDisabled ? 0.85 : 1 },
-      ]}
+      style={[styles.card, { backgroundColor: colors.surface, opacity: isDisabled ? 0.85 : 1 }]}
       onPress={onPress}
       disabled={isDisabled}
     >
-      {/* Image Preview or Icon */}
       {state.preview ? (
         <Image source={{ uri: state.preview }} style={styles.preview} />
       ) : (
-        <View
-          style={[
-            styles.iconPlaceholder,
-            { backgroundColor: colors.primary + "15" },
-          ]}
-        >
+        <View style={[styles.iconPlaceholder, { backgroundColor: colors.primary + "15" }]}>
           <Ionicons name="document" size={22} color={colors.primary} />
         </View>
       )}
 
       <View style={{ flex: 1 }}>
         <Text style={[styles.cardTitle, { color: colors.text }]}>{title}</Text>
-        <Text style={{ color: colors.textSecondary, fontSize: 13 }}>
-          {description}
-        </Text>
+        <Text style={{ color: colors.textSecondary, fontSize: 13 }}>{description}</Text>
 
         {state.status === "uploading" && (
           <Text style={{ color: colors.primary, fontSize: 12, marginTop: 4 }}>
             Uploading... {state.progress || 0}%
           </Text>
         )}
-
         {state.status === "error" && (
           <Text style={{ color: "#DC2626", fontSize: 12, marginTop: 4 }}>
             {state.error || "Upload failed"}
@@ -237,16 +210,9 @@ function UploadCard({
 }
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-  },
-  content: {
-    padding: 20,
-  },
-  title: {
-    fontSize: 24,
-    fontWeight: "700",
-  },
+  container: { flex: 1 },
+  content: { padding: 20 },
+  title: { fontSize: 24, fontWeight: "700" },
   card: {
     flexDirection: "row",
     alignItems: "center",
@@ -267,10 +233,7 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "center",
   },
-  cardTitle: {
-    fontSize: 16,
-    fontWeight: "700",
-  },
+  cardTitle: { fontSize: 16, fontWeight: "700" },
   infoBox: {
     marginTop: 28,
     padding: 16,
