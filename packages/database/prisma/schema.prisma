@@ -82,8 +82,14 @@ model TeacherProfile {
   badgeTier       String   @default("BRONZE") @map("badge_tier")
   isAvailable     Boolean  @default(true) @map("is_available")
 
+  // PostGIS location
+  // Note: Prisma doesn't have native Geography support yet.
+  // We store as Unsupported and use raw queries for spatial operations.
+  homeLocation    Unsupported("geography(Point,4326)")? @map("home_location")
+
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 
+  @@index([homeLocation], type: Gin)
   @@map("teacher_profiles")
 }
 
