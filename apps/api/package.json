@@ -11,6 +11,12 @@
     "check-types": "tsc --noEmit"
   },
   "dependencies": {
+    "@tutor/database": "workspace:*",
+    "@tutor/validators": "workspace:*",
+    "@tutor/types": "workspace:*",
+    "@tutor/encryption": "workspace:*",
+    "@tutor/geo": "workspace:*",
+    "@tutor/audit": "workspace:*",
     "@nestjs/common": "^10.4.0",
     "@nestjs/core": "^10.4.0",
     "@nestjs/platform-express": "^10.4.0",
