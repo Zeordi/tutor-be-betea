@@ -12,72 +12,57 @@ export class MatchingService {
     maxDistanceKm?: number;
     limit?: number;
   }) {
-    const maxDistance = (params.maxDistanceKm || 10) * 1000; // meters
+    const maxDistanceMeters = (params.maxDistanceKm || 10) * 1000;
     const limit = params.limit || 20;
 
-    // Get all available verified teachers
-    const teachers = await prisma.teacherProfile.findMany({
-      where: {
-        isAvailable: true,
-        isIdVerified: true,
-        user: {
-          status: "ACTIVE",
-        },
-        ...(params.subjects && {
-          subjects: { hasSome: params.subjects },
-        }),
-        ...(params.grades && {
-          grades: { hasSome: params.grades },
-        }),
-      },
-      include: {
-        user: {
-          select: {
-            id: true,
-            fullName: true,
-            avatarUrl: true,
-          },
-        },
-      },
-    });
+    // Real PostGIS query (requires home_location geography column)
+    // We use raw query for full spatial power
+    const teachers: any[] = await prisma.$queryRaw`
+      SELECT 
+        tp.*,
+        u.full_name,
+        u.avatar_url,
+        ST_Distance(
+          tp.home_location,
+          ST_SetSRID(ST_MakePoint(${params.longitude}, ${params.latitude}), 4326)::geography
+        ) AS distance_meters
+      FROM teacher_profiles tp
+      JOIN users u ON u.id = tp.user_id
+      WHERE 
+        u.status = 'ACTIVE'
+        AND tp.is_id_verified = true
+        AND tp.is_available = true
+        AND ST_DWithin(
+          tp.home_location,
+          ST_SetSRID(ST_MakePoint(${params.longitude}, ${params.latitude}), 4326)::geography,
+          ${maxDistanceMeters}
+        )
+      ORDER BY 
+        CASE tp.badge_tier
+          WHEN 'GOLD_ELITE' THEN 1
+          WHEN 'SILVER' THEN 2
+          ELSE 3
+        END,
+        distance_meters ASC,
+        tp.rating DESC
+      LIMIT ${limit};
+    `;
 
-    // Calculate distance and filter
-    const withDistance = teachers
-      .map((t) => {
-        // In production we will use PostGIS ST_Distance
-        // For now we simulate with a placeholder location (replace later)
-        const distance = Math.random() * 8000; // temporary mock
-
-        return {
-          ...t,
-          distanceMeters: Math.round(distance),
-        };
-      })
-      .filter((t) => t.distanceMeters <= maxDistance)
-      .sort((a, b) => {
-        // Ranking: Badge tier → Distance → Rating
-        const badgeScore = { GOLD_ELITE: 3, SILVER: 2, BRONZE: 1 };
-        const scoreA = (badgeScore[a.badgeTier as keyof typeof badgeScore] || 0) * 1000 - a.distanceMeters + Number(a.rating) * 10;
-        const scoreB = (badgeScore[b.badgeTier as keyof typeof badgeScore] || 0) * 1000 - b.distanceMeters + Number(b.rating) * 10;
-        return scoreB - scoreA;
-      })
-      .slice(0, limit);
-
-    return withDistance.map((t) => ({
-      id: t.userId,
-      fullName: t.user.fullName,
-      avatarUrl: t.user.avatarUrl,
+    return teachers.map((t) => ({
+      id: t.user_id,
+      fullName: t.full_name,
+      avatarUrl: t.avatar_url,
       subjects: t.subjects,
       grades: t.grades,
-      hourlyRate: t.hourlyRate,
-      monthlyRate: t.monthlyRate,
+      hourlyRate: t.hourly_rate,
+      monthlyRate: t.monthly_rate,
       rating: t.rating,
-      totalReviews: t.totalReviews,
-      badgeTier: t.badgeTier,
-      isIdVerified: t.isIdVerified,
-      isEduVerified: t.isEduVerified,
-      distanceMeters: t.distanceMeters,
-      distanceText: `${(t.distanceMeters / 1000).toFixed(1)} km`,
+      totalReviews: t.total_reviews,
+      badgeTier: t.badge_tier,
+      isIdVerified: t.is_id_verified,
+      isEduVerified: t.is_edu_verified,
+      distanceMeters: Math.round(t.distance_meters),
+      distanceText: `${(t.distance_meters / 1000).toFixed(1)} km`,
     }));
   }
 }
