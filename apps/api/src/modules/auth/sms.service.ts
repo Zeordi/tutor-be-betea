@@ -1,40 +1,124 @@
-import { Injectable, Logger } from "@nestjs/common";
+import { Injectable, UnauthorizedException, ConflictException } from "@nestjs/common";
+import { JwtService } from "@nestjs/jwt";
+import { UsersService } from "../users/users.service";
+import { SmsService } from "../sms/sms.service"; // Adjust path to match your directory
+import { LoginDto } from "./dto/login.dto";
+import { RegisterDto } from "./dto/register.dto";
+import { redis } from "../../config/redis";
 
 @Injectable()
-export class SmsService {
-  private readonly logger = new Logger(SmsService.name);
+export class AuthService {
+  constructor(
+    private readonly usersService: UsersService,
+    private readonly jwtService: JwtService,
+    private readonly smsService: SmsService,
+  ) {}
 
-  async sendOtp(phoneNumber: string, code: string): Promise<boolean> {
-    const message = `Your Tutor Be Betea code is ${code}. Valid for 5 minutes. Do not share this code.`;
+  async sendOtp(phoneNumber: string) {
+    const code = Math.floor(100000 + Math.random() * 900000).toString();
+    const key = `otp:${phoneNumber}`;
 
-    // ========== Africa's Talking (Recommended for Ethiopia) ==========
-    if (process.env.AT_API_KEY && process.env.AT_USERNAME) {
-      try {
-        const AfricasTalking = require("africastalking")({
-          apiKey: process.env.AT_API_KEY,
-          username: process.env.AT_USERNAME,
-        });
+    // Store OTP for 5 minutes (300 seconds)
+    // Note: If using ioredis instead of Upstash, use: await redis.set(key, code, "EX", 300);
+    await redis.set(key, code, { ex: 300 });
 
-        const result = await AfricasTalking.SMS.send({
-          to: [phoneNumber],
-          message,
-          from: process.env.AT_SENDER_ID || "TUTORBE",
-        });
+    // Send SMS (AfroMessage / Africa's Talking / Termii)
+    const sent = await this.smsService.sendOtp(phoneNumber, code);
 
-        this.logger.log(`SMS sent via Africa's Talking: ${JSON.stringify(result)}`);
-        return true;
-      } catch (error) {
-        this.logger.error("Africa's Talking SMS failed", error);
-      }
+    if (!sent) {
+      throw new Error("Failed to send OTP");
     }
 
-    // ========== Fallback: Development log ==========
-    this.logger.warn(`[DEV SMS] To: ${phoneNumber} | Code: ${code}`);
-    console.log(`\n========== OTP ==========`);
-    console.log(`Phone: ${phoneNumber}`);
-    console.log(`Code:  ${code}`);
-    console.log(`=========================\n`);
+    return { message: "OTP sent successfully" };
+  }
 
-    return true;
+  async verifyOtp(phoneNumber: string, code: string) {
+    const key = `otp:${phoneNumber}`;
+    const stored = await redis.get<string>(key);
+
+    if (!stored) {
+      throw new UnauthorizedException("OTP expired or not found");
+    }
+
+    if (stored !== code) {
+      throw new UnauthorizedException("Invalid OTP");
+    }
+
+    // Delete OTP after successful verification
+    await redis.del(key);
+
+    return { verified: true };
+  }
+
+  async login(dto: LoginDto) {
+    const user = await this.usersService.findByPhone(dto.phoneNumber);
+
+    if (!user) {
+      throw new UnauthorizedException("Invalid credentials");
+    }
+
+    const tokens = await this.generateTokens(user.id, user.role);
+
+    return {
+      user: {
+        id: user.id,
+        fullName: user.fullName,
+        phoneNumber: user.phoneNumber,
+        role: user.role,
+        status: user.status,
+      },
+      ...tokens,
+    };
+  }
+
+  async register(dto: RegisterDto) {
+    const existing = await this.usersService.findByPhone(dto.phoneNumber);
+    if (existing) {
+      throw new ConflictException("Phone number already registered");
+    }
+
+    const user = await this.usersService.create({
+      phoneNumber: dto.phoneNumber,
+      fullName: dto.fullName,
+      role: dto.role,
+      email: dto.email,
+    });
+
+    const tokens = await this.generateTokens(user.id, user.role);
+
+    return {
+      user: {
+        id: user.id,
+        fullName: user.fullName,
+        phoneNumber: user.phoneNumber,
+        role: user.role,
+        status: user.status,
+      },
+      ...tokens,
+    };
+  }
+
+  async refreshToken(refreshToken: string) {
+    try {
+      const payload = this.jwtService.verify(refreshToken, {
+        secret: process.env.JWT_SECRET,
+      });
+
+      const tokens = await this.generateTokens(payload.sub, payload.role);
+      return tokens;
+    } catch {
+      throw new UnauthorizedException("Invalid refresh token");
+    }
+  }
+
+  private async generateTokens(userId: string, role: string) {
+    const payload = { sub: userId, role };
+
+    const [accessToken, refreshToken] = await Promise.all([
+      this.jwtService.signAsync(payload, { expiresIn: "15m" }),
+      this.jwtService.signAsync(payload, { expiresIn: "7d" }),
+    ]);
+
+    return { accessToken, refreshToken };
   }
 }
