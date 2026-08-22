@@ -7,7 +7,7 @@
     "dev": "expo start",
     "android": "expo start --android",
     "ios": "expo start --ios",
-    "build": "echo \"Mobile build is handled by EAS\"",
+    "build": "echo Mobile build is handled by EAS",
     "lint": "eslint .",
     "check-types": "tsc --noEmit"
   },
