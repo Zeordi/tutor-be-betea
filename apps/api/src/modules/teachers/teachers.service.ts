@@ -58,6 +58,17 @@ export class TeachersService {
     });
   }
 
+  async updateLocation(userId: string, latitude: number, longitude: number) {
+    // Use raw query because of PostGIS
+    await prisma.$executeRaw`
+      UPDATE teacher_profiles
+      SET home_location = ST_SetSRID(ST_MakePoint(${longitude}, ${latitude}), 4326)::geography
+      WHERE user_id = ${userId}::uuid
+    `;
+
+    return { success: true, latitude, longitude };
+  }
+
   async getPublicProfile(teacherId: string) {
     const profile = await prisma.teacherProfile.findUnique({
       where: { userId: teacherId },
