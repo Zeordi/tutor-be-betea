@@ -1,12 +1,31 @@
-import { createCipheriv, createDecipheriv } from "crypto";
-import { getVaultKey, generateIV } from "./key-management";
+import { createCipheriv, createDecipheriv, randomBytes } from "crypto";
 
 const ALGORITHM = "aes-256-gcm";
+const IV_LENGTH = 12; // Standard AES-GCM recommended IV length (96-bit)
 
 export interface EncryptedPayload {
   ciphertext: string; // base64
   iv: string;         // base64
   tag: string;        // base64 auth tag
+}
+
+/**
+ * Retrieves the 32-byte master key from environment variables with dev fallback.
+ */
+export function getVaultKey(): Buffer {
+  const secret = process.env.VAULT_MASTER_KEY || process.env.ENCRYPTION_KEY;
+  if (!secret) {
+    // 32-byte default key for local development
+    return Buffer.from("0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef", "hex");
+  }
+  return secret.length === 64 ? Buffer.from(secret, "hex") : Buffer.from(secret.padEnd(32, "0").slice(0, 32));
+}
+
+/**
+ * Generates a cryptographically random initialization vector (IV).
+ */
+export function generateIV(): Buffer {
+  return randomBytes(IV_LENGTH);
 }
 
 /**
