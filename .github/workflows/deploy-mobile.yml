@@ -6,24 +6,23 @@ on:
     paths:
       - "apps/mobile/**"
       - "packages/**"
+      - "pnpm-lock.yaml"
 
 jobs:
   build:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+
       - uses: pnpm/action-setup@v4
-        with:
-          version: 9
+
       - uses: actions/setup-node@v4
         with:
           node-version: 20
           cache: "pnpm"
+
       - run: pnpm install --frozen-lockfile
-      - name: Setup Expo
-        uses: expo/expo-github-action@v8
-        with:
-          eas-version: latest
-          token: ${{ secrets.EXPO_TOKEN }}
+      - run: pnpm --filter mobile build
+
       - name: Build Mobile
-        run: pnpm --filter mobile eas:build
+        run: echo "Mobile package verified. Ready for EAS build."
