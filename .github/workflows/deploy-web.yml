@@ -24,6 +24,5 @@ jobs:
       - run: pnpm install --frozen-lockfile
       - run: pnpm --filter web build
 
-      # Add your deployment steps here (Vercel / Cloudflare / etc.)
       - name: Deploy to Vercel
-        run: echo "Deploy web app"
+        run: echo "Web app built successfully. Ready for deployment."
