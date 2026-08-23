@@ -22,7 +22,9 @@ jobs:
           cache: "pnpm"
 
       - run: pnpm install --frozen-lockfile
+      - run: pnpm db:generate
       - run: pnpm --filter mobile build
 
+      # When you are ready to connect EAS later, you can add expo/expo-github-action here
       - name: Build Mobile
-        run: echo "Mobile package verified. Ready for EAS build."
+        run: echo "Mobile package verified successfully. Ready for EAS build."
