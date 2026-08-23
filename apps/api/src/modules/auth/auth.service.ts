@@ -17,7 +17,7 @@ export class AuthService {
     const key = `otp:${phoneNumber}`;
 
     // Store in Redis with 5 minutes TTL
-    await redis.set(key, code, "EX", 300);
+    await redis.set(key, code, { ex: 300 });
 
     // TODO: Send real SMS
     console.log(`[OTP] Sent to ${phoneNumber}: ${code}`);
