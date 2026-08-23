@@ -1,33 +1,35 @@
 export default function AdminDashboardPage() {
+  const stats = [
+    { label: "Total Parents", value: "—" },
+    { label: "Verified Tutors", value: "—" },
+    { label: "Active Contracts", value: "—" },
+    { label: "Pending Verifications", value: "—" },
+  ];
+
   return (
     <div>
-      <h1 className="text-2xl font-bold text-[var(--foreground)]">
-        Executive Dashboard
-      </h1>
-      <p className="mt-1 text-[var(--secondary)]">
-        Overview of platform performance
-      </p>
+      <h1 className="page-title">Executive Dashboard</h1>
+      <p className="page-subtitle">Overview of platform performance</p>
 
-      <div className="mt-8 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
-        <div className="rounded-2xl border border-[var(--border)] bg-[var(--surface)] p-6">
-          <p className="text-sm text-[var(--secondary)]">Total Parents</p>
-          <p className="mt-2 text-3xl font-bold">—</p>
-        </div>
-        <div className="rounded-2xl border border-[var(--border)] bg-[var(--surface)] p-6">
-          <p className="text-sm text-[var(--secondary)]">Verified Tutors</p>
-          <p className="mt-2 text-3xl font-bold">—</p>
-        </div>
-        <div className="rounded-2xl border border-[var(--border)] bg-[var(--surface)] p-6">
-          <p className="text-sm text-[var(--secondary)]">Active Contracts</p>
-          <p className="mt-2 text-3xl font-bold">—</p>
-        </div>
-        <div className="rounded-2xl border border-[var(--border)] bg-[var(--surface)] p-6">
-          <p className="text-sm text-[var(--secondary)]">Pending Verifications</p>
-          <p className="mt-2 text-3xl font-bold text-[var(--warning)]">—</p>
-        </div>
+      <div className="stat-grid">
+        {stats.map((item) => (
+          <div key={item.label} className="stat-card">
+            <div className="stat-label">{item.label}</div>
+            <div className="stat-value">{item.value}</div>
+          </div>
+        ))}
       </div>
 
-      {/* TODO: Charts, recent activity, revenue summary */}
+      <div style={{ marginTop: 24 }} className="card">
+        <h2 style={{ marginTop: 0, marginBottom: 8, fontSize: 18, fontWeight: 700 }}>
+          Quick Notes
+        </h2>
+        <p style={{ color: "var(--secondary)", margin: 0 }}>
+          Connect this dashboard to the live API endpoint
+          <code> /admin/dashboard </code>
+          to show real numbers for parents, tutors, contracts, and pending verifications.
+        </p>
+      </div>
     </div>
   );
 }
