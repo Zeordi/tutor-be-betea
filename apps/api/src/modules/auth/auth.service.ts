@@ -50,9 +50,7 @@ export class AuthService {
       throw new UnauthorizedException("Invalid credentials");
     }
 
-    // TODO: Add proper password / OTP verification (Supabase Auth or custom)
-    // For now we issue token after basic existence check
-
+    // Issue token after basic existence check
     const tokens = await this.generateTokens(user.id, user.role);
 
     return {

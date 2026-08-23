@@ -60,7 +60,6 @@ export class AttendanceService {
   }) {
     const log = await prisma.attendanceLog.findUnique({
       where: { id: params.attendanceLogId },
-      include: { /* contract relation if needed */ },
     });
 
     if (!log) throw new NotFoundException("Attendance log not found");
