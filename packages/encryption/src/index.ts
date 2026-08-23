@@ -1,62 +1,49 @@
-export const GEOFENCE_RADIUS_METERS = 150; // Maximum allowed distance for auto-verified check-in
+import { createCipheriv, createDecipheriv, randomBytes } from "crypto";
 
-export interface Coordinates {
-  latitude: number;
-  longitude: number;
+const ALGORITHM = "aes-256-gcm";
+const IV_LENGTH = 12;
+
+export interface EncryptedPayload {
+  ciphertext: string; // base64
+  iv: string;         // base64
+  tag: string;        // base64 auth tag
 }
 
-export interface GeofenceStatus {
-  distanceMeters: number;
-  isVerified: boolean;
-  requiresManualConfirmation: boolean;
+export function getVaultKey(): Buffer {
+  const secret = process.env.VAULT_MASTER_KEY || process.env.ENCRYPTION_KEY;
+  if (!secret) {
+    return Buffer.from("0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef", "hex");
+  }
+  return secret.length === 64 ? Buffer.from(secret, "hex") : Buffer.from(secret.padEnd(32, "0").slice(0, 32));
 }
 
-/**
- * Calculates the great-circle distance between two points in meters using the Haversine formula.
- */
-export function calculateDistanceMeters(
-  lat1: number,
-  lon1: number,
-  lat2: number,
-  lon2: number,
-): number {
-  const R = 6371e3; // Earth's radius in meters
-  const φ1 = (lat1 * Math.PI) / 180;
-  const φ2 = (lat2 * Math.PI) / 180;
-  const Δφ = ((lat2 - lat1) * Math.PI) / 180;
-  const Δλ = ((lon2 - lon1) * Math.PI) / 180;
-
-  const a =
-    Math.sin(Δφ / 2) * Math.sin(Δφ / 2) +
-    Math.cos(φ1) * Math.cos(φ2) * Math.sin(Δλ / 2) * Math.sin(Δλ / 2);
-
-  const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
-
-  return Math.round(R * c); // Distance in meters
+export function generateIV(): Buffer {
+  return randomBytes(IV_LENGTH);
 }
 
-/**
- * Checks if teacher check-in is within the parent geofence radius.
- */
-export function getGeofenceStatus(
-  teacherLat: number,
-  teacherLng: number,
-  parentLat: number,
-  parentLng: number,
-  maxRadiusMeters: number = GEOFENCE_RADIUS_METERS,
-): GeofenceStatus {
-  const distanceMeters = calculateDistanceMeters(
-    teacherLat,
-    teacherLng,
-    parentLat,
-    parentLng,
-  );
+export function encryptBuffer(data: Buffer): EncryptedPayload {
+  const key = getVaultKey();
+  const iv = generateIV();
 
-  const isVerified = distanceMeters <= maxRadiusMeters;
+  const cipher = createCipheriv(ALGORITHM, key, iv);
+  const encrypted = Buffer.concat([cipher.update(data), cipher.final()]);
+  const tag = cipher.getAuthTag();
 
   return {
-    distanceMeters,
-    isVerified,
-    requiresManualConfirmation: !isVerified,
+    ciphertext: encrypted.toString("base64"),
+    iv: iv.toString("base64"),
+    tag: tag.toString("base64"),
   };
+}
+
+export function decryptToBuffer(payload: EncryptedPayload): Buffer {
+  const key = getVaultKey();
+  const iv = Buffer.from(payload.iv, "base64");
+  const tag = Buffer.from(payload.tag, "base64");
+  const ciphertext = Buffer.from(payload.ciphertext, "base64");
+
+  const decipher = createDecipheriv(ALGORITHM, key, iv);
+  decipher.setAuthTag(tag);
+
+  return Buffer.concat([decipher.update(ciphertext), decipher.final()]);
 }
