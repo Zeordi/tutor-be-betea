@@ -7,7 +7,7 @@ import {
   UseInterceptors,
   UploadedFile,
   Body,
-  ForbiddenException, // Added missing ForbiddenException import
+  ForbiddenException,
 } from "@nestjs/common";
 import { FileInterceptor } from "@nestjs/platform-express";
 import { VaultService } from "./vault.service";
@@ -15,7 +15,7 @@ import { JwtAuthGuard } from "../../common/guards/jwt-auth.guard";
 import { RolesGuard } from "../../common/guards/roles.guard";
 import { Roles } from "../../common/decorators/roles.decorator";
 import { CurrentUser } from "../../common/decorators/current-user.decorator";
-import "multer"; // Ensures Express.Multer.File types are loaded
+import "multer";
 
 @Controller("vault")
 @UseGuards(JwtAuthGuard, RolesGuard)
