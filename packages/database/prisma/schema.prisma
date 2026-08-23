@@ -6,7 +6,7 @@ generator client {
 datasource db {
   provider   = "postgresql"
   url        = env("DATABASE_URL")
-  extensions = [uuid_ossp(map: "uuid-ossp", schema: "extensions")]
+  extensions = [uuid_ossp(map: "uuid-ossp", schema: "extensions"), postgis(map: "postgis")]
 }
 
 enum UserRole {
@@ -66,26 +66,26 @@ model User {
 }
 
 model TeacherProfile {
-  userId           String                       @id @map("user_id") @db.Uuid
+  userId           String                               @id @map("user_id") @db.Uuid
   bio              String?
-  hourlyRate       Decimal                      @map("hourly_rate") @db.Decimal(10, 2)
-  monthlyRate      Decimal                      @map("monthly_rate") @db.Decimal(10, 2)
+  hourlyRate       Decimal                              @map("hourly_rate") @db.Decimal(10, 2)
+  monthlyRate      Decimal                              @map("monthly_rate") @db.Decimal(10, 2)
   subjects         String[]
   grades           String[]
-  maxTravelKm      Decimal                      @default(5.0) @map("max_travel_km") @db.Decimal(4, 1)
-  connectsBalance  Int                          @default(15) @map("connects_balance")
-  isIdVerified     Boolean                      @default(false) @map("is_id_verified")
-  isEduVerified    Boolean                      @default(false) @map("is_edu_verified")
-  rating           Decimal                      @default(5.00) @db.Decimal(3, 2)
-  totalReviews     Int                          @default(0) @map("total_reviews")
-  totalHoursTaught Decimal                      @default(0) @map("total_hours_taught") @db.Decimal(8, 1)
-  badgeTier        String                       @default("BRONZE") @map("badge_tier")
-  isAvailable      Boolean                      @default(true) @map("is_available")
+  maxTravelKm      Decimal                              @default(5.0) @map("max_travel_km") @db.Decimal(4, 1)
+  connectsBalance  Int                                  @default(15) @map("connects_balance")
+  isIdVerified     Boolean                              @default(false) @map("is_id_verified")
+  isEduVerified    Boolean                              @default(false) @map("is_edu_verified")
+  rating           Decimal                              @default(5.00) @db.Decimal(3, 2)
+  totalReviews     Int                                  @default(0) @map("total_reviews")
+  totalHoursTaught Decimal                              @default(0) @map("total_hours_taught") @db.Decimal(8, 1)
+  badgeTier        String                               @default("BRONZE") @map("badge_tier")
+  isAvailable      Boolean                              @default(true) @map("is_available")
   homeLocation     Unsupported("geography(Point,4326)")? @map("home_location")
 
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 
-  @@index([homeLocation], type: Gin)
+  @@index([homeLocation], type: Gist)
   @@map("teacher_profiles")
 }
 
@@ -211,10 +211,6 @@ model SupportTicket {
 
   @@map("support_tickets")
 }
-
-// ======================
-// NEW MODELS
-// ======================
 
 model Notification {
   id        String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
