@@ -6,6 +6,9 @@ on:
   pull_request:
     branches: [main, develop]
 
+env:
+  DATABASE_URL: "postgresql://postgres:postgres@localhost:5432/placeholder"
+
 jobs:
   build-and-test:
     runs-on: ubuntu-latest
