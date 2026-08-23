@@ -1,13 +1,10 @@
 import type { Metadata } from "next";
-import { Inter } from "next/font/google";
 import "./globals.css";
 
-const inter = Inter({ subsets: ["latin"] });
-
 export const metadata: Metadata = {
-  title: "Tutor Be Betea | Ethiopia’s Premier Tutoring Platform",
+  title: "Tutor Be Betea | Verified Tutors in Ethiopia",
   description:
-    "Connect with verified home and online tutors across Addis Ababa and beyond. Safe, trusted, and results-driven.",
+    "Ethiopia’s premier home and online tutoring platform. Verified tutors, escrow-protected payments, and weekly progress reports.",
 };
 
 export default function RootLayout({
@@ -16,9 +13,11 @@ export default function RootLayout({
   children: React.ReactNode;
 }) {
   return (
-    <html lang="en" suppressHydrationWarning>
-      <body className={`${inter.className} antialiased`}>
-        {children}
+    <html lang="en">
+      <body>
+        <div className="min-h-screen bg-[var(--background)] text-[var(--foreground)]">
+          {children}
+        </div>
       </body>
     </html>
   );
