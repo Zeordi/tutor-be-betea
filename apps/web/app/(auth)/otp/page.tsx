@@ -16,6 +16,14 @@ export default function OtpPage() {
   const [loading, setLoading] = useState(false);
   const [message, setMessage] = useState("");
 
+  const redirectByRole = (userRole: string) => {
+    if (userRole === "TEACHER") {
+      router.push("/teacher");
+    } else {
+      router.push("/parent");
+    }
+  };
+
   const handleVerify = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
@@ -61,9 +69,14 @@ export default function OtpPage() {
         }
 
         const data = await registerRes.json();
+
         if (data.accessToken) {
           localStorage.setItem("token", data.accessToken);
         }
+
+        const userRole = data?.user?.role || role;
+        setMessage("Account created successfully. Redirecting...");
+        redirectByRole(userRole);
       } else {
         const loginRes = await fetch(
           `${process.env.NEXT_PUBLIC_API_URL}/auth/login`,
@@ -80,13 +93,15 @@ export default function OtpPage() {
         }
 
         const data = await loginRes.json();
+
         if (data.accessToken) {
           localStorage.setItem("token", data.accessToken);
         }
-      }
 
-      setMessage("Success! Redirecting...");
-      router.push("/");
+        const userRole = data?.user?.role || role;
+        setMessage("Login successful. Redirecting...");
+        redirectByRole(userRole);
+      }
     } catch (error: any) {
       setMessage(error.message || "Something went wrong");
     } finally {
@@ -164,7 +179,10 @@ export default function OtpPage() {
 
         <p className="text-sm text-[var(--secondary)] mt-6 text-center">
           Wrong number?{" "}
-          <a href={mode === "register" ? "/register" : "/login"} className="text-[var(--primary)] font-semibold">
+          <a
+            href={mode === "register" ? "/register" : "/login"}
+            className="text-[var(--primary)] font-semibold"
+          >
             Go back
           </a>
         </p>
