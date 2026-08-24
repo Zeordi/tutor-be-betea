@@ -9,24 +9,25 @@ export default function ParentDashboardPage() {
 
   useEffect(() => {
     const token = localStorage.getItem("token");
+
     if (!token) {
       router.replace("/login");
       return;
     }
+
     setReady(true);
   }, [router]);
 
   if (!ready) {
     return (
       <main className="min-h-screen flex items-center justify-center">
-        <p className="text-[var(--secondary)]">Loading...</p>
+        <p className="text-[var(--secondary)]">Checking authentication...</p>
       </main>
     );
   }
 
   return (
     <main className="min-h-screen">
-      {/* Top bar */}
       <header className="border-b border-[var(--border)] bg-[var(--background)]">
         <div className="container flex items-center justify-between py-4">
           <div className="text-xl font-bold text-[var(--primary)]">
@@ -69,20 +70,6 @@ export default function ParentDashboardPage() {
             <h3 className="text-lg font-bold mb-2">My Contracts</h3>
             <p className="text-[var(--secondary)] text-sm">
               Track active tutoring contracts and escrow status.
-            </p>
-          </div>
-
-          <div className="card">
-            <h3 className="text-lg font-bold mb-2">Progress Reports</h3>
-            <p className="text-[var(--secondary)] text-sm">
-              View weekly mastery updates from your tutors.
-            </p>
-          </div>
-
-          <div className="card">
-            <h3 className="text-lg font-bold mb-2">Messages</h3>
-            <p className="text-[var(--secondary)] text-sm">
-              Chat safely with tutors inside the platform.
             </p>
           </div>
         </div>
