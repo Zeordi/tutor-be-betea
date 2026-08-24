@@ -3,7 +3,6 @@
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
-import { clearToken, getToken } from "@/lib/auth";
 
 const navItems = [
   { href: "/parent", label: "Dashboard" },
@@ -23,7 +22,7 @@ export default function ParentLayout({ children }: { children: React.ReactNode }
   const [ready, setReady] = useState(false);
 
   useEffect(() => {
-    const token = getToken();
+    const token = localStorage.getItem("token");
     if (!token) {
       router.replace("/login");
       return;
@@ -40,7 +39,7 @@ export default function ParentLayout({ children }: { children: React.ReactNode }
   }
 
   return (
-    <div className="min-h-screen grid grid-cols-1 lg:grid-cols-[260px_1fr]">
+    <div className="min-h-screen grid grid-cols-1 lg:grid-cols-[260px_1fr] bg-[var(--background)]">
       <aside className="border-r border-[var(--border)] bg-[var(--surface)] p-5">
         <div className="text-xl font-bold text-[var(--primary)] mb-8">
           Tutor Be Betea
@@ -48,7 +47,10 @@ export default function ParentLayout({ children }: { children: React.ReactNode }
 
         <nav className="space-y-1">
           {navItems.map((item) => {
-            const active = pathname === item.href;
+            const active =
+              pathname === item.href ||
+              (item.href !== "/parent" && pathname.startsWith(item.href));
+
             return (
               <Link
                 key={item.href}
@@ -67,7 +69,7 @@ export default function ParentLayout({ children }: { children: React.ReactNode }
 
         <button
           onClick={() => {
-            clearToken();
+            localStorage.removeItem("token");
             router.push("/login");
           }}
           className="btn btn-secondary w-full mt-8"
@@ -76,7 +78,7 @@ export default function ParentLayout({ children }: { children: React.ReactNode }
         </button>
       </aside>
 
-      <main className="p-6 md:p-8 bg-[var(--background)]">{children}</main>
+      <main className="p-6 md:p-8">{children}</main>
     </div>
   );
 }
