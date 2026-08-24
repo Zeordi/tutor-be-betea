@@ -9,24 +9,25 @@ export default function TeacherDashboardPage() {
 
   useEffect(() => {
     const token = localStorage.getItem("token");
+
     if (!token) {
       router.replace("/login");
       return;
     }
+
     setReady(true);
   }, [router]);
 
   if (!ready) {
     return (
       <main className="min-h-screen flex items-center justify-center">
-        <p className="text-[var(--secondary)]">Loading...</p>
+        <p className="text-[var(--secondary)]">Checking authentication...</p>
       </main>
     );
   }
 
   return (
     <main className="min-h-screen">
-      {/* Top bar */}
       <header className="border-b border-[var(--border)] bg-[var(--background)]">
         <div className="container flex items-center justify-between py-4">
           <div className="text-xl font-bold text-[var(--primary)]">
@@ -69,27 +70,6 @@ export default function TeacherDashboardPage() {
             <h3 className="text-lg font-bold mb-2">Verification</h3>
             <p className="text-[var(--secondary)] text-sm">
               Upload ID and education documents to earn Trust Badges.
-            </p>
-          </div>
-
-          <div className="card">
-            <h3 className="text-lg font-bold mb-2">Earnings</h3>
-            <p className="text-[var(--secondary)] text-sm">
-              View your balance and payout history.
-            </p>
-          </div>
-
-          <div className="card">
-            <h3 className="text-lg font-bold mb-2">Progress Reports</h3>
-            <p className="text-[var(--secondary)] text-sm">
-              Submit weekly reports for your students.
-            </p>
-          </div>
-
-          <div className="card">
-            <h3 className="text-lg font-bold mb-2">Messages</h3>
-            <p className="text-[var(--secondary)] text-sm">
-              Chat with parents securely inside the platform.
             </p>
           </div>
         </div>
