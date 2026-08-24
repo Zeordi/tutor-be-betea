@@ -1,0 +1,92 @@
+"use client";
+
+import { useEffect, useState } from "react";
+import { useRouter } from "next/navigation";
+
+export default function ParentDashboardPage() {
+  const router = useRouter();
+  const [ready, setReady] = useState(false);
+
+  useEffect(() => {
+    const token = localStorage.getItem("token");
+    if (!token) {
+      router.replace("/login");
+      return;
+    }
+    setReady(true);
+  }, [router]);
+
+  if (!ready) {
+    return (
+      <main className="min-h-screen flex items-center justify-center">
+        <p className="text-[var(--secondary)]">Loading...</p>
+      </main>
+    );
+  }
+
+  return (
+    <main className="min-h-screen">
+      {/* Top bar */}
+      <header className="border-b border-[var(--border)] bg-[var(--background)]">
+        <div className="container flex items-center justify-between py-4">
+          <div className="text-xl font-bold text-[var(--primary)]">
+            Tutor Be Betea
+          </div>
+          <button
+            onClick={() => {
+              localStorage.removeItem("token");
+              router.push("/login");
+            }}
+            className="btn btn-secondary text-sm px-4 py-2"
+          >
+            Logout
+          </button>
+        </div>
+      </header>
+
+      <section className="container py-10">
+        <h1 className="text-3xl font-bold mb-2">Parent Dashboard</h1>
+        <p className="text-[var(--secondary)] mb-8">
+          Manage your children, find verified tutors, and track learning progress.
+        </p>
+
+        <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-5">
+          <a href="/tutors" className="card hover:shadow-md transition">
+            <h3 className="text-lg font-bold mb-2">Find Tutors</h3>
+            <p className="text-[var(--secondary)] text-sm">
+              Browse verified tutors near you and hire with escrow protection.
+            </p>
+          </a>
+
+          <div className="card">
+            <h3 className="text-lg font-bold mb-2">My Children</h3>
+            <p className="text-[var(--secondary)] text-sm">
+              Add and manage your children’s learning profiles.
+            </p>
+          </div>
+
+          <div className="card">
+            <h3 className="text-lg font-bold mb-2">My Contracts</h3>
+            <p className="text-[var(--secondary)] text-sm">
+              Track active tutoring contracts and escrow status.
+            </p>
+          </div>
+
+          <div className="card">
+            <h3 className="text-lg font-bold mb-2">Progress Reports</h3>
+            <p className="text-[var(--secondary)] text-sm">
+              View weekly mastery updates from your tutors.
+            </p>
+          </div>
+
+          <div className="card">
+            <h3 className="text-lg font-bold mb-2">Messages</h3>
+            <p className="text-[var(--secondary)] text-sm">
+              Chat safely with tutors inside the platform.
+            </p>
+          </div>
+        </div>
+      </section>
+    </main>
+  );
+}
