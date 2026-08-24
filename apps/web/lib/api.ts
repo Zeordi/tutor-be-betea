@@ -1,27 +1,39 @@
-const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:3001";
+const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:4000";
 
-export interface UpdateLocationPayload {
-  latitude: number;
-  longitude: number;
+export function getToken() {
+  if (typeof window === "undefined") return null;
+  return localStorage.getItem("token");
 }
 
-export async function updateTeacherLocation(
-  token: string,
-  coords: UpdateLocationPayload = { latitude: 9.03, longitude: 38.74 },
-) {
-  const response = await fetch(`${API_URL}/teachers/profile/location`, {
-    method: "PATCH",
-    headers: {
-      Authorization: `Bearer ${token}`,
-      "Content-Type": "application/json",
-    },
-    body: JSON.stringify(coords),
-  });
+export async function apiFetch<T = any>(
+  path: string,
+  options: RequestInit = {}
+): Promise<T> {
+  const token = getToken();
 
-  if (!response.ok) {
-    const errorData = await response.json().catch(() => ({}));
-    throw new Error(errorData.message || `Failed to update location: ${response.statusText}`);
+  const headers: HeadersInit = {
+    ...(options.headers || {}),
+  };
+
+  // Only set JSON content-type when body is not FormData
+  if (!(options.body instanceof FormData)) {
+    (headers as any)["Content-Type"] = "application/json";
   }
 
-  return response.json();
+  if (token) {
+    (headers as any)["Authorization"] = `Bearer ${token}`;
+  }
+
+  const res = await fetch(`\( {API_URL} \){path}`, {
+    ...options,
+    headers,
+  });
+
+  const data = await res.json().catch(() => ({}));
+
+  if (!res.ok) {
+    throw new Error(data?.message || `Request failed (${res.status})`);
+  }
+
+  return data as T;
 }
