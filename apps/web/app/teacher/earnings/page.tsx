@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { apiFetch } from "@/lib/api";
+import { apiFetch, getToken } from "@/lib/api";
 
 type EarningsData = {
   availableBalance?: number;
