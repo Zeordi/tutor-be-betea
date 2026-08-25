@@ -1,19 +1,18 @@
-import { Injectable, ForbiddenException, NotFoundException } from "@nestjs/common";
+import { Injectable, NotFoundException } from "@nestjs/common";
 import { prisma } from "@tutor/database";
 import { encryptBuffer, decryptToBuffer } from "@tutor/encryption";
-import { createAuditHash } from "@tutor/audit";
+import { AuditService } from "../audit/audit.service";
 
 @Injectable()
 export class VaultService {
-  /**
-   * Upload a sensitive document (ID, Degree, Liveness Selfie)
-   * Document is encrypted with AES-256-GCM before storing
-   */
+  constructor(private readonly auditService: AuditService) {}
+
   async uploadDocument(params: {
     teacherId: string;
     documentType: "NATIONAL_ID" | "PASSPORT" | "DEGREE" | "TRANSCRIPT" | "LIVENESS_SELFIE";
     fileBuffer: Buffer;
-    uploadedBy: string; // admin or the teacher
+    uploadedBy: string;
+    mimeType?: string;
   }) {
     const encrypted = encryptBuffer(params.fileBuffer);
 
@@ -21,7 +20,10 @@ export class VaultService {
       data: {
         teacherId: params.teacherId,
         documentType: params.documentType,
-        encryptedData: JSON.stringify(encrypted), // store ciphertext + iv + tag
+        encryptedData: JSON.stringify({
+          ...encrypted,
+          mimeType: params.mimeType || "image/jpeg",
+        }),
         status: "PENDING",
       },
     });
@@ -34,32 +36,48 @@ export class VaultService {
     };
   }
 
-  /**
-   * Only Super Admins / Verification Officers can decrypt and view
-   */
-  async getDecryptedDocument(documentId: string, adminId: string) {
+  async getDecryptedDocument(documentId: string, adminId: string, ipAddress: string) {
     const doc = await prisma.vaultDocument.findUnique({
       where: { id: documentId },
     });
 
     if (!doc) {
-      throw new NotFoundException("Document not found");
+      throw new NotFoundException("Document not found in secure vault");
     }
 
     const payload = JSON.parse(doc.encryptedData);
-    const decryptedBuffer = decryptToBuffer(payload);
+    const decryptedBuffer = decryptToBuffer({
+      ciphertext: payload.ciphertext,
+      iv: payload.iv,
+      tag: payload.tag,
+    });
 
-    // TODO: Write to audit log that admin viewed this document
+    // Write immutable HMAC-chained audit log
+    await this.auditService.createLog({
+      adminId,
+      actionType: "DECRYPT_VAULT_DOCUMENT",
+      targetUserId: doc.teacherId,
+      reason: `Admin inspected ${doc.documentType} (Doc ID: ${doc.id})`,
+      ipAddress,
+      statePayload: {
+        documentId: doc.id,
+        documentType: doc.documentType,
+        fileSizeBytes: decryptedBuffer.length,
+      },
+    });
 
     return {
+      id: doc.id,
       documentType: doc.documentType,
-      buffer: decryptedBuffer,
+      status: doc.status,
+      mimeType: payload.mimeType || "image/jpeg",
+      base64Data: decryptedBuffer.toString("base64"),
       teacherId: doc.teacherId,
+      createdAt: doc.createdAt,
     };
   }
 
   async listTeacherDocuments(teacherId: string) {
-    // Returns metadata only – never the encrypted content to non-admins
     return prisma.vaultDocument.findMany({
       where: { teacherId },
       select: {
