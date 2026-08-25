@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { useEffect, useState } from "react";
+import { apiFetch } from "@/lib/api";
 
 export default function MyJobsPage() {
   const [jobs, setJobs] = useState<any[]>([]);
