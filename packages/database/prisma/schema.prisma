@@ -61,6 +61,7 @@ model User {
   contractsAsParent  TutoringContract[] @relation("ParentContracts")
   contractsAsTeacher TutoringContract[] @relation("TeacherContracts")
 
+  @@index([pushToken])
   @@map("users")
 }
 
