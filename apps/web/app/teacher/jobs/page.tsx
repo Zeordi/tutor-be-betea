@@ -2,6 +2,8 @@
 
 import Link from "next/link";
 import { useEffect, useState } from "react";
+import { apiFetch, getToken } from "@/lib/api";
+
 
 export default function TeacherJobsPage() {
   const [jobs, setJobs] = useState<any[]>([]);
