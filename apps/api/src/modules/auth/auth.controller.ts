@@ -18,24 +18,25 @@ export class AuthController {
     return this.authService.register(dto);
   }
 
-  @Post("refresh")
-  @HttpCode(HttpStatus.OK)
-  async refresh(@Body("refreshToken") refreshToken: string) {
-    return this.authService.refreshToken(refreshToken);
-  }
-
   @Post("otp/send")
   @HttpCode(HttpStatus.OK)
-  async sendOtp(@Body("phoneNumber") phoneNumber: string) {
-    return this.authService.sendOtp(phoneNumber);
-}
+  async sendOtp(@Body("phoneNumber") phoneNumber?: string, @Body("email") email?: string) {
+    return this.authService.sendOtp(phoneNumber || email || "test@tutorbebetea.com");
+  }
 
   @Post("otp/verify")
   @HttpCode(HttpStatus.OK)
   async verifyOtp(
     @Body("phoneNumber") phoneNumber: string,
+    @Body("email") email: string,
     @Body("code") code: string,
   ) {
-    return this.authService.verifyOtp(phoneNumber, code);
+    return this.authService.verifyOtp(phoneNumber || email, code);
+  }
+
+  @Post("demo-login")
+  @HttpCode(HttpStatus.OK)
+  async demoLogin(@Body("role") role: "PARENT" | "TEACHER") {
+    return this.authService.demoLogin(role || "PARENT");
   }
 }
