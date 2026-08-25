@@ -1,18 +1,18 @@
 import {
+  ConnectedSocket,
+  MessageBody,
+  OnGatewayConnection,
+  SubscribeMessage,
   WebSocketGateway,
   WebSocketServer,
-  SubscribeMessage,
-  MessageBody,
-  ConnectedSocket,
-  OnGatewayConnection,
 } from "@nestjs/websockets";
 import { Server, Socket } from "socket.io";
-import { AntiPoachingService } from "./anti-poaching.service";
 import { ChatService } from "./chat.service";
+import { AntiPoachingService } from "./anti-poaching.service";
 
 @WebSocketGateway({
   cors: {
-    origin: ["http://localhost:3000", "http://localhost:3001"],
+    origin: "*",
   },
 })
 export class ChatGateway implements OnGatewayConnection {
@@ -20,43 +20,65 @@ export class ChatGateway implements OnGatewayConnection {
   server: Server;
 
   constructor(
-    private readonly antiPoaching: AntiPoachingService,
     private readonly chatService: ChatService,
+    private readonly antiPoachingService: AntiPoachingService,
   ) {}
 
   handleConnection(client: Socket) {
-    // TODO: Authenticate socket connection with JWT
+    // Optional: auth checks can be added here later
     console.log(`Client connected: ${client.id}`);
   }
 
   @SubscribeMessage("join_room")
-  handleJoinRoom(@ConnectedSocket() client: Socket, @MessageBody() roomId: string) {
+  handleJoinRoom(
+    @ConnectedSocket() client: Socket,
+    @MessageBody() roomId: string,
+  ) {
     client.join(roomId);
-    return { event: "joined", roomId };
+    return { event: "joined_room", roomId };
   }
 
   @SubscribeMessage("send_message")
-  async handleMessage(
+  async handleSendMessage(
     @ConnectedSocket() client: Socket,
-    @MessageBody() data: { roomId: string; content: string; senderId: string },
+    @MessageBody()
+    body: {
+      roomId: string;
+      senderId: string;
+      content: string;
+    },
   ) {
-    // Apply Anti-Poaching Shield
-    const sanitizedContent = this.antiPoaching.sanitize(data.content);
+    const { roomId, senderId, content } = body;
 
-    const message = {
-      roomId: data.roomId,
-      senderId: data.senderId,
+    if (!roomId || !senderId || !content?.trim()) {
+      return { error: "Invalid message payload" };
+    }
+
+    // 1) Anti-poaching scan + sanitize
+    const scan = this.antiPoachingService.sanitize(content);
+    const sanitizedContent = scan.sanitizedText;
+    const blocked = scan.blocked;
+
+    // 2) Save message to database
+    const saved = await this.chatService.saveMessage({
+      roomId,
+      senderId,
       content: sanitizedContent,
-      originalBlocked: sanitizedContent !== data.content,
-      createdAt: new Date().toISOString(),
+      originalBlocked: blocked,
+    });
+
+    // 3) Broadcast to room
+    const payload = {
+      id: saved.id,
+      roomId: saved.roomId,
+      senderId: saved.senderId,
+      content: saved.content,
+      originalBlocked: saved.originalBlocked,
+      createdAt: saved.createdAt,
     };
 
-    // Save to database
-    await this.chatService.saveMessage(message);
+    this.server.to(roomId).emit("new_message", payload);
 
-    // Broadcast to room
-    this.server.to(data.roomId).emit("new_message", message);
-
-    return message;
+    return payload;
   }
 }
