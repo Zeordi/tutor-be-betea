@@ -1,8 +1,13 @@
 const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:4000";
 
-export function getToken() {
+export function getToken(): string | null {
   if (typeof window === "undefined") return null;
   return localStorage.getItem("token");
+}
+
+export function clearToken() {
+  if (typeof window === "undefined") return;
+  localStorage.removeItem("token");
 }
 
 export async function apiFetch<T = any>(
@@ -15,7 +20,6 @@ export async function apiFetch<T = any>(
     ...(options.headers || {}),
   };
 
-  // Only set JSON content-type when body is not FormData
   if (!(options.body instanceof FormData)) {
     (headers as any)["Content-Type"] = "application/json";
   }
@@ -32,7 +36,7 @@ export async function apiFetch<T = any>(
   const data = await res.json().catch(() => ({}));
 
   if (!res.ok) {
-    throw new Error(data?.message || `Request failed (${res.status})`);
+    throw new Error((data as any)?.message || `Request failed (${res.status})`);
   }
 
   return data as T;
