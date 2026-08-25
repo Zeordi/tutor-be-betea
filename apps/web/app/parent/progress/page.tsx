@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { apiFetch } from "@/lib/api";
 
 export default function ParentProgressPage() {
   const [reports, setReports] = useState<any[]>([]);
