@@ -1,27 +1,24 @@
 "use client";
 
-import { useState } from "react";
+import { Suspense, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 
-export default function OtpPage() {
+function OtpForm() {
   const router = useRouter();
   const searchParams = useSearchParams();
 
   const phoneNumber = searchParams.get("phone") || "";
   const fullName = searchParams.get("fullName") || "";
   const role = searchParams.get("role") || "PARENT";
-  const mode = searchParams.get("mode") || "login"; // login | register
+  const mode = searchParams.get("mode") || "login";
 
   const [otp, setOtp] = useState("");
   const [loading, setLoading] = useState(false);
   const [message, setMessage] = useState("");
 
   const redirectByRole = (userRole: string) => {
-    if (userRole === "TEACHER") {
-      router.push("/teacher");
-    } else {
-      router.push("/parent");
-    }
+    if (userRole === "TEACHER") router.push("/teacher");
+    else router.push("/parent");
   };
 
   const handleVerify = async (e: React.FormEvent) => {
@@ -30,16 +27,12 @@ export default function OtpPage() {
     setMessage("");
 
     try {
-      // 1) Verify OTP
       const verifyRes = await fetch(
         `${process.env.NEXT_PUBLIC_API_URL}/auth/otp/verify`,
         {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            phoneNumber,
-            code: otp,
-          }),
+          body: JSON.stringify({ phoneNumber, code: otp }),
         }
       );
 
@@ -48,18 +41,13 @@ export default function OtpPage() {
         throw new Error(err.message || "Invalid or expired OTP");
       }
 
-      // 2) Register or Login
       if (mode === "register") {
         const registerRes = await fetch(
           `${process.env.NEXT_PUBLIC_API_URL}/auth/register`,
           {
             method: "POST",
             headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({
-              phoneNumber,
-              fullName,
-              role,
-            }),
+            body: JSON.stringify({ phoneNumber, fullName, role }),
           }
         );
 
@@ -69,14 +57,8 @@ export default function OtpPage() {
         }
 
         const data = await registerRes.json();
-
-        if (data.accessToken) {
-          localStorage.setItem("token", data.accessToken);
-        }
-
-        const userRole = data?.user?.role || role;
-        setMessage("Account created successfully. Redirecting...");
-        redirectByRole(userRole);
+        if (data.accessToken) localStorage.setItem("token", data.accessToken);
+        redirectByRole(data?.user?.role || role);
       } else {
         const loginRes = await fetch(
           `${process.env.NEXT_PUBLIC_API_URL}/auth/login`,
@@ -93,38 +75,13 @@ export default function OtpPage() {
         }
 
         const data = await loginRes.json();
-
-        if (data.accessToken) {
-          localStorage.setItem("token", data.accessToken);
-        }
-
-        const userRole = data?.user?.role || role;
-        setMessage("Login successful. Redirecting...");
-        redirectByRole(userRole);
+        if (data.accessToken) localStorage.setItem("token", data.accessToken);
+        redirectByRole(data?.user?.role || role);
       }
     } catch (error: any) {
       setMessage(error.message || "Something went wrong");
     } finally {
       setLoading(false);
-    }
-  };
-
-  const handleResend = async () => {
-    setMessage("");
-    try {
-      const res = await fetch(
-        `${process.env.NEXT_PUBLIC_API_URL}/auth/otp/send`,
-        {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ phoneNumber }),
-        }
-      );
-
-      if (!res.ok) throw new Error("Failed to resend OTP");
-      setMessage("A new OTP has been sent.");
-    } catch (error: any) {
-      setMessage(error.message || "Failed to resend OTP");
     }
   };
 
@@ -137,56 +94,32 @@ export default function OtpPage() {
         </p>
 
         <form onSubmit={handleVerify} className="space-y-4">
-          <div>
-            <label className="block text-sm font-semibold mb-2">
-              6-digit code
-            </label>
-            <input
-              type="text"
-              inputMode="numeric"
-              pattern="[0-9]*"
-              maxLength={6}
-              placeholder="Enter OTP"
-              value={otp}
-              onChange={(e) => setOtp(e.target.value)}
-              required
-              className="w-full rounded-xl border border-[var(--border)] bg-[var(--surface)] px-4 py-3 tracking-[0.3em] text-center text-lg outline-none focus:border-[var(--primary)]"
-            />
-          </div>
+          <input
+            type="text"
+            inputMode="numeric"
+            maxLength={6}
+            value={otp}
+            onChange={(e) => setOtp(e.target.value)}
+            placeholder="Enter OTP"
+            required
+            className="w-full rounded-xl border border-[var(--border)] px-4 py-3 tracking-[0.3em] text-center text-lg outline-none"
+          />
 
-          {message && (
-            <p className="text-sm text-[var(--secondary)]">{message}</p>
-          )}
+          {message && <p className="text-sm text-[var(--secondary)]">{message}</p>}
 
-          <button
-            type="submit"
-            disabled={loading || otp.length < 4}
-            className="btn btn-primary w-full"
-          >
+          <button type="submit" disabled={loading} className="btn btn-primary w-full">
             {loading ? "Verifying..." : "Verify & Continue"}
           </button>
         </form>
-
-        <div className="mt-6 text-center">
-          <button
-            type="button"
-            onClick={handleResend}
-            className="text-sm font-semibold text-[var(--primary)]"
-          >
-            Resend OTP
-          </button>
-        </div>
-
-        <p className="text-sm text-[var(--secondary)] mt-6 text-center">
-          Wrong number?{" "}
-          <a
-            href={mode === "register" ? "/register" : "/login"}
-            className="text-[var(--primary)] font-semibold"
-          >
-            Go back
-          </a>
-        </p>
       </div>
     </main>
+  );
+}
+
+export default function OtpPage() {
+  return (
+    <Suspense fallback={<main className="min-h-screen flex items-center justify-center">Loading...</main>}>
+      <OtpForm />
+    </Suspense>
   );
 }
