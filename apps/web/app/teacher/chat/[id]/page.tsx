@@ -3,7 +3,7 @@
 import { useEffect, useRef, useState } from "react";
 import { useParams } from "next/navigation";
 import { io, Socket } from "socket.io-client";
-import { apiFetch, getToken } from "@/lib/api";";
+import { apiFetch, getToken } from "@/lib/api";
 
 type ChatMessage = {
   id?: string;
