@@ -1,14 +1,8 @@
+import { getToken } from "./auth";
+
 const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:4000";
 
-export function getToken(): string | null {
-  if (typeof window === "undefined") return null;
-  return localStorage.getItem("token");
-}
-
-export function clearToken() {
-  if (typeof window === "undefined") return;
-  localStorage.removeItem("token");
-}
+export { getToken, clearToken, setToken, isAuthenticated } from "./auth";
 
 export async function apiFetch<T = any>(
   path: string,
@@ -20,6 +14,7 @@ export async function apiFetch<T = any>(
     ...(options.headers || {}),
   };
 
+  // Don't force JSON header for FormData uploads
   if (!(options.body instanceof FormData)) {
     (headers as any)["Content-Type"] = "application/json";
   }
