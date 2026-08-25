@@ -31,8 +31,8 @@ export class PaymentsService {
         c.status === "COMPLETED"
           ? "SESSION_PAYMENT"
           : c.status === "PENDING_ESCROW"
-          ? "ESCROW_HOLD"
-          : "CONTRACT",
+            ? "ESCROW_HOLD"
+            : "CONTRACT",
       amount: Number(c.agreedAmount || 0),
       createdAt: c.createdAt,
     }));
@@ -100,7 +100,6 @@ export class PaymentsService {
     provider?: "TELEBIRR" | "CBE_BIRR" | string;
     phoneNumber?: string;
   }) {
-    // Placeholder until live payment provider is connected
     return {
       success: true,
       provider: body.provider || "TELEBIRR",
@@ -113,14 +112,17 @@ export class PaymentsService {
     };
   }
 
-  async handleWebhook(provider: "TELEBIRR" | "CBE_BIRR" | string, body: any) {
-    // Placeholder webhook handler
+  async handleWebhook(
+    provider: "TELEBIRR" | "CBE_BIRR" | string,
+    body: Record<string, any>,
+  ) {
     return {
       success: true,
       provider,
       received: true,
       data: body,
-      message: "Webhook received. Implement provider signature verification next.",
+      message:
+        "Webhook received. Implement provider signature verification next.",
     };
   }
 }
