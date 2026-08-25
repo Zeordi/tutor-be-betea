@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
+import { clearToken, getToken } from "@/lib/api";
 
 const navItems = [
   { href: "/parent", label: "Dashboard" },
