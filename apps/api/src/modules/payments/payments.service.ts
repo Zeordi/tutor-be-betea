@@ -3,11 +3,8 @@ import { prisma } from "@tutor/database";
 
 @Injectable()
 export class PaymentsService {
-  /**
-   * Parent wallet summary
-   */
+  // -------- Wallet / Earnings --------
   async getParentWallet(userId: string) {
-    // Contracts where this user is the parent
     const contracts = await prisma.tutoringContract.findMany({
       where: { parentId: userId },
       select: {
@@ -28,7 +25,6 @@ export class PaymentsService {
       .filter((c) => c.status === "COMPLETED")
       .reduce((sum, c) => sum + Number(c.agreedAmount || 0), 0);
 
-    // If you later add a real transactions table, replace this mapping
     const transactions = contracts.map((c) => ({
       id: c.id,
       type:
@@ -42,16 +38,13 @@ export class PaymentsService {
     }));
 
     return {
-      availableBalance: 0, // parents usually don't hold payout balance
+      availableBalance: 0,
       escrowBalance,
       totalSpent,
       transactions,
     };
   }
 
-  /**
-   * Teacher earnings summary
-   */
   async getTeacherEarnings(userId: string) {
     const contracts = await prisma.tutoringContract.findMany({
       where: { teacherId: userId },
@@ -79,10 +72,6 @@ export class PaymentsService {
       return sum + net;
     }, 0);
 
-    // For now, available balance = completed net earnings
-    // Later: subtract already paid-out amounts from a payouts table
-    const availableBalance = totalEarned;
-
     const payouts = completed.map((c) => {
       const amount = Number(c.agreedAmount || 0);
       const feePercent = Number(c.platformFeePercent || 10);
@@ -97,10 +86,41 @@ export class PaymentsService {
     });
 
     return {
-      availableBalance,
+      availableBalance: totalEarned,
       pendingEscrow,
       totalEarned,
       payouts,
+    };
+  }
+
+  // -------- Methods required by controller --------
+  async initiatePayment(body: {
+    contractId: string;
+    amount?: number;
+    provider?: "TELEBIRR" | "CBE_BIRR" | string;
+    phoneNumber?: string;
+  }) {
+    // Placeholder until live payment provider is connected
+    return {
+      success: true,
+      provider: body.provider || "TELEBIRR",
+      contractId: body.contractId,
+      amount: body.amount || 0,
+      status: "PENDING",
+      checkoutUrl: null,
+      message:
+        "Payment initiation placeholder. Connect Telebirr/CBE credentials to go live.",
+    };
+  }
+
+  async handleWebhook(provider: "TELEBIRR" | "CBE_BIRR" | string, body: any) {
+    // Placeholder webhook handler
+    return {
+      success: true,
+      provider,
+      received: true,
+      data: body,
+      message: "Webhook received. Implement provider signature verification next.",
     };
   }
 }
