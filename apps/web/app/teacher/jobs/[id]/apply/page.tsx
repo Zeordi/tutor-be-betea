@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { useParams, useRouter } from "next/navigation";
+import { apiFetch, getToken } from "@/lib/api";
 
 export default function ApplyJobPage() {
   const { id } = useParams();
