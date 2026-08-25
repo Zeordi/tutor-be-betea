@@ -5,15 +5,18 @@ import { useTheme } from "@/hooks/useTheme";
 import { usePushNotifications } from "@/hooks/usePushNotifications";
 import * as Sentry from "@sentry/react-native";
 
-Sentry.init({
-  dsn: process.env.EXPO_PUBLIC_SENTRY_DSN,
-  enableInExpoDevelopment: true,
-  debug: __DEV__,
-});
+// Only initialize Sentry in production or when a valid DSN exists
+if (process.env.EXPO_PUBLIC_SENTRY_DSN) {
+  Sentry.init({
+    dsn: process.env.EXPO_PUBLIC_SENTRY_DSN,
+    enableInExpoDevelopment: false,
+    debug: false,
+  });
+}
 
 function RootLayoutNav() {
   const { isDark } = useTheme();
-  usePushNotifications(); // Automatically registers token upon startup
+  usePushNotifications();
 
   return (
     <>
