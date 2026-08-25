@@ -1,18 +1,23 @@
 import { useEffect, useRef, useState } from "react";
 import { Platform } from "react-native";
-import * as Notifications from "expo-notifications";
 import * as Device from "expo-device";
 import Constants from "expo-constants";
 import { getToken } from "@/lib/api";
 import { useRouter } from "expo-router";
 
-Notifications.setNotificationHandler({
-  handleNotification: async () => ({
-    shouldShowAlert: true,
-    shouldPlaySound: true,
-    shouldSetBadge: true,
-  }),
-});
+let Notifications: typeof import("expo-notifications") | null = null;
+
+if (Platform.OS !== "web") {
+  // eslint-disable-next-line @typescript-eslint/no-var-requires
+  Notifications = require("expo-notifications");
+  Notifications?.setNotificationHandler({
+    handleNotification: async () => ({
+      shouldShowAlert: true,
+      shouldPlaySound: true,
+      shouldSetBadge: true,
+    }),
+  });
+}
 
 export function usePushNotifications() {
   const [expoPushToken, setExpoPushToken] = useState<string | null>(null);
@@ -21,6 +26,10 @@ export function usePushNotifications() {
   const router = useRouter();
 
   useEffect(() => {
+    if (Platform.OS === "web" || !Notifications) {
+      return;
+    }
+
     registerForPushNotificationsAsync().then((token) => {
       if (token) {
         setExpoPushToken(token);
@@ -69,8 +78,7 @@ async function sendTokenToBackend(pushToken: string) {
 }
 
 async function registerForPushNotificationsAsync() {
-  if (!Device.isDevice) {
-    console.log("Must use physical device for Push Notifications");
+  if (!Notifications || !Device.isDevice) {
     return null;
   }
 
