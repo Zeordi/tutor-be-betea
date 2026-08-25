@@ -1,4 +1,4 @@
-import { IsString, IsEnum, IsOptional, IsEmail, Matches, MinLength } from "class-validator";
+import { IsString, IsEnum, IsOptional, IsEmail, MinLength } from "class-validator";
 
 enum UserRole {
   PARENT = "PARENT",
@@ -6,11 +6,13 @@ enum UserRole {
 }
 
 export class RegisterDto {
+  @IsOptional()
   @IsString()
-  @Matches(/^(\+251|0)(9|7)\d{8}$/, {
-    message: "Invalid Ethiopian phone number",
-  })
-  phoneNumber: string;
+  phoneNumber?: string;
+
+  @IsOptional()
+  @IsEmail()
+  email?: string;
 
   @IsString()
   @MinLength(2)
@@ -18,8 +20,4 @@ export class RegisterDto {
 
   @IsEnum(UserRole)
   role: UserRole;
-
-  @IsOptional()
-  @IsEmail()
-  email?: string;
 }
