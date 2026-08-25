@@ -16,7 +16,7 @@ export class NotificationsService {
   private readonly expoPushUrl = "https://exp.host/--/api/v2/push/send";
 
   async registerPushToken(userId: string, pushToken: string) {
-    return prisma.user.update({
+    return (prisma.user as any).update({
       where: { id: userId },
       data: { pushToken },
     });
@@ -41,14 +41,15 @@ export class NotificationsService {
     });
 
     // 2. Dispatch real Expo Push Notification if user has registered token
-    const user = await prisma.user.findUnique({
+    const user: any = await prisma.user.findUnique({
       where: { id: params.userId },
-      select: { pushToken: true },
     });
 
-    if (user?.pushToken && user.pushToken.startsWith("ExponentPushToken[")) {
+    const pushToken = user?.pushToken;
+
+    if (pushToken && typeof pushToken === "string" && pushToken.startsWith("ExponentPushToken[")) {
       await this.sendExpoPush({
-        to: user.pushToken,
+        to: pushToken,
         title: params.title,
         body: params.body,
         data: {
