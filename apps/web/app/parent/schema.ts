@@ -1,0 +1,239 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum UserRole {
+  PARENT
+  TEACHER
+  SUPPORT_AGENT
+  SUPER_ADMIN
+}
+
+enum UserStatus {
+  PENDING_VERIFICATION
+  ACTIVE
+  SUSPENDED
+  BANNED
+}
+
+enum ContractStatus {
+  PENDING_ESCROW
+  ACTIVE
+  DISPUTED
+  COMPLETED
+  REFUNDED
+}
+
+enum TicketStatus {
+  OPEN
+  UNDER_REVIEW
+  APPROVED
+  REJECTED
+}
+
+enum CurriculumType {
+  NATIONAL_MINISTRY
+  CAMBRIDGE_IGCSE
+  AMERICAN_CURRICULUM
+  INTERNATIONAL_BACCALAUREATE
+}
+
+model User {
+  id          String     @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  phoneNumber String     @unique @map("phone_number")
+  email       String?    @unique
+  fullName    String     @map("full_name")
+  role        UserRole
+  status      UserStatus @default(PENDING_VERIFICATION)
+  avatarUrl   String?    @map("avatar_url")
+  pushToken   String?    @map("push_token")
+  createdAt   DateTime   @default(now()) @map("created_at")
+  updatedAt   DateTime   @updatedAt @map("updated_at")
+
+  teacherProfile     TeacherProfile?
+  studentProfiles    StudentProfile[]
+  parentJobs         ParentJob[]
+  contractsAsParent  TutoringContract[] @relation("ParentContracts")
+  contractsAsTeacher TutoringContract[] @relation("TeacherContracts")
+
+  @@index([pushToken])
+  @@map("users")
+}
+
+model TeacherProfile {
+  userId           String                               @id @map("user_id") @db.Uuid
+  bio              String?
+  hourlyRate       Decimal                              @map("hourly_rate") @db.Decimal(10, 2)
+  monthlyRate      Decimal                              @map("monthly_rate") @db.Decimal(10, 2)
+  subjects         String[]
+  grades           String[]
+  maxTravelKm      Decimal                              @default(5.0) @map("max_travel_km") @db.Decimal(4, 1)
+  connectsBalance  Int                                  @default(15) @map("connects_balance")
+  isIdVerified     Boolean                              @default(false) @map("is_id_verified")
+  isEduVerified    Boolean                              @default(false) @map("is_edu_verified")
+  rating           Decimal                              @default(5.00) @db.Decimal(3, 2)
+  totalReviews     Int                                  @default(0) @map("total_reviews")
+  totalHoursTaught Decimal                              @default(0) @map("total_hours_taught") @db.Decimal(8, 1)
+  badgeTier        String                               @default("BRONZE") @map("badge_tier")
+  isAvailable      Boolean                              @default(true) @map("is_available")
+  homeLocation     Unsupported("extensions.geography(Point,4326)")? @map("home_location")
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([homeLocation], type: Gist)
+  @@map("teacher_profiles")
+}
+
+model StudentProfile {
+  id                   String         @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  parentId             String         @map("parent_id") @db.Uuid
+  studentName          String         @map("student_name")
+  gradeLevel           String         @map("grade_level")
+  curriculum           CurriculumType @default(NATIONAL_MINISTRY)
+  specialLearningNotes String?        @map("special_learning_notes")
+  createdAt            DateTime       @default(now()) @map("created_at")
+
+  parent User @relation(fields: [parentId], references: [id], onDelete: Cascade)
+
+  @@map("student_profiles")
+}
+
+model ParentJob {
+  id            String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  parentId      String   @map("parent_id") @db.Uuid
+  studentId     String   @map("student_id") @db.Uuid
+  subjects      String[]
+  monthlyBudget Decimal  @map("monthly_budget") @db.Decimal(10, 2)
+  isUrgentBoost Boolean  @default(false) @map("is_urgent_boost")
+  status        String   @default("OPEN")
+  expiresAt     DateTime @map("expires_at")
+  createdAt     DateTime @default(now()) @map("created_at")
+
+  parent User @relation(fields: [parentId], references: [id], onDelete: Cascade)
+
+  @@map("parent_jobs")
+}
+
+model TutoringContract {
+  id                 String         @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  parentId           String         @map("parent_id") @db.Uuid
+  teacherId          String         @map("teacher_id") @db.Uuid
+  studentId          String         @map("student_id") @db.Uuid
+  agreedAmount       Decimal        @map("agreed_amount") @db.Decimal(10, 2)
+  platformFeePercent Decimal        @default(10.00) @map("platform_fee_percent") @db.Decimal(4, 2)
+  escrowHeldAmount   Decimal        @default(0) @map("escrow_held_amount") @db.Decimal(10, 2)
+  status             ContractStatus @default(PENDING_ESCROW)
+  guaranteeExpiry    DateTime       @map("guarantee_expiry")
+  startDate          DateTime       @map("start_date") @db.Date
+  endDate            DateTime       @map("end_date") @db.Date
+  createdAt          DateTime       @default(now()) @map("created_at")
+
+  parent  User @relation("ParentContracts", fields: [parentId], references: [id])
+  teacher User @relation("TeacherContracts", fields: [teacherId], references: [id])
+
+  @@map("tutoring_contracts")
+}
+
+model AttendanceLog {
+  id                 String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  contractId         String    @map("contract_id") @db.Uuid
+  checkInTime        DateTime  @map("check_in_time")
+  checkOutTime       DateTime? @map("check_out_time")
+  distanceMeters     Decimal   @map("distance_meters") @db.Decimal(8, 2)
+  isVerifiedGeofence Boolean   @default(true) @map("is_verified_geofence")
+  parentConfirmed    Boolean   @default(false) @map("parent_confirmed")
+  createdAt          DateTime  @default(now()) @map("created_at")
+
+  @@map("attendance_logs")
+}
+
+model ProgressReport {
+  id               String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  contractId       String   @map("contract_id") @db.Uuid
+  weekNumber       Int      @map("week_number")
+  topicsCovered    String   @map("topics_covered")
+  quizScore        Decimal? @map("quiz_score") @db.Decimal(5, 2)
+  strengthsNotes   String?  @map("strengths_notes")
+  improvementAreas String?  @map("improvement_areas")
+  createdAt        DateTime @default(now()) @map("created_at")
+
+  @@map("progress_reports")
+}
+
+model VaultDocument {
+  id            String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  teacherId     String   @map("teacher_id") @db.Uuid
+  documentType  String   @map("document_type")
+  encryptedData String   @map("encrypted_data")
+  status        String   @default("PENDING")
+  createdAt     DateTime @default(now()) @map("created_at")
+
+  @@map("vault_documents")
+}
+
+model TrustBadge {
+  id        String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  teacherId String   @map("teacher_id") @db.Uuid
+  badgeType String   @map("badge_type")
+  issuedAt  DateTime @default(now()) @map("issued_at")
+
+  @@map("trust_badges")
+}
+
+model AdminAuditLog {
+  id           String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  adminId      String   @map("admin_id") @db.Uuid
+  targetUserId String?  @map("target_user_id") @db.Uuid
+  actionType   String   @map("action_type")
+  reason       String
+  ipAddress    String   @map("ip_address")
+  previousHash String   @map("previous_hash")
+  currentHash  String   @map("current_hash")
+  createdAt    DateTime @default(now()) @map("created_at")
+
+  @@map("admin_audit_logs")
+}
+
+model SupportTicket {
+  id                     String       @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  contractId             String       @map("contract_id") @db.Uuid
+  submittedBy            String       @map("submitted_by") @db.Uuid
+  reasonType             String       @map("reason_type")
+  explanation            String
+  evidenceAttachmentUrls String[]     @map("evidence_attachment_urls")
+  status                 TicketStatus @default(OPEN)
+  createdAt              DateTime     @default(now()) @map("created_at")
+
+  @@map("support_tickets")
+}
+
+model Notification {
+  id        String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  userId    String   @map("user_id") @db.Uuid
+  type      String
+  title     String
+  body      String
+  data      Json?
+  read      Boolean  @default(false)
+  createdAt DateTime @default(now()) @map("created_at")
+
+  @@index([userId, read])
+  @@map("notifications")
+}
+
+model ChatMessage {
+  id              String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  roomId          String   @map("room_id") @db.Uuid
+  senderId        String   @map("sender_id") @db.Uuid
+  content         String
+  originalBlocked Boolean  @default(false) @map("original_blocked")
+  createdAt       DateTime @default(now()) @map("created_at")
+
+  @@index([roomId, createdAt])
+  @@map("chat_messages")
+}
