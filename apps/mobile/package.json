@@ -14,6 +14,7 @@
   },
   "dependencies": {
     "@expo/vector-icons": "~14.0.4",
+    "@sentry/react-native": "~6.3.0",
     "@tutor/api-client": "workspace:*",
     "@tutor/types": "workspace:*",
     "@tutor/ui": "workspace:*",
