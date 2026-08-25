@@ -1,16 +1,21 @@
-import { Injectable, BadRequestException, NotFoundException } from "@nestjs/common";
+import {
+  Injectable,
+  NotFoundException,
+  ForbiddenException,
+  BadRequestException,
+} from "@nestjs/common";
 import { prisma } from "@tutor/database";
-import { getGeofenceStatus, GEOFENCE_RADIUS_METERS } from "@tutor/geo";
+import { isWithinGeofence } from "@tutor/geo";
 
 @Injectable()
 export class AttendanceService {
   async checkIn(params: {
-    contractId: string;
     teacherId: string;
+    contractId: string;
     latitude: number;
     longitude: number;
-    parentLat: number;
-    parentLng: number;
+    parentLat?: number;
+    parentLng?: number;
   }) {
     const contract = await prisma.tutoringContract.findUnique({
       where: { id: params.contractId },
@@ -18,86 +23,116 @@ export class AttendanceService {
 
     if (!contract) throw new NotFoundException("Contract not found");
     if (contract.teacherId !== params.teacherId) {
-      throw new BadRequestException("You are not assigned to this contract");
+      throw new ForbiddenException("Not your contract");
     }
     if (contract.status !== "ACTIVE") {
       throw new BadRequestException("Contract is not active");
     }
 
-    const geoStatus = getGeofenceStatus(
-      params.latitude,
-      params.longitude,
-      params.parentLat,
-      params.parentLng,
-    );
+    // Prevent double open check-in
+    const openSession = await prisma.attendanceLog.findFirst({
+      where: {
+        contractId: params.contractId,
+        checkOutTime: null,
+      },
+    });
+    if (openSession) {
+      throw new BadRequestException("You already have an open session");
+    }
 
-    const log = await prisma.attendanceLog.create({
+    // Geofence validation (150m)
+    // If parent location is not provided, mark as unverified distance 0 for now
+    let distanceMeters = 0;
+    let isVerifiedGeofence = true;
+
+    if (
+      typeof params.parentLat === "number" &&
+      typeof params.parentLng === "number"
+    ) {
+      const geo = isWithinGeofence(
+        params.latitude,
+        params.longitude,
+        params.parentLat,
+        params.parentLng,
+        150
+      );
+      distanceMeters = geo.distanceMeters;
+      isVerifiedGeofence = geo.isWithin;
+    }
+
+    return prisma.attendanceLog.create({
       data: {
         contractId: params.contractId,
         checkInTime: new Date(),
-        distanceMeters: geoStatus.distanceMeters,
-        isVerifiedGeofence: geoStatus.isVerified,
+        distanceMeters,
+        isVerifiedGeofence,
         parentConfirmed: false,
       },
     });
-
-    return {
-      attendanceLogId: log.id,
-      distanceMeters: geoStatus.distanceMeters,
-      isWithinGeofence: geoStatus.isVerified,
-      requiresManualConfirmation: geoStatus.requiresManualConfirmation,
-      message: geoStatus.isVerified
-        ? "Check-in successful – within geofence"
-        : `Check-in recorded but you are ${geoStatus.distanceMeters}m away (limit: ${GEOFENCE_RADIUS_METERS}m). Parent confirmation required.`,
-    };
   }
 
   async checkOut(params: {
-    attendanceLogId: string;
     teacherId: string;
+    contractId: string;
     latitude: number;
     longitude: number;
   }) {
-    const log = await prisma.attendanceLog.findUnique({
-      where: { id: params.attendanceLogId },
+    const contract = await prisma.tutoringContract.findUnique({
+      where: { id: params.contractId },
     });
 
-    if (!log) throw new NotFoundException("Attendance log not found");
-    if (log.checkOutTime) {
-      throw new BadRequestException("Already checked out");
+    if (!contract) throw new NotFoundException("Contract not found");
+    if (contract.teacherId !== params.teacherId) {
+      throw new ForbiddenException("Not your contract");
     }
 
-    const updated = await prisma.attendanceLog.update({
-      where: { id: params.attendanceLogId },
+    const openSession = await prisma.attendanceLog.findFirst({
+      where: {
+        contractId: params.contractId,
+        checkOutTime: null,
+      },
+      orderBy: { checkInTime: "desc" },
+    });
+
+    if (!openSession) {
+      throw new BadRequestException("No open session to check out");
+    }
+
+    return prisma.attendanceLog.update({
+      where: { id: openSession.id },
       data: {
         checkOutTime: new Date(),
       },
     });
-
-    return updated;
   }
 
-  async parentConfirm(attendanceLogId: string, parentId: string) {
-    // Parent manually confirms a session that was outside geofence
-    const log = await prisma.attendanceLog.findUnique({
-      where: { id: attendanceLogId },
-    });
-
-    if (!log) throw new NotFoundException("Attendance log not found");
-
-    return prisma.attendanceLog.update({
-      where: { id: attendanceLogId },
-      data: {
-        parentConfirmed: true,
-        isVerifiedGeofence: true,
-      },
-    });
-  }
-
-  async getContractAttendance(contractId: string) {
+  async getByContract(contractId: string) {
     return prisma.attendanceLog.findMany({
       where: { contractId },
       orderBy: { checkInTime: "desc" },
+    });
+  }
+
+  async confirmByParent(attendanceId: string, parentId: string) {
+    const log = await prisma.attendanceLog.findUnique({
+      where: { id: attendanceId },
+    });
+    if (!log) throw new NotFoundException("Attendance log not found");
+
+    const contract = await prisma.tutoringContract.findUnique({
+      where: { id: log.contractId },
+    });
+    if (!contract) throw new NotFoundException("Contract not found");
+    if (contract.parentId !== parentId) {
+      throw new ForbiddenException("Not your contract");
+    }
+    if (!log.checkOutTime) {
+      throw new BadRequestException("Session is still in progress");
+    }
+
+    return prisma.attendanceLog.update({
+      where: { id: attendanceId },
+      data: { parentConfirmed: true },
     });
   }
 }
