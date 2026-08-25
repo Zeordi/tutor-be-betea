@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { useEffect, useState } from "react";
+import { apiFetch } from "@/lib/api";
 
 export default function ChildrenPage() {
   const [children, setChildren] = useState<any[]>([]);
