@@ -5,25 +5,46 @@ import { RESTRICTED_PATTERNS } from "@tutor/validators";
 export class AntiPoachingService {
   private readonly replacement = "[RESTRICTED CONTACT INFO]";
 
-  sanitize(content: string): string {
-    let sanitized = content;
+  sanitize(content: string): { sanitizedText: string; blocked: boolean } {
+    let sanitizedText = content;
 
     // Ethiopian phone numbers (+251... / 09... / 07...)
-    sanitized = sanitized.replace(RESTRICTED_PATTERNS.ethiopianPhone, this.replacement);
+    sanitizedText = sanitizedText.replace(
+      RESTRICTED_PATTERNS.ethiopianPhone,
+      this.replacement,
+    );
 
     // Emails
-    sanitized = sanitized.replace(RESTRICTED_PATTERNS.email, this.replacement);
+    sanitizedText = sanitizedText.replace(
+      RESTRICTED_PATTERNS.email,
+      this.replacement,
+    );
 
     // Telegram handles
-    sanitized = sanitized.replace(RESTRICTED_PATTERNS.telegram, this.replacement);
+    sanitizedText = sanitizedText.replace(
+      RESTRICTED_PATTERNS.telegram,
+      this.replacement,
+    );
 
     // Bank account numbers
-    sanitized = sanitized.replace(RESTRICTED_PATTERNS.bankAccount, this.replacement);
+    sanitizedText = sanitizedText.replace(
+      RESTRICTED_PATTERNS.bankAccount,
+      this.replacement,
+    );
 
-    // Extra: common social media
-    sanitized = sanitized.replace(/(whatsapp|telegram|imo|viber)\s*[:.]?\s*\+?\d+/gi, this.replacement);
+    // Extra: common social media contact patterns
+    sanitizedText = sanitizedText.replace(
+      /(whatsapp|telegram|imo|viber)\s*[:.]?\s*\+?\d+/gi,
+      this.replacement,
+    );
 
-    return sanitized;
+    const blocked =
+      sanitizedText !== content || this.containsRestrictedInfo(content);
+
+    return {
+      sanitizedText,
+      blocked,
+    };
   }
 
   containsRestrictedInfo(content: string): boolean {
