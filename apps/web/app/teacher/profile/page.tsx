@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { apiFetch, getToken } from "@/lib/api";
 
 export default function TeacherProfilePage() {
   const [profile, setProfile] = useState<any>(null);
