@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { apiFetch, getToken } from "@/lib/api";
 
 export default function TeacherNotificationsPage() {
   const [items, setItems] = useState<any[]>([]);
