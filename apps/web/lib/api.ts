@@ -14,7 +14,6 @@ export async function apiFetch<T = any>(
     ...(options.headers || {}),
   };
 
-  // Don't force JSON header for FormData uploads
   if (!(options.body instanceof FormData)) {
     (headers as any)["Content-Type"] = "application/json";
   }
@@ -23,7 +22,7 @@ export async function apiFetch<T = any>(
     (headers as any)["Authorization"] = `Bearer ${token}`;
   }
 
-  const res = await fetch(`\( {API_URL} \){path}`, {
+  const res = await fetch(`${API_URL}${path.startsWith("/") ? path : `/${path}`}`, {
     ...options,
     headers,
   });
