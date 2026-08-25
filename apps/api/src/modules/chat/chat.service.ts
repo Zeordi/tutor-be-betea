@@ -15,8 +15,11 @@ export class ChatService {
     return message;
   }
 
-  async getMessages(roomId: string) {
-    // TODO: Fetch from database
-    return [];
-  }
+  async getMessages(roomId: string, limit = 50) {
+  return prisma.chatMessage.findMany({
+    where: { roomId },
+    orderBy: { createdAt: "asc" },
+    take: limit,
+  });
 }
+
