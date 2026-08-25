@@ -1,12 +1,15 @@
-import { IsString, Matches } from "class-validator";
+import { IsString, IsOptional, IsEmail } from "class-validator";
 
 export class LoginDto {
+  @IsOptional()
   @IsString()
-  @Matches(/^(\+251|0)(9|7)\d{8}$/, {
-    message: "Invalid Ethiopian phone number",
-  })
-  phoneNumber: string;
+  phoneNumber?: string;
 
+  @IsOptional()
+  @IsEmail()
+  email?: string;
+
+  @IsOptional()
   @IsString()
-  password?: string; // Optional if using OTP later
+  password?: string;
 }
