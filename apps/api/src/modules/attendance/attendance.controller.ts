@@ -1,4 +1,4 @@
-import { Controller, Post, Get, Body, Param, UseGuards } from "@nestjs/common";
+import { Body, Controller, Get, Param, Post, UseGuards } from "@nestjs/common";
 import { AttendanceService } from "./attendance.service";
 import { JwtAuthGuard } from "../../common/guards/jwt-auth.guard";
 import { RolesGuard } from "../../common/guards/roles.guard";
@@ -14,8 +14,14 @@ export class AttendanceController {
   @Roles("TEACHER")
   checkIn(@CurrentUser() user: any, @Body() body: any) {
     return this.attendanceService.checkIn({
-      ...body,
       teacherId: user.id,
+      contractId: body.contractId,
+      latitude: Number(body.latitude),
+      longitude: Number(body.longitude),
+      parentLat:
+        body.parentLat !== undefined ? Number(body.parentLat) : undefined,
+      parentLng:
+        body.parentLng !== undefined ? Number(body.parentLng) : undefined,
     });
   }
 
@@ -23,20 +29,22 @@ export class AttendanceController {
   @Roles("TEACHER")
   checkOut(@CurrentUser() user: any, @Body() body: any) {
     return this.attendanceService.checkOut({
-      ...body,
       teacherId: user.id,
+      contractId: body.contractId,
+      latitude: Number(body.latitude),
+      longitude: Number(body.longitude),
     });
+  }
+
+  @Get("contract/:contractId")
+  @Roles("PARENT", "TEACHER")
+  getByContract(@Param("contractId") contractId: string) {
+    return this.attendanceService.getByContract(contractId);
   }
 
   @Post(":id/confirm")
   @Roles("PARENT")
-  parentConfirm(@Param("id") id: string, @CurrentUser() user: any) {
-    return this.attendanceService.parentConfirm(id, user.id);
-  }
-
-  @Get("contract/:contractId")
-  @Roles("PARENT", "TEACHER", "SUPER_ADMIN")
-  getContractAttendance(@Param("contractId") contractId: string) {
-    return this.attendanceService.getContractAttendance(contractId);
+  confirm(@Param("id") id: string, @CurrentUser() user: any) {
+    return this.attendanceService.confirmByParent(id, user.id);
   }
 }

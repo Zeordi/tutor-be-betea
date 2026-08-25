@@ -1,22 +1,29 @@
 import { Injectable } from "@nestjs/common";
-// import { prisma } from "@tutor/database";
+import { prisma } from "@tutor/database";
 
 @Injectable()
 export class ChatService {
-  async saveMessage(message: {
+  async getMessages(roomId: string, limit = 50) {
+    return prisma.chatMessage.findMany({
+      where: { roomId },
+      orderBy: { createdAt: "asc" },
+      take: limit > 0 ? limit : 50,
+    });
+  }
+
+  async saveMessage(params: {
     roomId: string;
     senderId: string;
     content: string;
-    originalBlocked: boolean;
-    createdAt: string;
+    originalBlocked?: boolean;
   }) {
-    // TODO: Save to chat_messages table when schema is extended
-    console.log("[CHAT]", message);
-    return message;
-  }
-
-  async getMessages(roomId: string) {
-    // TODO: Fetch from database
-    return [];
+    return prisma.chatMessage.create({
+      data: {
+        roomId: params.roomId,
+        senderId: params.senderId,
+        content: params.content,
+        originalBlocked: params.originalBlocked || false,
+      },
+    });
   }
 }

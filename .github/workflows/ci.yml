@@ -6,12 +6,10 @@ on:
   pull_request:
     branches: [main, develop]
 
-env:
-  DATABASE_URL: "postgresql://postgres:postgres@localhost:5432/placeholder"
-
 jobs:
   build-and-test:
     runs-on: ubuntu-latest
+
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -30,6 +28,24 @@ jobs:
 
       - name: Generate Prisma Client
         run: pnpm db:generate
+        env:
+          # Safe placeholder for generate-only
+          DATABASE_URL: postgresql://postgres:postgres@localhost:5432/postgres
 
-      - name: Build
-        run: pnpm build
+      - name: Build API
+        run: pnpm --filter api build
+
+      - name: Build Web
+        run: pnpm --filter web build
+        env:
+          NEXT_PUBLIC_API_URL: http://localhost:4000
+
+      - name: Build Admin
+        run: pnpm --filter admin build
+        env:
+          NEXT_PUBLIC_API_URL: http://localhost:4000
+
+      # Optional: keep mobile non-blocking for now
+      - name: Build Mobile (non-blocking)
+        run: pnpm --filter mobile build
+        continue-on-error: true

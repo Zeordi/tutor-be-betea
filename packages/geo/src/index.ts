@@ -35,7 +35,7 @@ export function calculateDistanceMeters(
   return Math.round(R * c);
 }
 
-// Export getDistanceMeters for matching.service.ts
+// Alias for matching.service.ts
 export const getDistanceMeters = calculateDistanceMeters;
 
 /**
@@ -61,5 +61,28 @@ export function getGeofenceStatus(
     distanceMeters,
     isVerified,
     requiresManualConfirmation: !isVerified,
+  };
+}
+
+/**
+ * Compatibility helper used by attendance.service.ts
+ */
+export function isWithinGeofence(
+  userLat: number,
+  userLng: number,
+  centerLat: number,
+  centerLng: number,
+  radiusMeters: number = GEOFENCE_RADIUS_METERS,
+) {
+  const distanceMeters = calculateDistanceMeters(
+    userLat,
+    userLng,
+    centerLat,
+    centerLng,
+  );
+
+  return {
+    distanceMeters,
+    isWithin: distanceMeters <= radiusMeters,
   };
 }

@@ -1,29 +1,42 @@
 import { Injectable } from "@nestjs/common";
 import { RESTRICTED_PATTERNS } from "@tutor/validators";
 
+export type SanitizeResult = {
+  sanitizedText: string;
+  blocked: boolean;
+};
+
 @Injectable()
 export class AntiPoachingService {
   private readonly replacement = "[RESTRICTED CONTACT INFO]";
 
-  sanitize(content: string): string {
-    let sanitized = content;
+  sanitize(content: string): SanitizeResult {
+    let sanitizedText = content;
 
-    // Ethiopian phone numbers (+251... / 09... / 07...)
-    sanitized = sanitized.replace(RESTRICTED_PATTERNS.ethiopianPhone, this.replacement);
+    sanitizedText = sanitizedText.replace(
+      RESTRICTED_PATTERNS.ethiopianPhone,
+      this.replacement,
+    );
+    sanitizedText = sanitizedText.replace(
+      RESTRICTED_PATTERNS.email,
+      this.replacement,
+    );
+    sanitizedText = sanitizedText.replace(
+      RESTRICTED_PATTERNS.telegram,
+      this.replacement,
+    );
+    sanitizedText = sanitizedText.replace(
+      RESTRICTED_PATTERNS.bankAccount,
+      this.replacement,
+    );
+    sanitizedText = sanitizedText.replace(
+      /(whatsapp|telegram|imo|viber)\s*[:.]?\s*\+?\d+/gi,
+      this.replacement,
+    );
 
-    // Emails
-    sanitized = sanitized.replace(RESTRICTED_PATTERNS.email, this.replacement);
+    const blocked = sanitizedText !== content;
 
-    // Telegram handles
-    sanitized = sanitized.replace(RESTRICTED_PATTERNS.telegram, this.replacement);
-
-    // Bank account numbers
-    sanitized = sanitized.replace(RESTRICTED_PATTERNS.bankAccount, this.replacement);
-
-    // Extra: common social media
-    sanitized = sanitized.replace(/(whatsapp|telegram|imo|viber)\s*[:.]?\s*\+?\d+/gi, this.replacement);
-
-    return sanitized;
+    return { sanitizedText, blocked };
   }
 
   containsRestrictedInfo(content: string): boolean {
