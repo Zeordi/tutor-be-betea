@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { apiFetch, getToken } from "@/lib/api";
 
 export default function TeacherVerificationPage() {
   const [message, setMessage] = useState("");
