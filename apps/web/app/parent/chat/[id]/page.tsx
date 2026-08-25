@@ -4,6 +4,7 @@ import { useEffect, useRef, useState } from "react";
 import { useParams } from "next/navigation";
 import { io, Socket } from "socket.io-client";
 import { getToken } from "@/lib/api";
+import { apiFetch } from "@/lib/api";
 
 type ChatMessage = {
   id?: string;
