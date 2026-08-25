@@ -1,17 +1,32 @@
-import { getToken } from "./auth";
-
 const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:4000";
 
-export async function apiFetch(path: string, options: RequestInit = {}) {
+export function getToken(): string | null {
+  if (typeof window === "undefined") return null;
+  return localStorage.getItem("token");
+}
+
+export function clearToken() {
+  if (typeof window === "undefined") return;
+  localStorage.removeItem("token");
+}
+
+export async function apiFetch<T = any>(
+  path: string,
+  options: RequestInit = {}
+): Promise<T> {
   const token = getToken();
 
   const headers: HeadersInit = {
-    "Content-Type": "application/json",
     ...(options.headers || {}),
   };
 
+  // Don't force JSON header for FormData uploads
+  if (!(options.body instanceof FormData)) {
+    (headers as any)["Content-Type"] = "application/json";
+  }
+
   if (token) {
-    headers["Authorization"] = `Bearer ${token}`;
+    (headers as any)["Authorization"] = `Bearer ${token}`;
   }
 
   const res = await fetch(`\( {API_URL} \){path}`, {
@@ -19,10 +34,11 @@ export async function apiFetch(path: string, options: RequestInit = {}) {
     headers,
   });
 
+  const data = await res.json().catch(() => ({}));
+
   if (!res.ok) {
-    const error = await res.json().catch(() => ({}));
-    throw new Error(error.message || "Request failed");
+    throw new Error((data as any)?.message || `Request failed (${res.status})`);
   }
 
-  return res.json();
+  return data as T;
 }
