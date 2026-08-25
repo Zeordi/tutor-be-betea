@@ -7,6 +7,7 @@ import {
   UseInterceptors,
   UploadedFile,
   Body,
+  Req,
   ForbiddenException,
 } from "@nestjs/common";
 import { FileInterceptor } from "@nestjs/platform-express";
@@ -15,16 +16,13 @@ import { JwtAuthGuard } from "../../common/guards/jwt-auth.guard";
 import { RolesGuard } from "../../common/guards/roles.guard";
 import { Roles } from "../../common/decorators/roles.decorator";
 import { CurrentUser } from "../../common/decorators/current-user.decorator";
-import "multer";
+import type { Request } from "express";
 
 @Controller("vault")
 @UseGuards(JwtAuthGuard, RolesGuard)
 export class VaultController {
   constructor(private readonly vaultService: VaultService) {}
 
-  /**
-   * Teacher or Admin can upload documents
-   */
   @Post("upload")
   @Roles("TEACHER", "SUPER_ADMIN")
   @UseInterceptors(FileInterceptor("file"))
@@ -36,25 +34,25 @@ export class VaultController {
     const teacherId = user.role === "TEACHER" ? user.id : body.teacherId;
 
     return this.vaultService.uploadDocument({
-      teacherId,
+      teacherId: teacherId!,
       documentType: body.documentType as any,
       fileBuffer: file.buffer,
       uploadedBy: user.id,
+      mimeType: file.mimetype,
     });
   }
 
-  /**
-   * Only Super Admin can decrypt and view
-   */
   @Get(":id/decrypt")
   @Roles("SUPER_ADMIN")
-  async decrypt(@Param("id") id: string, @CurrentUser() user: any) {
-    return this.vaultService.getDecryptedDocument(id, user.id);
+  async decrypt(
+    @Param("id") id: string,
+    @CurrentUser() user: any,
+    @Req() req: Request,
+  ) {
+    const ip = (req.headers["x-forwarded-for"] as string) || req.socket.remoteAddress || "127.0.0.1";
+    return this.vaultService.getDecryptedDocument(id, user.id, ip);
   }
 
-  /**
-   * List documents metadata for a teacher
-   */
   @Get("teacher/:teacherId")
   @Roles("SUPER_ADMIN", "TEACHER")
   async listDocuments(@Param("teacherId") teacherId: string, @CurrentUser() user: any) {

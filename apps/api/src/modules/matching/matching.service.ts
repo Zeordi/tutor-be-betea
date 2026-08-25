@@ -1,6 +1,5 @@
 import { Injectable } from "@nestjs/common";
 import { prisma } from "@tutor/database";
-import { getDistanceMeters } from "@tutor/geo";
 
 @Injectable()
 export class MatchingService {
@@ -12,16 +11,17 @@ export class MatchingService {
     maxDistanceKm?: number;
     limit?: number;
   }) {
-    const maxDistanceMeters = (params.maxDistanceKm || 10) * 1000;
-    const limit = params.limit || 20;
+    const maxDistanceMeters = (params.maxDistanceKm || 15) * 1000;
+    const limit = params.limit || 50;
 
-    // Real PostGIS query (requires home_location geography column)
-    // We use raw query for full spatial power
+    // Spatial PostGIS query with extracted latitude & longitude for frontend map markers
     const teachers: any[] = await prisma.$queryRaw`
       SELECT 
         tp.*,
         u.full_name,
         u.avatar_url,
+        ST_Y(tp.home_location::geometry) AS latitude,
+        ST_X(tp.home_location::geometry) AS longitude,
         ST_Distance(
           tp.home_location,
           ST_SetSRID(ST_MakePoint(${params.longitude}, ${params.latitude}), 4326)::geography
@@ -32,6 +32,7 @@ export class MatchingService {
         u.status = 'ACTIVE'
         AND tp.is_id_verified = true
         AND tp.is_available = true
+        AND tp.home_location IS NOT NULL
         AND ST_DWithin(
           tp.home_location,
           ST_SetSRID(ST_MakePoint(${params.longitude}, ${params.latitude}), 4326)::geography,
@@ -52,15 +53,18 @@ export class MatchingService {
       id: t.user_id,
       fullName: t.full_name,
       avatarUrl: t.avatar_url,
-      subjects: t.subjects,
-      grades: t.grades,
-      hourlyRate: t.hourly_rate,
-      monthlyRate: t.monthly_rate,
-      rating: t.rating,
+      bio: t.bio,
+      subjects: t.subjects || [],
+      grades: t.grades || [],
+      hourlyRate: Number(t.hourly_rate),
+      monthlyRate: Number(t.monthly_rate),
+      rating: Number(t.rating),
       totalReviews: t.total_reviews,
       badgeTier: t.badge_tier,
       isIdVerified: t.is_id_verified,
       isEduVerified: t.is_edu_verified,
+      latitude: Number(t.latitude),
+      longitude: Number(t.longitude),
       distanceMeters: Math.round(t.distance_meters),
       distanceText: `${(t.distance_meters / 1000).toFixed(1)} km`,
     }));

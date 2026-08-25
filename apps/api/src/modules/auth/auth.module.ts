@@ -7,10 +7,12 @@ import { AuthService } from "./auth.service";
 import { AuthController } from "./auth.controller";
 import { JwtStrategy } from "./strategies/jwt.strategy";
 import { UsersModule } from "../users/users.module";
+import { SmsModule } from "../sms/sms.module"; // <-- Added SmsModule import
 
 @Module({
   imports: [
     UsersModule,
+    SmsModule, // <-- Registered SmsModule for AuthService dependency injection
     PassportModule.register({ defaultStrategy: "jwt" }),
     JwtModule.registerAsync({
       imports: [ConfigModule],

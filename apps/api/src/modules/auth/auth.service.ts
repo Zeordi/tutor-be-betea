@@ -1,6 +1,12 @@
-import { Injectable, UnauthorizedException, ConflictException } from "@nestjs/common";
+import {
+  Injectable,
+  UnauthorizedException,
+  ConflictException,
+  InternalServerErrorException,
+} from "@nestjs/common";
 import { JwtService } from "@nestjs/jwt";
 import { UsersService } from "../users/users.service";
+import { SmsService } from "../sms/sms.service";
 import { LoginDto } from "./dto/login.dto";
 import { RegisterDto } from "./dto/register.dto";
 import { redis } from "../../config/redis";
@@ -10,24 +16,31 @@ export class AuthService {
   constructor(
     private readonly usersService: UsersService,
     private readonly jwtService: JwtService,
+    private readonly smsService: SmsService,
   ) {}
 
   async sendOtp(phoneNumber: string) {
     const code = Math.floor(100000 + Math.random() * 900000).toString();
     const key = `otp:${phoneNumber}`;
 
-    // Store in Redis with 5 minutes TTL
+    // 1. Store in Upstash Redis with 5-minute TTL (300 seconds)
     await redis.set(key, code, { ex: 300 });
 
-    // TODO: Send real SMS
-    console.log(`[OTP] Sent to ${phoneNumber}: ${code}`);
+    // 2. Deliver real SMS via AfroMessage
+    const sent = await this.smsService.sendOtp(phoneNumber, code);
+
+    if (!sent) {
+      throw new InternalServerErrorException(
+        "Failed to deliver verification code. Please check the phone number and try again."
+      );
+    }
 
     return { message: "OTP sent successfully" };
   }
 
   async verifyOtp(phoneNumber: string, code: string) {
     const key = `otp:${phoneNumber}`;
-    const stored = await redis.get(key);
+    const stored = await redis.get<string>(key);
 
     if (!stored) {
       throw new UnauthorizedException("OTP expired or not found");
@@ -37,7 +50,7 @@ export class AuthService {
       throw new UnauthorizedException("Invalid OTP");
     }
 
-    // Delete after successful verification
+    // Delete OTP from Redis after successful verification
     await redis.del(key);
 
     return { verified: true };
@@ -50,7 +63,6 @@ export class AuthService {
       throw new UnauthorizedException("Invalid credentials");
     }
 
-    // Issue token after basic existence check
     const tokens = await this.generateTokens(user.id, user.role);
 
     return {
