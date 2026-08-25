@@ -7,6 +7,7 @@ import { apiFetch } from "@/lib/api";
 type Tutor = {
   id: string;
   fullName: string;
+  bio?: string;
   subjects: string[];
   rating: number;
   totalReviews: number;
