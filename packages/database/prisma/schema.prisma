@@ -51,6 +51,7 @@ model User {
   role        UserRole
   status      UserStatus @default(PENDING_VERIFICATION)
   avatarUrl   String?    @map("avatar_url")
+  pushToken   String?    @map("push_token")
   createdAt   DateTime   @default(now()) @map("created_at")
   updatedAt   DateTime   @updatedAt @map("updated_at")
 
