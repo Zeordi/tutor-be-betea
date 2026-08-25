@@ -5,7 +5,6 @@ import { useTheme } from "@/hooks/useTheme";
 import { usePushNotifications } from "@/hooks/usePushNotifications";
 import * as Sentry from "@sentry/react-native";
 
-// Only initialize Sentry in production or when a valid DSN exists
 if (process.env.EXPO_PUBLIC_SENTRY_DSN) {
   Sentry.init({
     dsn: process.env.EXPO_PUBLIC_SENTRY_DSN,
