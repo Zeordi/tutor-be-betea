@@ -4,10 +4,10 @@
   "private": true,
   "main": "expo-router/entry",
   "scripts": {
-    "dev": "NODE_OPTIONS='--max-old-space-size=4096' expo start --tunnel --max-workers 2",
+    "dev": "expo start --tunnel -c",
     "android": "expo start --android",
     "ios": "expo start --ios",
-    "web": "NODE_OPTIONS='--max-old-space-size=4096' expo start --web",
+    "web": "expo start --web",
     "build": "echo Mobile build is handled by EAS",
     "lint": "eslint .",
     "check-types": "tsc --noEmit"
@@ -19,7 +19,7 @@
     "@tutor/ui": "workspace:*",
     "expo": "~54.0.0",
     "expo-constants": "~18.0.14",
-    "expo-device": "~8.0.0",
+    "expo-device": "~8.0.10",
     "expo-document-picker": "~13.0.0",
     "expo-location": "~18.0.0",
     "expo-notifications": "~0.29.0",
