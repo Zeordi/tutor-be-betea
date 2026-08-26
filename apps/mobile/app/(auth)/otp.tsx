@@ -1,20 +1,22 @@
-
+import { useEffect } from "react";
 import { View, Text, StyleSheet } from "react-native";
-import { useTheme } from "@/hooks/useTheme";
+import { useRouter } from "expo-router";
 import { SafeAreaView } from "react-native-safe-area-context";
+import { useTheme } from "@/hooks/useTheme";
 
 export default function OTPScreen() {
+  const router = useRouter();
   const { colors } = useTheme();
+
+  useEffect(() => {
+    // OTP is now handled inside login/register steps
+    router.replace("/(auth)/login");
+  }, [router]);
 
   return (
     <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]}>
       <View style={styles.content}>
-        <Text style={[styles.title, { color: colors.text }]}>
-          Verify Phone Number
-        </Text>
-        <Text style={[styles.subtitle, { color: colors.textSecondary }]}>
-          Enter the 6-digit code we sent you
-        </Text>
+        <Text style={{ color: colors.textSecondary }}>Redirecting to login...</Text>
       </View>
     </SafeAreaView>
   );
@@ -22,17 +24,5 @@ export default function OTPScreen() {
 
 const styles = StyleSheet.create({
   container: { flex: 1 },
-  content: {
-    flex: 1,
-    paddingHorizontal: 24,
-    justifyContent: "center",
-  },
-  title: {
-    fontSize: 28,
-    fontWeight: "700",
-    marginBottom: 8,
-  },
-  subtitle: {
-    fontSize: 16,
-  },
+  content: { flex: 1, justifyContent: "center", alignItems: "center" },
 });
