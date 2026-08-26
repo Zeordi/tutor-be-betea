@@ -1,7 +1,9 @@
+// apps/api/src/modules/auth/auth.controller.ts
 import { Body, Controller, Post, HttpCode, HttpStatus } from "@nestjs/common";
 import { AuthService } from "./auth.service";
 import { LoginDto } from "./dto/login.dto";
 import { RegisterDto } from "./dto/register.dto";
+import { GoogleAuthDto } from "./dto/google-auth.dto";
 
 @Controller("auth")
 export class AuthController {
@@ -9,24 +11,33 @@ export class AuthController {
 
   @Post("login")
   @HttpCode(HttpStatus.OK)
-  async login(@Body() dto: LoginDto) {
+  login(@Body() dto: LoginDto) {
     return this.authService.login(dto);
   }
 
   @Post("register")
-  async register(@Body() dto: RegisterDto) {
+  register(@Body() dto: RegisterDto) {
     return this.authService.register(dto);
+  }
+
+  @Post("google")
+  @HttpCode(HttpStatus.OK)
+  google(@Body() dto: GoogleAuthDto) {
+    return this.authService.googleAuth(dto);
   }
 
   @Post("otp/send")
   @HttpCode(HttpStatus.OK)
-  async sendOtp(@Body("phoneNumber") phoneNumber?: string, @Body("email") email?: string) {
-    return this.authService.sendOtp(phoneNumber || email || "test@tutorbebetea.com");
+  sendOtp(
+    @Body("phoneNumber") phoneNumber?: string,
+    @Body("email") email?: string,
+  ) {
+    return this.authService.sendOtp(phoneNumber || email || "");
   }
 
   @Post("otp/verify")
   @HttpCode(HttpStatus.OK)
-  async verifyOtp(
+  verifyOtp(
     @Body("phoneNumber") phoneNumber: string,
     @Body("email") email: string,
     @Body("code") code: string,
@@ -36,7 +47,7 @@ export class AuthController {
 
   @Post("demo-login")
   @HttpCode(HttpStatus.OK)
-  async demoLogin(@Body("role") role: "PARENT" | "TEACHER") {
+  demoLogin(@Body("role") role: "PARENT" | "TEACHER") {
     return this.authService.demoLogin(role || "PARENT");
   }
 }
