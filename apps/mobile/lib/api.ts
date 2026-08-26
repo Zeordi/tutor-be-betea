@@ -1,6 +1,5 @@
 import * as SecureStore from "expo-secure-store";
 
-// Use your Codespace API forwarded URL or default local fallback
 const API_URL = process.env.EXPO_PUBLIC_API_URL || "http://localhost:4000";
 
 export async function getToken(): Promise<string | null> {
@@ -11,9 +10,18 @@ export async function getToken(): Promise<string | null> {
   }
 }
 
+export async function setToken(token: string): Promise<void> {
+  await SecureStore.setItemAsync("auth_token", token);
+}
+
+export async function clearToken(): Promise<void> {
+  await SecureStore.deleteItemAsync("auth_token");
+  await SecureStore.deleteItemAsync("auth_user");
+}
+
 export async function apiRequest<T = any>(
   endpoint: string,
-  options: RequestInit = {}
+  options: RequestInit = {},
 ): Promise<T> {
   const token = await getToken();
 
@@ -22,18 +30,16 @@ export async function apiRequest<T = any>(
     ...(options.headers as Record<string, string>),
   };
 
-  if (token) {
-    headers["Authorization"] = `Bearer ${token}`;
-  }
+  if (token) headers.Authorization = `Bearer ${token}`;
 
-  const response = await fetch(`${API_URL}${endpoint.startsWith("/") ? endpoint : `/${endpoint}`}`, {
-    ...options,
-    headers,
-  });
+  const response = await fetch(
+    `\( {API_URL} \){endpoint.startsWith("/") ? endpoint : `/${endpoint}`}`,
+    { ...options, headers },
+  );
 
   if (!response.ok) {
     const errorData = await response.json().catch(() => ({}));
-    throw new Error(errorData.message || `Request failed with status ${response.status}`);
+    throw new Error(errorData.message || `Request failed (${response.status})`);
   }
 
   return response.json();
