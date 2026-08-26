@@ -1,4 +1,3 @@
-// apps/api/src/modules/auth/auth.service.ts
 import {
   Injectable,
   UnauthorizedException,
@@ -37,6 +36,10 @@ export class AuthService {
     return cleaned.startsWith("+") ? cleaned : `+251${cleaned}`;
   }
 
+  // ─────────────────────────────────────────────
+  // OTP
+  // ─────────────────────────────────────────────
+
   async sendOtp(identifierRaw: string) {
     if (!identifierRaw) {
       throw new BadRequestException("phoneNumber or email is required");
@@ -47,7 +50,6 @@ export class AuthService {
       ? identifierRaw.trim().toLowerCase()
       : this.normalizePhone(identifierRaw);
 
-    // Random 6-digit OTP always
     const code = String(randomInt(100000, 999999));
     const key = `otp:${identifier}`;
 
@@ -60,17 +62,12 @@ export class AuthService {
       if (!sent && this.isProd()) {
         throw new BadRequestException("Failed to send SMS OTP");
       }
-    } else {
-      // Email OTP: integrate Resend/SendGrid later.
-      // For now log outside production only.
-      if (!this.isProd()) {
-        console.log(`[DEV EMAIL OTP] ${identifier} => ${code}`);
-      }
+    } else if (!this.isProd()) {
+      console.log(`[DEV EMAIL OTP] ${identifier} => ${code}`);
     }
 
     return {
       message: "Verification code sent",
-      // never expose OTP in production
       ...(this.isProd() ? {} : { testCode: code }),
     };
   }
@@ -85,9 +82,8 @@ export class AuthService {
       ? identifierRaw.trim().toLowerCase()
       : this.normalizePhone(identifierRaw);
 
-    // Dev convenience only
+    // Dev-only convenience code
     const allowDevCode = !this.isProd() && code === "123456";
-
     let valid = allowDevCode;
 
     if (!valid) {
@@ -103,7 +99,7 @@ export class AuthService {
       throw new UnauthorizedException("Invalid or expired OTP");
     }
 
-    // Issue single-use verification token (10 min)
+    // Single-use verification token (10 minutes)
     const verificationToken = randomBytes(32).toString("hex");
     const tokenKey = `verify:${verificationToken}`;
     if (redis) {
@@ -134,39 +130,60 @@ export class AuthService {
     await redis.del(tokenKey);
   }
 
+  // ─────────────────────────────────────────────
+  // LOGIN
+  // ─────────────────────────────────────────────
+
   async login(dto: LoginDto) {
     // Path A: email + password
     if (dto.email && dto.password) {
       const email = dto.email.trim().toLowerCase();
       const user = await this.usersService.findByEmail(email);
+
       if (!user || !user.passwordHash) {
         throw new UnauthorizedException("Invalid email or password");
       }
+
       const ok = await bcrypt.compare(dto.password, user.passwordHash);
-      if (!ok) throw new UnauthorizedException("Invalid email or password");
+      if (!ok) {
+        throw new UnauthorizedException("Invalid email or password");
+      }
+
       return this.authResponse(user);
     }
 
-    // Path B: phone + OTP verificationToken
-    if (dto.phoneNumber && dto.verificationToken) {
+    // Path B: phone + password + OTP verificationToken
+    if (dto.phoneNumber && dto.password && dto.verificationToken) {
       const phone = this.normalizePhone(dto.phoneNumber);
       await this.consumeVerificationToken(dto.verificationToken, phone);
 
       const user = await this.usersService.findByPhone(phone);
-      if (!user) throw new UnauthorizedException("User not found");
+      if (!user || !user.passwordHash) {
+        throw new UnauthorizedException("Invalid phone or password");
+      }
 
-      // mark phone verified
+      const ok = await bcrypt.compare(dto.password, user.passwordHash);
+      if (!ok) {
+        throw new UnauthorizedException("Invalid phone or password");
+      }
+
       if (!user.phoneVerified) {
-        await this.usersService.updateProfile(user.id, { phoneVerified: true });
+        await this.usersService.updateProfile(user.id, {
+          phoneVerified: true,
+        });
       }
 
       return this.authResponse(user);
     }
 
     throw new BadRequestException(
-      "Provide email+password or phoneNumber+verificationToken",
+      "Provide email+password, or phoneNumber+password+verificationToken",
     );
   }
+
+  // ─────────────────────────────────────────────
+  // REGISTER
+  // ─────────────────────────────────────────────
 
   async register(dto: RegisterDto) {
     const phone = this.normalizePhone(dto.phoneNumber);
@@ -176,19 +193,25 @@ export class AuthService {
 
     const existingPhone = await this.usersService.findByPhone(phone);
     if (existingPhone) {
-      throw new ConflictException("An account with this phone number already exists");
+      throw new ConflictException(
+        "An account with this phone number already exists",
+      );
     }
 
     if (email) {
       const existingEmail = await this.usersService.findByEmail(email);
       if (existingEmail) {
-        throw new ConflictException("An account with this email already exists");
+        throw new ConflictException(
+          "An account with this email already exists",
+        );
       }
     }
 
-    const passwordHash = dto.password
-      ? await bcrypt.hash(dto.password, 10)
-      : undefined;
+    if (!dto.password || dto.password.length < 6) {
+      throw new BadRequestException("Password must be at least 6 characters");
+    }
+
+    const passwordHash = await bcrypt.hash(dto.password, 10);
 
     const user = await this.usersService.create({
       phoneNumber: phone,
@@ -203,28 +226,24 @@ export class AuthService {
     return this.authResponse(user);
   }
 
-  /**
-   * Google Sign-In
-   * Client sends Google ID token.
-   * Backend verifies with Google tokeninfo endpoint.
-   * If first time: creates account (role required).
-   * If email already exists: links googleId and logs in.
-   */
+  // ─────────────────────────────────────────────
+  // GOOGLE
+  // ─────────────────────────────────────────────
+
   async googleAuth(dto: GoogleAuthDto) {
     const googleUser = await this.verifyGoogleIdToken(dto.idToken);
     const email = googleUser.email?.toLowerCase();
+
     if (!email) {
       throw new UnauthorizedException("Google account has no email");
     }
 
-    // Prefer googleId match
     let user = await this.usersService.findByGoogleId(googleUser.sub);
 
     if (!user) {
       user = await this.usersService.findByEmail(email);
 
       if (user) {
-        // Link Google to existing email account
         user = await this.usersService.updateProfile(user.id, {
           googleId: googleUser.sub,
           emailVerified: true,
@@ -237,8 +256,7 @@ export class AuthService {
           );
         }
 
-        // Placeholder unique phone until user links real phone via OTP
-        // Format keeps uniqueness without colliding with real Ethiopian numbers
+        // Unique placeholder phone until real phone is linked via OTP
         const placeholderPhone = `+google-${googleUser.sub.slice(0, 18)}`;
 
         user = await this.usersService.create({
@@ -257,16 +275,17 @@ export class AuthService {
   }
 
   private async verifyGoogleIdToken(idToken: string) {
-    // Simple verification endpoint. For higher security later, use google-auth-library.
     const res = await fetch(
       `https://oauth2.googleapis.com/tokeninfo?id_token=${encodeURIComponent(idToken)}`,
     );
+
     if (!res.ok) {
       throw new UnauthorizedException("Invalid Google token");
     }
-    const data = await res.json();
 
+    const data = await res.json();
     const allowedAud = process.env.GOOGLE_CLIENT_ID;
+
     if (allowedAud && data.aud !== allowedAud) {
       throw new UnauthorizedException("Google token audience mismatch");
     }
@@ -280,6 +299,10 @@ export class AuthService {
     };
   }
 
+  // ─────────────────────────────────────────────
+  // DEMO (development only)
+  // ─────────────────────────────────────────────
+
   async demoLogin(role: "PARENT" | "TEACHER") {
     if (this.isProd()) {
       throw new ForbiddenException("Demo login is disabled in production");
@@ -289,11 +312,14 @@ export class AuthService {
       role === "TEACHER"
         ? "teacher.demo@tutorbebetea.com"
         : "parent.demo@tutorbebetea.com";
+
     const testName =
       role === "TEACHER"
         ? "Yohannes Haile (Verified Tutor)"
         : "Abebe Bikila (Parent)";
-    const testPhone = role === "TEACHER" ? "+251911223344" : "+251988776655";
+
+    const testPhone =
+      role === "TEACHER" ? "+251911223344" : "+251988776655";
 
     let user: any = await this.usersService.findByEmail(testEmail);
 
@@ -311,8 +337,13 @@ export class AuthService {
     return this.authResponse(user);
   }
 
+  // ─────────────────────────────────────────────
+  // HELPERS
+  // ─────────────────────────────────────────────
+
   private async authResponse(user: any) {
     const tokens = await this.generateTokens(user.id, user.role);
+
     return {
       user: {
         id: user.id,
@@ -330,10 +361,12 @@ export class AuthService {
 
   private async generateTokens(userId: string, role: string) {
     const payload = { sub: userId, role };
+
     const [accessToken, refreshToken] = await Promise.all([
       this.jwtService.signAsync(payload, { expiresIn: "15m" }),
       this.jwtService.signAsync(payload, { expiresIn: "7d" }),
     ]);
+
     return { accessToken, refreshToken };
   }
 }
