@@ -1,4 +1,4 @@
-import { IsString, IsOptional, IsEmail } from "class-validator";
+import { IsEmail, IsOptional, IsString, MinLength } from "class-validator";
 
 export class LoginDto {
   @IsOptional()
@@ -11,5 +11,11 @@ export class LoginDto {
 
   @IsOptional()
   @IsString()
+  @MinLength(6)
   password?: string;
+
+  /** Required for phone OTP login path */
+  @IsOptional()
+  @IsString()
+  verificationToken?: string;
 }
