@@ -9,7 +9,7 @@ export class GoogleAuthDto {
   @IsString()
   idToken!: string;
 
-  /** Needed only on first-time Google signup */
+  /** Required only on first-time Google signup */
   @IsOptional()
   @IsEnum(UserRole)
   role?: UserRole;
