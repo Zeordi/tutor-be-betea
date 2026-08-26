@@ -26,12 +26,11 @@ export class RegisterDto {
   @IsEnum(UserRole)
   role!: UserRole;
 
-  @IsOptional()
   @IsString()
   @MinLength(6)
-  password?: string;
+  password!: string;
 
-  /** Required: from /auth/otp/verify */
+  /** From POST /auth/otp/verify */
   @IsString()
   verificationToken!: string;
 }
