@@ -22,6 +22,16 @@ export class AttendanceController {
         body.parentLat !== undefined ? Number(body.parentLat) : undefined,
       parentLng:
         body.parentLng !== undefined ? Number(body.parentLng) : undefined,
+      offlineId: body.offlineId,
+      clientCreatedAt: body.clientCreatedAt,
+      distanceMeters:
+        body.distanceMeters !== undefined
+          ? Number(body.distanceMeters)
+          : undefined,
+      isVerifiedGeofence:
+        body.isVerifiedGeofence !== undefined
+          ? Boolean(body.isVerifiedGeofence)
+          : undefined,
     });
   }
 
@@ -33,6 +43,8 @@ export class AttendanceController {
       contractId: body.contractId,
       latitude: Number(body.latitude),
       longitude: Number(body.longitude),
+      offlineId: body.offlineId,
+      clientCreatedAt: body.clientCreatedAt,
     });
   }
 
