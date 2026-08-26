@@ -123,6 +123,9 @@ importers:
       '@upstash/redis':
         specifier: ^1.38.2
         version: 1.38.2
+      bcryptjs:
+        specifier: ^3.0.3
+        version: 3.0.3
       class-transformer:
         specifier: ^0.5.1
         version: 0.5.1
@@ -148,6 +151,9 @@ importers:
       '@nestjs/cli':
         specifier: ^10.4.0
         version: 10.4.9
+      '@types/bcryptjs':
+        specifier: ^3.0.0
+        version: 3.0.0
       '@types/multer':
         specifier: ^2.2.0
         version: 2.2.0
@@ -166,6 +172,9 @@ importers:
       '@expo/vector-icons':
         specifier: ~14.0.4
         version: 14.0.4
+      '@react-native-async-storage/async-storage':
+        specifier: 2.2.0
+        version: 2.2.0(react-native@0.76.9(@babel/core@7.29.7)(@babel/preset-env@7.29.7(@babel/core@7.29.7))(@types/react@18.3.12)(react@18.3.1))
       '@sentry/react-native':
         specifier: ~6.3.0
         version: 6.3.0(expo@54.0.37)(react-native@0.76.9(@babel/core@7.29.7)(@babel/preset-env@7.29.7(@babel/core@7.29.7))(@types/react@18.3.12)(react@18.3.1))(react@18.3.1)
@@ -191,8 +200,8 @@ importers:
         specifier: ~13.0.0
         version: 13.0.3(expo@54.0.37)
       expo-location:
-        specifier: ~18.0.0
-        version: 18.0.10(expo@54.0.37)
+        specifier: ~19.0.8
+        version: 19.0.8(expo@54.0.37)
       expo-notifications:
         specifier: ~0.29.0
         version: 0.29.14(expo@54.0.37)(react-native@0.76.9(@babel/core@7.29.7)(@babel/preset-env@7.29.7(@babel/core@7.29.7))(@types/react@18.3.12)(react@18.3.1))(react@18.3.1)
@@ -229,6 +238,9 @@ importers:
       socket.io-client:
         specifier: ^4.8.0
         version: 4.8.3
+      zustand:
+        specifier: ^5.0.15
+        version: 5.0.15(@types/react@18.3.12)(react@18.3.1)(use-sync-external-store@1.6.0(react@18.3.1))
     devDependencies:
       '@expo/ngrok':
         specifier: ^4.1.0
@@ -1827,6 +1839,11 @@ packages:
     peerDependencies:
       react: 18.3.1
 
+  '@react-native-async-storage/async-storage@2.2.0':
+    resolution: {integrity: sha512-gvRvjR5JAaUZF8tv2Kcq/Gbt3JHwbKFYfmb445rhOj6NUMx3qPLixmDx5pZAyb9at1bYvJ4/eTUipU5aki45xw==}
+    peerDependencies:
+      react-native: ^0.0.0-0 || >=0.65 <1.0
+
   '@react-native/assets-registry@0.76.9':
     resolution: {integrity: sha512-pN0Ws5xsjWOZ8P37efh0jqHHQmq+oNGKT4AyAoKRpxBDDDmlAmpaYjer9Qz7PpDKF+IUyRjF/+rBsM50a8JcUg==}
     engines: {node: '>=18'}
@@ -2213,6 +2230,10 @@ packages:
 
   '@types/babel__traverse@7.28.0':
     resolution: {integrity: sha512-8PvcXf70gTDZBgt9ptxJ8elBeBjcLOAcOtoO/mPJjtji1+CdGbHgm77om1GrsPxsiE+uXIpNSK64UYaIwQXd4Q==}
+
+  '@types/bcryptjs@3.0.0':
+    resolution: {integrity: sha512-WRZOuCuaz8UcZZE4R5HXTco2goQSI2XxjGY3hbM/xDvwmqFWd4ivooImsMx65OKM6CtNKbnZ5YL+YwAwK7c1dg==}
+    deprecated: This is a stub types definition. bcryptjs provides its own type definitions, so you do not need this installed.
 
   '@types/body-parser@1.19.6':
     resolution: {integrity: sha512-HLFeCYgz89uk22N5Qg3dvGvsv46B8GLvKKo1zKG4NybA8U2DiEO3w9lqGg29t/tfLRJpJ6iQxnVw4OnB7MoM9g==}
@@ -2663,6 +2684,10 @@ packages:
   baseline-browser-mapping@2.11.18:
     resolution: {integrity: sha512-1iEmLEYSiE1SeBoAfPo/Mnx3PzfzHUkDK61ASkCpuk3YXugYLH5DYK1SzqV55F8FMI6s0F+/tCP7Polz1QRjxw==}
     engines: {node: '>=6.0.0'}
+    hasBin: true
+
+  bcryptjs@3.0.3:
+    resolution: {integrity: sha512-GlF5wPWnSa/X5LKM1o0wz0suXIINz1iHRLvTS+sLyi7XPbe5ycmYI3DlZqVGZZtDgl4DmasFg7gOB3JYbphV5g==}
     hasBin: true
 
   better-opn@3.0.2:
@@ -3320,8 +3345,8 @@ packages:
       react: 18.3.1
       react-native: '*'
 
-  expo-location@18.0.10:
-    resolution: {integrity: sha512-R0Iioz0UZ9Ts8TACPngh8uDFbajJhVa5/igLqWB8Pq/gp8UHuwj7PC8XbZV7avsFoShYjaxrOhf4U7IONeKLgg==}
+  expo-location@19.0.8:
+    resolution: {integrity: sha512-H/FI75VuJ1coodJbbMu82pf+Zjess8X8Xkiv9Bv58ZgPKS/2ztjC1YO1/XMcGz7+s9DrbLuMIw22dFuP4HqneA==}
     peerDependencies:
       expo: '*'
 
@@ -3845,6 +3870,10 @@ packages:
     resolution: {integrity: sha512-41Cifkg6e8TylSpdtTpeLVMqvSBEVzTttHvERD741+pnZ8ANv0004MRL43QKPDlK9cGvNp6NZWZUBlbGXYxxng==}
     engines: {node: '>=0.12.0'}
 
+  is-plain-obj@2.1.0:
+    resolution: {integrity: sha512-YWnfyRwxL/+SsrWYfOpUtz5b3YD+nyfkHvjbcanzk8zgyO4ASD67uVMRt8k5bM4lLMDnXfriRhOpemw+NfT1eA==}
+    engines: {node: '>=8'}
+
   is-plain-object@2.0.4:
     resolution: {integrity: sha512-h5PpgXkWitc38BBMYawTYMWJHFZJVnBquFE57xFpjB8pJFiF6gZ+bU+WyI/yqXiFR5mdLsgYNaPe8uao6Uv9Og==}
     engines: {node: '>=0.10.0'}
@@ -4225,6 +4254,10 @@ packages:
 
   merge-descriptors@1.0.3:
     resolution: {integrity: sha512-gaNvAS7TZ897/rVaZ0nMtAyxNyi/pdbjbAwUpFQpN70GqnVfOiXpeUUMKRBmzXaSQ8DdTX4/0ms62r2K+hE6mQ==}
+
+  merge-options@3.0.4:
+    resolution: {integrity: sha512-2Sug1+knBjkaMsMgf1ctR1Ujx+Ayku4EdJN4Z+C2+JzoeF7A3OZ9KM2GY0CpQS51NR61LTurMJrRKPhSs3ZRTQ==}
+    engines: {node: '>=10'}
 
   merge-stream@2.0.0:
     resolution: {integrity: sha512-abv/qOcuPfk3URPfDzmZU1LKmuw8kT+0nIHvKrKgFrwifol/doWcdA4ZqsWQ8ENrFKkd67Mfpo/LovbIUsbt3w==}
@@ -5903,6 +5936,24 @@ packages:
 
   zod@3.25.76:
     resolution: {integrity: sha512-gzUt/qt81nXsFGKIFcC3YnfEAx5NkunCfnDlvuBSSFS02bcXu4Lmea0AFIUwbLWxWPx3d9p8S5QoaujKcNQxcQ==}
+
+  zustand@5.0.15:
+    resolution: {integrity: sha512-MpSEjRiBkA9crSYeOUH32rJC7SVqAbm0Fqcqge/bUi2PPoLcBWKOsG+C8mevmpr8TwXHBVkChbbJiyvkE+i/3A==}
+    engines: {node: '>=12.20.0'}
+    peerDependencies:
+      '@types/react': 18.3.12
+      immer: '>=9.0.6'
+      react: 18.3.1
+      use-sync-external-store: '>=1.2.0'
+    peerDependenciesMeta:
+      '@types/react':
+        optional: true
+      immer:
+        optional: true
+      react:
+        optional: true
+      use-sync-external-store:
+        optional: true
 
 snapshots:
 
@@ -7822,6 +7873,11 @@ snapshots:
       '@radix-ui/react-compose-refs': 1.0.0(react@18.3.1)
       react: 18.3.1
 
+  '@react-native-async-storage/async-storage@2.2.0(react-native@0.76.9(@babel/core@7.29.7)(@babel/preset-env@7.29.7(@babel/core@7.29.7))(@types/react@18.3.12)(react@18.3.1))':
+    dependencies:
+      merge-options: 3.0.4
+      react-native: 0.76.9(@babel/core@7.29.7)(@babel/preset-env@7.29.7(@babel/core@7.29.7))(@types/react@18.3.12)(react@18.3.1)
+
   '@react-native/assets-registry@0.76.9': {}
 
   '@react-native/babel-plugin-codegen@0.76.9(@babel/preset-env@7.29.7(@babel/core@7.29.7))':
@@ -8385,6 +8441,10 @@ snapshots:
     dependencies:
       '@babel/types': 7.29.8
 
+  '@types/bcryptjs@3.0.0':
+    dependencies:
+      bcryptjs: 3.0.3
+
   '@types/body-parser@1.19.6':
     dependencies:
       '@types/connect': 3.4.38
@@ -8936,6 +8996,8 @@ snapshots:
   base64id@2.0.0: {}
 
   baseline-browser-mapping@2.11.18: {}
+
+  bcryptjs@3.0.3: {}
 
   better-opn@3.0.2:
     dependencies:
@@ -9594,7 +9656,7 @@ snapshots:
       - expo
       - supports-color
 
-  expo-location@18.0.10(expo@54.0.37):
+  expo-location@19.0.8(expo@54.0.37):
     dependencies:
       expo: 54.0.37(@babel/core@7.29.7)(@expo/metro-runtime@4.0.1(react-native@0.76.9(@babel/core@7.29.7)(@babel/preset-env@7.29.7(@babel/core@7.29.7))(@types/react@18.3.12)(react@18.3.1)))(expo-router@4.0.22)(react-native@0.76.9(@babel/core@7.29.7)(@babel/preset-env@7.29.7(@babel/core@7.29.7))(@types/react@18.3.12)(react@18.3.1))(react@18.3.1)(typescript@5.9.3)
 
@@ -10247,6 +10309,8 @@ snapshots:
 
   is-number@7.0.0: {}
 
+  is-plain-obj@2.1.0: {}
+
   is-plain-object@2.0.4:
     dependencies:
       isobject: 3.0.1
@@ -10650,6 +10714,10 @@ snapshots:
   memoize-one@6.0.0: {}
 
   merge-descriptors@1.0.3: {}
+
+  merge-options@3.0.4:
+    dependencies:
+      is-plain-obj: 2.1.0
 
   merge-stream@2.0.0: {}
 
@@ -12532,3 +12600,9 @@ snapshots:
   yocto-queue@0.1.0: {}
 
   zod@3.25.76: {}
+
+  zustand@5.0.15(@types/react@18.3.12)(react@18.3.1)(use-sync-external-store@1.6.0(react@18.3.1)):
+    optionalDependencies:
+      '@types/react': 18.3.12
+      react: 18.3.1
+      use-sync-external-store: 1.6.0(react@18.3.1)

@@ -28,6 +28,7 @@
     "@tutor/types": "workspace:*",
     "@tutor/validators": "workspace:*",
     "@upstash/redis": "^1.38.2",
+    "bcryptjs": "^3.0.3",
     "class-transformer": "^0.5.1",
     "class-validator": "^0.14.1",
     "ioredis": "^5.4.1",
@@ -38,6 +39,7 @@
   },
   "devDependencies": {
     "@nestjs/cli": "^10.4.0",
+    "@types/bcryptjs": "^3.0.0",
     "@types/multer": "^2.2.0",
     "@types/node": "^20",
     "@types/passport-jwt": "^4.0.1",
