@@ -138,6 +138,11 @@ model TutoringContract {
   guaranteeExpiry    DateTime       @map("guarantee_expiry")
   startDate          DateTime       @map("start_date") @db.Date
   endDate            DateTime       @map("end_date") @db.Date
+
+  // Session geofence home (parent house / lesson location)
+  sessionLatitude    Decimal?       @map("session_latitude") @db.Decimal(10, 7)
+  sessionLongitude   Decimal?       @map("session_longitude") @db.Decimal(10, 7)
+
   createdAt          DateTime       @default(now()) @map("created_at")
 
   parent  User @relation("ParentContracts", fields: [parentId], references: [id])
@@ -154,8 +159,16 @@ model AttendanceLog {
   distanceMeters     Decimal   @map("distance_meters") @db.Decimal(8, 2)
   isVerifiedGeofence Boolean   @default(true) @map("is_verified_geofence")
   parentConfirmed    Boolean   @default(false) @map("parent_confirmed")
+
+  // Offline replay
+  offlineId          String?   @unique @map("offline_id")
+  clientCreatedAt    DateTime? @map("client_created_at")
+  teacherLatitude    Decimal?  @map("teacher_latitude") @db.Decimal(10, 7)
+  teacherLongitude   Decimal?  @map("teacher_longitude") @db.Decimal(10, 7)
+
   createdAt          DateTime  @default(now()) @map("created_at")
 
+  @@index([contractId, checkInTime])
   @@map("attendance_logs")
 }
 
