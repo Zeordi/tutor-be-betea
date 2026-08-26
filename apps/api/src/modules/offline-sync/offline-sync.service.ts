@@ -36,6 +36,10 @@ export class OfflineSyncService {
           longitude: record.longitude,
           parentLat: record.parentLat,
           parentLng: record.parentLng,
+          offlineId: record.offlineId || record.id,
+          clientCreatedAt: record.clientCreatedAt || record.createdAt,
+          distanceMeters: record.distanceMeters,
+          isVerifiedGeofence: record.isVerifiedGeofence,
         });
         results.push({ contractId: record.contractId, success: true, data: result });
       } catch (error: any) {
