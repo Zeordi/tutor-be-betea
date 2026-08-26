@@ -14,7 +14,7 @@ export class LoginDto {
   @MinLength(6)
   password?: string;
 
-  /** Required for phone OTP login path */
+  /** Required for phone + password + OTP login */
   @IsOptional()
   @IsString()
   verificationToken?: string;
