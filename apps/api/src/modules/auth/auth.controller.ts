@@ -1,4 +1,3 @@
-// apps/api/src/modules/auth/auth.controller.ts
 import { Body, Controller, Post, HttpCode, HttpStatus } from "@nestjs/common";
 import { AuthService } from "./auth.service";
 import { LoginDto } from "./dto/login.dto";
@@ -38,16 +37,16 @@ export class AuthController {
   @Post("otp/verify")
   @HttpCode(HttpStatus.OK)
   verifyOtp(
-    @Body("phoneNumber") phoneNumber: string,
-    @Body("email") email: string,
-    @Body("code") code: string,
+    @Body("phoneNumber") phoneNumber?: string,
+    @Body("email") email?: string,
+    @Body("code") code?: string,
   ) {
-    return this.authService.verifyOtp(phoneNumber || email, code);
+    return this.authService.verifyOtp(phoneNumber || email || "", code || "");
   }
 
   @Post("demo-login")
   @HttpCode(HttpStatus.OK)
-  demoLogin(@Body("role") role: "PARENT" | "TEACHER") {
+  demoLogin(@Body("role") role?: "PARENT" | "TEACHER") {
     return this.authService.demoLogin(role || "PARENT");
   }
 }
