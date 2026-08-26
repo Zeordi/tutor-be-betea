@@ -5,20 +5,16 @@ export interface User {
   id: string;
   fullName: string;
   phoneNumber: string;
+  email?: string;
   role: "PARENT" | "TEACHER" | "SUPPORT_AGENT" | "SUPER_ADMIN";
   status?: string;
   avatarUrl?: string;
 }
 
 export function useAuth() {
-  const [user, setUser] = useState<User | null>({
-    id: "demo-user-id",
-    fullName: "Abebe Bikila",
-    phoneNumber: "0911223344",
-    role: "PARENT",
-  });
-  const [token, setToken] = useState<string | null>("demo-token");
-  const [isLoading, setIsLoading] = useState<boolean>(false);
+  const [user, setUser] = useState<User | null>(null);
+  const [token, setTokenState] = useState<string | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
     loadStoredAuth();
@@ -29,7 +25,7 @@ export function useAuth() {
       const storedToken = await SecureStore.getItemAsync("auth_token");
       const storedUser = await SecureStore.getItemAsync("auth_user");
       if (storedToken && storedUser) {
-        setToken(storedToken);
+        setTokenState(storedToken);
         setUser(JSON.parse(storedUser));
       }
     } catch (e) {
@@ -40,14 +36,14 @@ export function useAuth() {
   }
 
   async function login(newToken: string, newUser: User) {
-    setToken(newToken);
+    setTokenState(newToken);
     setUser(newUser);
     await SecureStore.setItemAsync("auth_token", newToken);
     await SecureStore.setItemAsync("auth_user", JSON.stringify(newUser));
   }
 
   async function logout() {
-    setToken(null);
+    setTokenState(null);
     setUser(null);
     await SecureStore.deleteItemAsync("auth_token");
     await SecureStore.deleteItemAsync("auth_user");
