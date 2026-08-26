@@ -25,6 +25,21 @@ export class ContractsController {
     return this.contractsService.fundEscrow(id, user.id);
   }
 
+  @Post(":id/session-location")
+  @Roles("PARENT")
+  updateSessionLocation(
+    @Param("id") id: string,
+    @CurrentUser() user: any,
+    @Body() body: { sessionLatitude: number; sessionLongitude: number },
+  ) {
+    return this.contractsService.updateSessionLocation(
+      id,
+      user.id,
+      Number(body.sessionLatitude),
+      Number(body.sessionLongitude),
+    );
+  }
+
   @Get("my")
   @Roles("PARENT", "TEACHER")
   myContracts(@CurrentUser() user: any) {
