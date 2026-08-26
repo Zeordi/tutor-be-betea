@@ -1,4 +1,10 @@
-import { IsString, IsEnum, IsOptional, IsEmail, MinLength } from "class-validator";
+import {
+  IsEmail,
+  IsEnum,
+  IsOptional,
+  IsString,
+  MinLength,
+} from "class-validator";
 
 enum UserRole {
   PARENT = "PARENT",
@@ -6,9 +12,8 @@ enum UserRole {
 }
 
 export class RegisterDto {
-  @IsOptional()
   @IsString()
-  phoneNumber?: string;
+  phoneNumber!: string;
 
   @IsOptional()
   @IsEmail()
@@ -16,8 +21,17 @@ export class RegisterDto {
 
   @IsString()
   @MinLength(2)
-  fullName: string;
+  fullName!: string;
 
   @IsEnum(UserRole)
-  role: UserRole;
+  role!: UserRole;
+
+  @IsOptional()
+  @IsString()
+  @MinLength(6)
+  password?: string;
+
+  /** Required: from /auth/otp/verify */
+  @IsString()
+  verificationToken!: string;
 }
