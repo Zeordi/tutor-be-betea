@@ -1,4 +1,3 @@
-// apps/api/src/modules/users/users.service.ts
 import { Injectable, NotFoundException } from "@nestjs/common";
 import { prisma } from "@tutor/database";
 import { UserRole, UserStatus } from "@tutor/types";
@@ -37,7 +36,11 @@ export class UsersService {
       where: { id },
       include: { teacherProfile: true },
     });
-    if (!user) throw new NotFoundException("User not found");
+
+    if (!user) {
+      throw new NotFoundException("User not found");
+    }
+
     return user;
   }
 
@@ -49,11 +52,15 @@ export class UsersService {
   }
 
   async findByEmail(email: string) {
-    return prisma.user.findUnique({ where: { email } });
+    return prisma.user.findUnique({
+      where: { email },
+    });
   }
 
   async findByGoogleId(googleId: string) {
-    return prisma.user.findUnique({ where: { googleId } });
+    return prisma.user.findUnique({
+      where: { googleId },
+    });
   }
 
   async updateStatus(userId: string, status: UserStatus) {
