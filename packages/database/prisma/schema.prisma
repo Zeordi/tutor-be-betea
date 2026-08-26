@@ -44,16 +44,23 @@ enum CurriculumType {
 }
 
 model User {
-  id          String     @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
-  phoneNumber String     @unique @map("phone_number")
-  email       String?    @unique
-  fullName    String     @map("full_name")
-  role        UserRole
-  status      UserStatus @default(PENDING_VERIFICATION)
-  avatarUrl   String?    @map("avatar_url")
-  pushToken   String?    @map("push_token")
-  createdAt   DateTime   @default(now()) @map("created_at")
-  updatedAt   DateTime   @updatedAt @map("updated_at")
+  id           String     @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  phoneNumber  String     @unique @map("phone_number")
+  email        String?    @unique
+  fullName     String     @map("full_name")
+  role         UserRole
+  status       UserStatus @default(PENDING_VERIFICATION)
+  avatarUrl    String?    @map("avatar_url")
+  pushToken    String?    @map("push_token")
+
+  // NEW auth fields
+  passwordHash String?    @map("password_hash")
+  googleId     String?    @unique @map("google_id")
+  emailVerified Boolean   @default(false) @map("email_verified")
+  phoneVerified Boolean   @default(false) @map("phone_verified")
+
+  createdAt    DateTime   @default(now()) @map("created_at")
+  updatedAt    DateTime   @updatedAt @map("updated_at")
 
   teacherProfile     TeacherProfile?
   studentProfiles    StudentProfile[]
