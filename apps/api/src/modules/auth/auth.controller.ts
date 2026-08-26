@@ -1,62 +1,52 @@
-import { Body, Controller, Get, Param, Post, UseGuards } from "@nestjs/common";
-import { AttendanceService } from "./attendance.service";
-import { JwtAuthGuard } from "../../common/guards/jwt-auth.guard";
-import { RolesGuard } from "../../common/guards/roles.guard";
-import { Roles } from "../../common/decorators/roles.decorator";
-import { CurrentUser } from "../../common/decorators/current-user.decorator";
+import { Body, Controller, Post, HttpCode, HttpStatus } from "@nestjs/common";
+import { AuthService } from "./auth.service";
+import { LoginDto } from "./dto/login.dto";
+import { RegisterDto } from "./dto/register.dto";
+import { GoogleAuthDto } from "./dto/google-auth.dto";
 
-@Controller("attendance")
-@UseGuards(JwtAuthGuard, RolesGuard)
-export class AttendanceController {
-  constructor(private readonly attendanceService: AttendanceService) {}
+@Controller("auth")
+export class AuthController {
+  constructor(private readonly authService: AuthService) {}
 
-  @Post("check-in")
-  @Roles("TEACHER")
-  checkIn(@CurrentUser() user: any, @Body() body: any) {
-    return this.attendanceService.checkIn({
-      teacherId: user.id,
-      contractId: body.contractId,
-      latitude: Number(body.latitude),
-      longitude: Number(body.longitude),
-      parentLat:
-        body.parentLat !== undefined ? Number(body.parentLat) : undefined,
-      parentLng:
-        body.parentLng !== undefined ? Number(body.parentLng) : undefined,
-      offlineId: body.offlineId,
-      clientCreatedAt: body.clientCreatedAt,
-      distanceMeters:
-        body.distanceMeters !== undefined
-          ? Number(body.distanceMeters)
-          : undefined,
-      isVerifiedGeofence:
-        body.isVerifiedGeofence !== undefined
-          ? Boolean(body.isVerifiedGeofence)
-          : undefined,
-    });
+  @Post("login")
+  @HttpCode(HttpStatus.OK)
+  login(@Body() dto: LoginDto) {
+    return this.authService.login(dto);
   }
 
-  @Post("check-out")
-  @Roles("TEACHER")
-  checkOut(@CurrentUser() user: any, @Body() body: any) {
-    return this.attendanceService.checkOut({
-      teacherId: user.id,
-      contractId: body.contractId,
-      latitude: Number(body.latitude),
-      longitude: Number(body.longitude),
-      offlineId: body.offlineId,
-      clientCreatedAt: body.clientCreatedAt,
-    });
+  @Post("register")
+  register(@Body() dto: RegisterDto) {
+    return this.authService.register(dto);
   }
 
-  @Get("contract/:contractId")
-  @Roles("PARENT", "TEACHER")
-  getByContract(@Param("contractId") contractId: string) {
-    return this.attendanceService.getByContract(contractId);
+  @Post("google")
+  @HttpCode(HttpStatus.OK)
+  google(@Body() dto: GoogleAuthDto) {
+    return this.authService.googleAuth(dto);
   }
 
-  @Post(":id/confirm")
-  @Roles("PARENT")
-  confirm(@Param("id") id: string, @CurrentUser() user: any) {
-    return this.attendanceService.confirmByParent(id, user.id);
+  @Post("otp/send")
+  @HttpCode(HttpStatus.OK)
+  sendOtp(
+    @Body("phoneNumber") phoneNumber?: string,
+    @Body("email") email?: string,
+  ) {
+    return this.authService.sendOtp(phoneNumber || email || "");
+  }
+
+  @Post("otp/verify")
+  @HttpCode(HttpStatus.OK)
+  verifyOtp(
+    @Body("phoneNumber") phoneNumber?: string,
+    @Body("email") email?: string,
+    @Body("code") code?: string,
+  ) {
+    return this.authService.verifyOtp(phoneNumber || email || "", code || "");
+  }
+
+  @Post("demo-login")
+  @HttpCode(HttpStatus.OK)
+  demoLogin(@Body("role") role?: "PARENT" | "TEACHER") {
+    return this.authService.demoLogin(role || "PARENT");
   }
 }
