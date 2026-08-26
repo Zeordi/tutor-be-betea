@@ -4,17 +4,33 @@ const ALGORITHM = "aes-256-gcm";
 const IV_LENGTH = 12;
 
 export interface EncryptedPayload {
-  ciphertext: string; // base64
-  iv: string;         // base64
-  tag: string;        // base64 auth tag
+  ciphertext: string;
+  iv: string;
+  tag: string;
 }
 
 export function getVaultKey(): Buffer {
   const secret = process.env.VAULT_MASTER_KEY || process.env.ENCRYPTION_KEY;
+  const isProd = process.env.NODE_ENV === "production";
+
   if (!secret) {
-    return Buffer.from("0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef", "hex");
+    if (isProd) {
+      throw new Error(
+        "VAULT_MASTER_KEY or ENCRYPTION_KEY must be set in production",
+      );
+    }
+    console.warn(
+      "[SECURITY] Using development fallback vault key. Never use this in production.",
+    );
+    return Buffer.from(
+      "0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef",
+      "hex",
+    );
   }
-  return secret.length === 64 ? Buffer.from(secret, "hex") : Buffer.from(secret.padEnd(32, "0").slice(0, 32));
+
+  return secret.length === 64
+    ? Buffer.from(secret, "hex")
+    : Buffer.from(secret.padEnd(32, "0").slice(0, 32));
 }
 
 export function generateIV(): Buffer {
@@ -24,7 +40,6 @@ export function generateIV(): Buffer {
 export function encryptBuffer(data: Buffer): EncryptedPayload {
   const key = getVaultKey();
   const iv = generateIV();
-
   const cipher = createCipheriv(ALGORITHM, key, iv);
   const encrypted = Buffer.concat([cipher.update(data), cipher.final()]);
   const tag = cipher.getAuthTag();
