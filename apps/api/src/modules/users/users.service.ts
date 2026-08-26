@@ -1,3 +1,4 @@
+// apps/api/src/modules/users/users.service.ts
 import { Injectable, NotFoundException } from "@nestjs/common";
 import { prisma } from "@tutor/database";
 import { UserRole, UserStatus } from "@tutor/types";
@@ -7,52 +8,52 @@ interface CreateUserData {
   fullName: string;
   role: UserRole;
   email?: string;
+  passwordHash?: string;
+  googleId?: string;
+  emailVerified?: boolean;
+  phoneVerified?: boolean;
 }
 
 @Injectable()
 export class UsersService {
   async create(data: CreateUserData) {
-    const user = await prisma.user.create({
+    return prisma.user.create({
       data: {
         phoneNumber: data.phoneNumber,
         fullName: data.fullName,
         role: data.role,
         email: data.email,
+        passwordHash: data.passwordHash,
+        googleId: data.googleId,
+        emailVerified: data.emailVerified ?? false,
+        phoneVerified: data.phoneVerified ?? false,
         status: "PENDING_VERIFICATION",
       },
     });
-
-    return user;
   }
 
   async findById(id: string) {
     const user = await prisma.user.findUnique({
       where: { id },
-      include: {
-        teacherProfile: true,
-      },
+      include: { teacherProfile: true },
     });
-
-    if (!user) {
-      throw new NotFoundException("User not found");
-    }
-
+    if (!user) throw new NotFoundException("User not found");
     return user;
   }
 
   async findByPhone(phoneNumber: string) {
     return prisma.user.findUnique({
       where: { phoneNumber },
-      include: {
-        teacherProfile: true,
-      },
+      include: { teacherProfile: true },
     });
   }
 
   async findByEmail(email: string) {
-    return prisma.user.findUnique({
-      where: { email },
-    });
+    return prisma.user.findUnique({ where: { email } });
+  }
+
+  async findByGoogleId(googleId: string) {
+    return prisma.user.findUnique({ where: { googleId } });
   }
 
   async updateStatus(userId: string, status: UserStatus) {
@@ -64,7 +65,15 @@ export class UsersService {
 
   async updateProfile(
     userId: string,
-    data: { fullName?: string; email?: string; avatarUrl?: string },
+    data: {
+      fullName?: string;
+      email?: string;
+      avatarUrl?: string;
+      passwordHash?: string;
+      googleId?: string;
+      emailVerified?: boolean;
+      phoneVerified?: boolean;
+    },
   ) {
     return prisma.user.update({
       where: { id: userId },
@@ -92,9 +101,7 @@ export class UsersService {
         skip,
         take: limit,
         orderBy: { createdAt: "desc" },
-        include: {
-          teacherProfile: true,
-        },
+        include: { teacherProfile: true },
       }),
       prisma.user.count({ where }),
     ]);
