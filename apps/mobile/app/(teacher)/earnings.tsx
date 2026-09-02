@@ -1,152 +1,51 @@
-import { View, Text, StyleSheet, ScrollView, ActivityIndicator, RefreshControl } from "react-native";
-import { useEffect, useState, useCallback } from "react";
+// apps/mobile/app/(teacher)/earnings.tsx
+import { View, Text, ScrollView, TouchableOpacity } from "react-native";
+import { useRouter } from "expo-router";
 import { useTheme } from "@/hooks/useTheme";
 import { SafeAreaView } from "react-native-safe-area-context";
-import { getToken } from "@/lib/api";
 
 export default function EarningsScreen() {
-  const { colors } = useTheme();
-  const [loading, setLoading] = useState(true);
-  const [refreshing, setRefreshing] = useState(false);
-  const [data, setData] = useState({
-    availableBalance: 0,
-    pendingBalance: 0,
-    totalEarned: 0,
-    recentPayouts: [] as any[],
-  });
-
-  const loadEarnings = useCallback(async () => {
-    try {
-      const token = await getToken();
-      // In the future we will have a real /teachers/me/earnings endpoint
-      // For now we show a clean structure
-      setData({
-        availableBalance: 0,
-        pendingBalance: 0,
-        totalEarned: 0,
-        recentPayouts: [],
-      });
-    } catch (error) {
-      console.error(error);
-    } finally {
-      setLoading(false);
-      setRefreshing(false);
-    }
-  }, []);
-
-  useEffect(() => {
-    loadEarnings();
-  }, [loadEarnings]);
-
-  const onRefresh = () => {
-    setRefreshing(true);
-    loadEarnings();
-  };
-
-  if (loading) {
-    return (
-      <View style={[styles.center, { backgroundColor: colors.background }]}>
-        <ActivityIndicator size="large" color={colors.primary} />
-      </View>
-    );
-  }
+  const { isDark } = useTheme();
+  const router = useRouter();
+  const bg = isDark ? "#0A1628" : "#F8FAFC";
+  const card = isDark ? "#112240" : "#FFFFFF";
+  const text = isDark ? "#F0FAFA" : "#0D2B2A";
+  const sub = isDark ? "#94A3B8" : "#64748B";
 
   return (
-    <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]}>
-      <ScrollView
-        contentContainerStyle={styles.content}
-        refreshControl={
-          <RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={colors.primary} />
-        }
-      >
-        <Text style={[styles.title, { color: colors.text }]}>Earnings</Text>
-
-        {/* Available Balance */}
-        <View style={[styles.balanceCard, { backgroundColor: colors.primary }]}>
-          <Text style={styles.balanceLabel}>Available Balance</Text>
-          <Text style={styles.balanceAmount}>
-            ETB {data.availableBalance.toLocaleString()}
-          </Text>
-          <Text style={styles.balanceSub}>Ready for payout</Text>
-        </View>
-
-        {/* Stats */}
-        <View style={styles.statsRow}>
-          <View style={[styles.statCard, { backgroundColor: colors.surface }]}>
-            <Text style={[styles.statValue, { color: colors.text }]}>
-              ETB {data.pendingBalance.toLocaleString()}
-            </Text>
-            <Text style={{ color: colors.textSecondary, fontSize: 13 }}>Pending</Text>
-          </View>
-          <View style={[styles.statCard, { backgroundColor: colors.surface }]}>
-            <Text style={[styles.statValue, { color: colors.text }]}>
-              ETB {data.totalEarned.toLocaleString()}
-            </Text>
-            <Text style={{ color: colors.textSecondary, fontSize: 13 }}>Total Earned</Text>
+    <SafeAreaView style={{ flex: 1, backgroundColor: bg }} edges={["top"]}>
+      <View style={{ flexDirection: "row", alignItems: "center", gap: 12, padding: 14 }}>
+        <TouchableOpacity onPress={() => router.back()}><Text style={{ color: sub }}>←</Text></TouchableOpacity>
+        <Text style={{ color: text, fontSize: 16, fontWeight: "800" }}>Earnings & Payout</Text>
+      </View>
+      <ScrollView contentContainerStyle={{ padding: 16, gap: 12 }}>
+        <View style={{ backgroundColor: "#0F766E", borderRadius: 20, padding: 20 }}>
+          <Text style={{ color: "rgba(255,255,255,0.75)", fontSize: 12 }}>Available to Withdraw</Text>
+          <Text style={{ color: "#fff", fontSize: 32, fontWeight: "900", marginTop: 4 }}>8,450 ETB</Text>
+          <Text style={{ color: "rgba(255,255,255,0.8)", fontSize: 12, marginTop: 6 }}>+12,800 this month · −4,350 withdrawn</Text>
+          <View style={{ flexDirection: "row", gap: 8, marginTop: 14 }}>
+            <TouchableOpacity style={{ flex: 1, backgroundColor: "rgba(255,255,255,0.15)", borderRadius: 12, paddingVertical: 10, alignItems: "center" }}>
+              <Text style={{ color: "#fff", fontWeight: "800", fontSize: 12 }}>Withdraw All</Text>
+            </TouchableOpacity>
+            <TouchableOpacity style={{ flex: 1, backgroundColor: "rgba(255,255,255,0.15)", borderRadius: 12, paddingVertical: 10, alignItems: "center" }}>
+              <Text style={{ color: "#fff", fontWeight: "800", fontSize: 12 }}>Schedule Payout</Text>
+            </TouchableOpacity>
           </View>
         </View>
-
-        <Text style={[styles.sectionTitle, { color: colors.text }]}>Recent Payouts</Text>
-
-        {data.recentPayouts.length === 0 ? (
-          <View style={[styles.emptyState, { backgroundColor: colors.surface }]}>
-            <Text style={{ color: colors.textSecondary, textAlign: "center" }}>
-              No payouts yet.{"\n"}Complete sessions to start earning.
-            </Text>
-          </View>
-        ) : (
-          data.recentPayouts.map((payout, index) => (
-            <View
-              key={index}
-              style={[styles.payoutItem, { backgroundColor: colors.surface }]}
-            >
-              <Text style={{ color: colors.text, fontWeight: "600" }}>
-                ETB {payout.amount}
-              </Text>
-              <Text style={{ color: colors.textSecondary, fontSize: 13 }}>
-                {payout.date}
-              </Text>
+        {[
+          ["Session · Kidane Math", "+675 ETB", "Today"],
+          ["Payout to Telebirr", "−3,000 ETB", "Mon"],
+          ["Session · Liya Physics", "+500 ETB", "Sun"],
+        ].map(([t, a, d]) => (
+          <View key={t} style={{ backgroundColor: card, borderRadius: 14, padding: 14, flexDirection: "row", justifyContent: "space-between" }}>
+            <View>
+              <Text style={{ color: text, fontWeight: "700" }}>{t}</Text>
+              <Text style={{ color: sub, fontSize: 11 }}>{d}</Text>
             </View>
-          ))
-        )}
+            <Text style={{ color: String(a).startsWith("+") ? "#10B981" : text, fontWeight: "800" }}>{a}</Text>
+          </View>
+        ))}
       </ScrollView>
     </SafeAreaView>
   );
 }
-
-const styles = StyleSheet.create({
-  container: { flex: 1 },
-  center: { flex: 1, justifyContent: "center", alignItems: "center" },
-  content: { padding: 20 },
-  title: { fontSize: 24, fontWeight: "700", marginBottom: 20 },
-  balanceCard: {
-    borderRadius: 20,
-    padding: 24,
-    marginBottom: 16,
-  },
-  balanceLabel: { color: "rgba(255,255,255,0.85)", fontSize: 14 },
-  balanceAmount: { color: "#fff", fontSize: 32, fontWeight: "700", marginTop: 6 },
-  balanceSub: { color: "rgba(255,255,255,0.75)", fontSize: 13, marginTop: 4 },
-  statsRow: { flexDirection: "row", gap: 12, marginBottom: 28 },
-  statCard: {
-    flex: 1,
-    borderRadius: 16,
-    padding: 16,
-    alignItems: "center",
-  },
-  statValue: { fontSize: 18, fontWeight: "700", marginBottom: 4 },
-  sectionTitle: { fontSize: 18, fontWeight: "700", marginBottom: 12 },
-  emptyState: {
-    borderRadius: 16,
-    padding: 32,
-    alignItems: "center",
-  },
-  payoutItem: {
-    borderRadius: 12,
-    padding: 16,
-    marginBottom: 10,
-    flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "center",
-  },
-});
