@@ -6,17 +6,24 @@ import { useTheme } from "@/hooks/useTheme";
 
 export default function OTPScreen() {
   const router = useRouter();
-  const { colors } = useTheme();
+  const { isDark } = useTheme();
 
   useEffect(() => {
-    // OTP is now handled inside login/register steps
+    // OTP is handled inside login + register (Figma flow)
     router.replace("/(auth)/login");
   }, [router]);
 
   return (
-    <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]}>
+    <SafeAreaView
+      style={[
+        styles.container,
+        { backgroundColor: isDark ? "#0A1628" : "#FFFFFF" },
+      ]}
+    >
       <View style={styles.content}>
-        <Text style={{ color: colors.textSecondary }}>Redirecting to login...</Text>
+        <Text style={{ color: isDark ? "#94A3B8" : "#64748B" }}>
+          Redirecting…
+        </Text>
       </View>
     </SafeAreaView>
   );
