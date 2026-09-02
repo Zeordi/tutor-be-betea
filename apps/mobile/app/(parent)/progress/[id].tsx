@@ -1,109 +1,45 @@
-import { View, Text, StyleSheet, ScrollView, ActivityIndicator } from "react-native";
-import { useLocalSearchParams } from "expo-router";
-import { useEffect, useState } from "react";
+// apps/mobile/app/(parent)/progress/[id].tsx
+import { View, Text, StyleSheet, ScrollView, TouchableOpacity } from "react-native";
+import { useRouter } from "expo-router";
 import { useTheme } from "@/hooks/useTheme";
 import { SafeAreaView } from "react-native-safe-area-context";
-import { getToken } from "@/lib/api";
 
-export default function ProgressReportScreen() {
-  const { id } = useLocalSearchParams();
-  const { colors } = useTheme();
-  const [report, setReport] = useState<any>(null);
-  const [loading, setLoading] = useState(true);
-
-  useEffect(() => {
-    async function load() {
-      try {
-        const token = await getToken();
-        const res = await fetch(`\( {process.env.EXPO_PUBLIC_API_URL}/progress/ \){id}`, {
-          headers: { Authorization: `Bearer ${token}` },
-        });
-        const data = await res.json();
-        setReport(data);
-      } catch (error) {
-        console.error(error);
-      } finally {
-        setLoading(false);
-      }
-    }
-    load();
-  }, [id]);
-
-  if (loading) {
-    return (
-      <View style={[styles.center, { backgroundColor: colors.background }]}>
-        <ActivityIndicator color={colors.primary} />
-      </View>
-    );
-  }
-
-  if (!report) {
-    return (
-      <View style={[styles.center, { backgroundColor: colors.background }]}>
-        <Text style={{ color: colors.text }}>Report not found</Text>
-      </View>
-    );
-  }
+export default function ProgressDashboard() {
+  const { isDark } = useTheme();
+  const router = useRouter();
+  const bg = isDark ? "#0A1628" : "#F8FAFC";
+  const card = isDark ? "#112240" : "#FFFFFF";
+  const text = isDark ? "#F0FAFA" : "#0D2B2A";
+  const sub = isDark ? "#94A3B8" : "#64748B";
+  const primary = "#0D9488";
 
   return (
-    <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]}>
-      <ScrollView contentContainerStyle={styles.content}>
-        <Text style={[styles.title, { color: colors.text }]}>
-          Week {report.weekNumber} Report
-        </Text>
-
-        <View style={[styles.card, { backgroundColor: colors.surface }]}>
-          <Text style={[styles.cardTitle, { color: colors.text }]}>Topics Covered</Text>
-          <Text style={{ color: colors.textSecondary, marginTop: 6 }}>
-            {report.topicsCovered}
+    <SafeAreaView style={{ flex: 1, backgroundColor: bg }} edges={["top"]}>
+      <View style={{ flexDirection: "row", alignItems: "center", gap: 12, padding: 14 }}>
+        <TouchableOpacity onPress={() => router.back()}><Text style={{ color: sub }}>←</Text></TouchableOpacity>
+        <Text style={{ color: text, fontSize: 16, fontWeight: "800" }}>Progress Dashboard</Text>
+      </View>
+      <ScrollView contentContainerStyle={{ padding: 16, gap: 12 }}>
+        <View style={{ backgroundColor: "#0F766E", borderRadius: 18, padding: 16 }}>
+          <Text style={{ color: "#fff", fontWeight: "800" }}>Weekly Mastery · Kidane</Text>
+          <Text style={{ color: "rgba(255,255,255,0.85)", marginTop: 6, fontSize: 13 }}>
+            Algebra ↑ · Homework 90% · Next: word problems
           </Text>
         </View>
-
-        {report.quizScore && (
-          <View style={[styles.card, { backgroundColor: colors.surface }]}>
-            <Text style={[styles.cardTitle, { color: colors.text }]}>Quiz Score</Text>
-            <Text style={[styles.score, { color: colors.primary }]}>
-              {report.quizScore}%
-            </Text>
+        {[
+          ["Algebra", 88], ["Geometry", 76], ["Functions", 92],
+        ].map(([n, v]) => (
+          <View key={String(n)} style={{ backgroundColor: card, borderRadius: 14, padding: 14 }}>
+            <View style={{ flexDirection: "row", justifyContent: "space-between" }}>
+              <Text style={{ color: text, fontWeight: "700" }}>{n}</Text>
+              <Text style={{ color: primary, fontWeight: "800" }}>{v}%</Text>
+            </View>
+            <View style={{ height: 6, backgroundColor: isDark ? "#1E3A5F" : "#E2E8F0", borderRadius: 99, marginTop: 8 }}>
+              <View style={{ width: `${v}%` as any, height: 6, backgroundColor: primary, borderRadius: 99 }} />
+            </View>
           </View>
-        )}
-
-        {report.strengthsNotes && (
-          <View style={[styles.card, { backgroundColor: colors.surface }]}>
-            <Text style={[styles.cardTitle, { color: colors.success || "#16A34A" }]}>
-              Strengths
-            </Text>
-            <Text style={{ color: colors.textSecondary, marginTop: 6 }}>
-              {report.strengthsNotes}
-            </Text>
-          </View>
-        )}
-
-        {report.improvementAreas && (
-          <View style={[styles.card, { backgroundColor: colors.surface }]}>
-            <Text style={[styles.cardTitle, { color: colors.warning || "#D97706" }]}>
-              Areas to Improve
-            </Text>
-            <Text style={{ color: colors.textSecondary, marginTop: 6 }}>
-              {report.improvementAreas}
-            </Text>
-          </View>
-        )}
+        ))}
       </ScrollView>
     </SafeAreaView>
   );
 }
-
-const styles = StyleSheet.create({
-  container: { flex: 1 },
-  center: { flex: 1, justifyContent: "center", alignItems: "center" },
-  content: { padding: 20 },
-  title: { fontSize: 24, fontWeight: "700", marginBottom: 20 },
-  card: {
-    padding: 16,
-    borderRadius: 16,
-    marginBottom: 12,
-  },
-  cardTitle: { fontSize: 16, fontWeight: "700" },
-  score: { fontSize: 28, fontWeight: "700", marginTop: 6 },
-});
