@@ -1,135 +1,57 @@
-import { View, Text, StyleSheet, FlatList, Pressable, ActivityIndicator } from "react-native";
-import { useEffect, useState, useCallback } from "react";
+// apps/mobile/app/(teacher)/(tabs)/contracts.tsx
+import { View, Text, ScrollView, TouchableOpacity } from "react-native";
+import { useRouter } from "expo-router";
 import { useTheme } from "@/hooks/useTheme";
 import { SafeAreaView } from "react-native-safe-area-context";
-import { useRouter } from "expo-router";
-import { getToken } from "@/lib/api";
-import { EmptyState } from "@/components/EmptyState";
-import { LoadingSkeleton } from "@/components/LoadingSkeleton";
 
-type Contract = {
-  id: string;
-  status: string;
-  agreedAmount: number;
-  escrowHeldAmount: number;
-};
+const CONTRACTS = [
+  { student: "Kidane M.", grade: "10", subject: "Mathematics", parent: "Yeshi Haile", monthly: "9,000", next: "Today 4:00 PM", status: "Active", id: "c1" },
+  { student: "Liya A.", grade: "11", subject: "Physics", parent: "Abebe Girma", monthly: "10,000", next: "Thu 3:00 PM", status: "Active", id: "c2" },
+];
 
-export default function TeacherContractsScreen() {
-  const { colors } = useTheme();
+export default function ActiveContractsScreen() {
+  const { isDark } = useTheme();
   const router = useRouter();
-  const [contracts, setContracts] = useState<Contract[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [refreshing, setRefreshing] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-
-  const loadContracts = useCallback(async () => {
-    try {
-      setError(null);
-      const token = await getToken();
-      const res = await fetch(`${process.env.EXPO_PUBLIC_API_URL}/contracts/my`, {
-        headers: { Authorization: `Bearer ${token}` },
-      });
-
-      if (!res.ok) throw new Error("Failed to load contracts");
-
-      const data = await res.json();
-      setContracts(Array.isArray(data) ? data : []);
-    } catch (err: any) {
-      setError(err.message || "Something went wrong");
-    } finally {
-      setLoading(false);
-      setRefreshing(false);
-    }
-  }, []);
-
-  useEffect(() => {
-    loadContracts();
-  }, [loadContracts]);
-
-  const getStatusColor = (status: string) => {
-    switch (status) {
-      case "ACTIVE":
-        return "#16A34A";
-      case "PENDING_ESCROW":
-        return "#D97706";
-      case "COMPLETED":
-        return "#64748B";
-      default:
-        return colors.textSecondary;
-    }
-  };
+  const bg = isDark ? "#0A1628" : "#F8FAFC";
+  const card = isDark ? "#112240" : "#FFFFFF";
+  const text = isDark ? "#F0FAFA" : "#0D2B2A";
+  const sub = isDark ? "#94A3B8" : "#64748B";
+  const primary = "#0D9488";
 
   return (
-    <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]}>
-      <View style={styles.header}>
-        <Text style={[styles.title, { color: colors.text }]}>My Contracts</Text>
+    <SafeAreaView style={{ flex: 1, backgroundColor: bg }} edges={["top"]}>
+      <View style={{ padding: 14 }}>
+        <Text style={{ color: text, fontSize: 18, fontWeight: "800" }}>Active Contracts</Text>
+        <Text style={{ color: sub, fontSize: 11 }}>3 active · 2 pending start</Text>
       </View>
-
-      {error ? (
-        <View style={styles.center}>
-          <Text style={{ color: colors.error, marginBottom: 12 }}>{error}</Text>
-          <Pressable onPress={loadContracts}>
-            <Text style={{ color: colors.primary, fontWeight: "700" }}>Try Again</Text>
-          </Pressable>
-        </View>
-      ) : loading ? (
-        <View style={{ padding: 16 }}>
-          <LoadingSkeleton height={100} />
-          <LoadingSkeleton height={100} />
-        </View>
-      ) : (
-        <FlatList
-          data={contracts}
-          keyExtractor={(item) => item.id}
-          contentContainerStyle={{ padding: 16, gap: 12, flexGrow: 1 }}
-          refreshing={refreshing}
-          onRefresh={() => {
-            setRefreshing(true);
-            loadContracts();
-          }}
-          renderItem={({ item }) => (
-            <Pressable
-              style={[styles.card, { backgroundColor: colors.surface }]}
-              onPress={() => router.push(`/(teacher)/contract/${item.id}`)}
-            >
-              <View style={styles.cardHeader}>
-                <Text style={[styles.amount, { color: colors.text }]}>
-                  ETB {Number(item.agreedAmount).toLocaleString()}
-                </Text>
-                <Text style={{ color: getStatusColor(item.status), fontWeight: "600" }}>
-                  {item.status.replace("_", " ")}
-                </Text>
+      <ScrollView contentContainerStyle={{ padding: 12, gap: 10 }}>
+        {CONTRACTS.map((c) => (
+          <View key={c.id} style={{ backgroundColor: card, borderRadius: 16, padding: 14 }}>
+            <View style={{ flexDirection: "row", justifyContent: "space-between" }}>
+              <View>
+                <Text style={{ color: text, fontWeight: "800" }}>{c.student} (Gr.{c.grade})</Text>
+                <Text style={{ color: sub, fontSize: 11 }}>{c.subject} · Parent: {c.parent}</Text>
               </View>
-              <Text style={{ color: colors.textSecondary, marginTop: 6 }}>
-                Escrow: ETB {Number(item.escrowHeldAmount).toLocaleString()}
-              </Text>
-            </Pressable>
-          )}
-          ListEmptyComponent={
-            <EmptyState
-              title="No active contracts"
-              description="When parents hire you, your contracts will appear here."
-            />
-          }
-        />
-      )}
+              <Text style={{ color: primary, fontWeight: "800", fontSize: 11 }}>{c.status}</Text>
+            </View>
+            <Text style={{ color: text, marginTop: 8, fontWeight: "700" }}>{c.monthly} ETB/mo · Next: {c.next}</Text>
+            <View style={{ flexDirection: "row", gap: 8, marginTop: 12 }}>
+              <TouchableOpacity
+                style={{ flex: 1, backgroundColor: primary, borderRadius: 12, paddingVertical: 10, alignItems: "center" }}
+                onPress={() => router.push(`/(teacher)/session/${c.id}`)}
+              >
+                <Text style={{ color: "#fff", fontWeight: "800", fontSize: 12 }}>Check In</Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={{ flex: 1, borderWidth: 1, borderColor: primary, borderRadius: 12, paddingVertical: 10, alignItems: "center" }}
+                onPress={() => router.push("/(shared)/chat/room-1")}
+              >
+                <Text style={{ color: primary, fontWeight: "800", fontSize: 12 }}>Message</Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+        ))}
+      </ScrollView>
     </SafeAreaView>
   );
 }
-
-const styles = StyleSheet.create({
-  container: { flex: 1 },
-  center: { flex: 1, justifyContent: "center", alignItems: "center" },
-  header: { paddingHorizontal: 16, paddingTop: 8, paddingBottom: 12 },
-  title: { fontSize: 24, fontWeight: "700" },
-  card: {
-    borderRadius: 16,
-    padding: 16,
-  },
-  cardHeader: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "center",
-  },
-  amount: { fontSize: 17, fontWeight: "700" },
-});
