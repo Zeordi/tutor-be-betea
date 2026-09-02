@@ -81,8 +81,12 @@ function OtpForm() {
   return (
     <main className="min-h-screen flex items-center justify-center px-4 bg-[var(--background)]">
       <div className="w-full max-w-sm rounded-2xl border border-[var(--border)] bg-[var(--card)] shadow-xl p-8">
-        <div className="w-14 h-14 bg-teal-100 dark:bg-teal-900/40 rounded-2xl flex items-center justify-center text-2xl mb-4 mx-auto">💬</div>
-        <h1 className="text-xl font-extrabold text-center text-[var(--foreground)] mb-1">Verify Your Phone</h1>
+        <div className="w-14 h-14 bg-teal-100 dark:bg-teal-900/40 rounded-2xl flex items-center justify-center text-2xl mb-4 mx-auto">
+          💬
+        </div>
+        <h1 className="text-xl font-extrabold text-center text-[var(--foreground)] mb-1">
+          Verify Your Phone
+        </h1>
         <p className="text-xs text-[var(--muted-foreground)] text-center mb-6">
           Code sent to <strong>{phoneNumber || "your phone"}</strong>
         </p>
@@ -96,8 +100,14 @@ function OtpForm() {
             required
             className="w-full rounded-xl border-2 border-teal-500 px-4 py-3 tracking-[0.4em] text-center text-lg font-extrabold outline-none bg-[var(--background)]"
           />
-          {message && <p className="text-sm text-red-500 text-center">{message}</p>}
-          <button type="submit" disabled={loading} className="w-full bg-teal-600 text-white font-bold py-3 rounded-xl">
+          {message && (
+            <p className="text-sm text-red-500 text-center">{message}</p>
+          )}
+          <button
+            type="submit"
+            disabled={loading}
+            className="w-full bg-teal-600 text-white font-bold py-3 rounded-xl"
+          >
             {loading ? "Verifying..." : "Verify & Continue →"}
           </button>
         </form>
@@ -108,7 +118,13 @@ function OtpForm() {
 
 export default function OtpPage() {
   return (
-    <Suspense fallback={<main className="min-h-screen flex items-center justify-center">Loading...</main>}>
+    <Suspense
+      fallback={
+        <main className="min-h-screen flex items-center justify-center">
+          Loading...
+        </main>
+      }
+    >
       <OtpForm />
     </Suspense>
   );
