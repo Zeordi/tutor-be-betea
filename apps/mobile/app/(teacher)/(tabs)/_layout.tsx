@@ -3,24 +3,29 @@ import { Ionicons } from "@expo/vector-icons";
 import { useTheme } from "@/hooks/useTheme";
 
 export default function TeacherTabsLayout() {
-  const { colors, isDark } = useTheme();
+  const { isDark } = useTheme();
+
+  const active = "#0D9488";
+  const inactive = isDark ? "#64748B" : "#94A3B8";
+  const bg = isDark ? "#0F1B2D" : "#FFFFFF";
+  const border = isDark ? "#1E3A5F" : "#E2E8F0";
 
   return (
     <Tabs
       screenOptions={{
         headerShown: false,
-        tabBarActiveTintColor: colors.primary,
-        tabBarInactiveTintColor: colors.textSecondary,
+        tabBarActiveTintColor: active,
+        tabBarInactiveTintColor: inactive,
         tabBarStyle: {
-          backgroundColor: colors.surface,
-          borderTopColor: isDark ? "#334155" : "#E2E8F0",
-          height: 60,
-          paddingBottom: 8,
+          backgroundColor: bg,
+          borderTopColor: border,
+          height: 64,
+          paddingBottom: 10,
           paddingTop: 6,
         },
         tabBarLabelStyle: {
-          fontSize: 11,
-          fontWeight: "600",
+          fontSize: 10,
+          fontWeight: "700",
         },
       }}
     >
@@ -45,18 +50,18 @@ export default function TeacherTabsLayout() {
       <Tabs.Screen
         name="contracts"
         options={{
-          title: "Contracts",
+          title: "Sessions",
           tabBarIcon: ({ color, size }) => (
-            <Ionicons name="document-text" size={size} color={color} />
+            <Ionicons name="calendar" size={size} color={color} />
           ),
         }}
       />
       <Tabs.Screen
         name="messages"
         options={{
-          title: "Messages",
+          title: "Earnings",
           tabBarIcon: ({ color, size }) => (
-            <Ionicons name="chatbubbles" size={size} color={color} />
+            <Ionicons name="wallet" size={size} color={color} />
           ),
         }}
       />
