@@ -1,106 +1,116 @@
-"use client";
-
-import Link from "next/link";
-import { useEffect, useState } from "react";
-import { useRouter } from "next/navigation";
-
-export default function ParentDashboardPage() {
-  const router = useRouter();
-  const [ready, setReady] = useState(false);
-
-  useEffect(() => {
-    const token = localStorage.getItem("token");
-
-    if (!token) {
-      router.replace("/login");
-      return;
-    }
-
-    setReady(true);
-  }, [router]);
-
-  if (!ready) {
-    return (
-      <main className="min-h-screen flex items-center justify-center">
-        <p className="text-[var(--secondary)]">Checking authentication...</p>
-      </main>
-    );
-  }
-
-  const actions = [
-    {
-      title: "Find Tutors",
-      desc: "Browse verified tutors near you",
-      href: "/parent/tutors",
-    },
-    {
-      title: "Post a Job",
-      desc: "Tell us what your child needs",
-      href: "/parent/jobs/create",
-    },
-    {
-      title: "My Children",
-      desc: "Manage student profiles",
-      href: "/parent/children",
-    },
-    {
-      title: "Contracts",
-      desc: "Track escrow and sessions",
-      href: "/parent/contracts",
-    },
-    {
-      title: "Progress Reports",
-      desc: "View weekly learning updates",
-      href: "/parent/progress",
-    },
-    {
-      title: "Wallet",
-      desc: "Payments and escrow balance",
-      href: "/parent/wallet",
-    },
-  ];
-
+export default function ParentHomePage() {
   return (
-    <main className="min-h-screen bg-[var(--background)]">
-      {/* Top bar */}
-      <header className="border-b border-[var(--border)] bg-[var(--background)]">
-        <div className="container flex items-center justify-between py-4">
-          <div className="text-xl font-bold text-[var(--primary)]">
-            Tutor Be Betea
-          </div>
-
-          <button
-            onClick={() => {
-              localStorage.removeItem("token");
-              router.push("/login");
-            }}
-            className="btn btn-secondary text-sm px-4 py-2"
-          >
-            Logout
-          </button>
-        </div>
-      </header>
-
-      {/* Dashboard content */}
-      <section className="container py-10">
-        <h1 className="text-3xl font-bold mb-2">Parent Dashboard</h1>
-        <p className="text-[var(--secondary)] mb-8">
-          Welcome back. Manage tutoring with trust, safety, and clear progress.
+    <div className="space-y-6 p-6">
+      <div>
+        <h2 className="mb-1 text-xl font-extrabold text-slate-800 dark:text-white">
+          Good morning 👋
+        </h2>
+        <p className="text-sm text-slate-500">
+          Here&apos;s your family dashboard overview
         </p>
+      </div>
 
-        <div className="grid md:grid-cols-2 xl:grid-cols-3 gap-5">
-          {actions.map((item) => (
-            <Link
-              key={item.title}
-              href={item.href}
-              className="card hover:shadow-md transition"
-            >
-              <h3 className="text-lg font-bold mb-2">{item.title}</h3>
-              <p className="text-sm text-[var(--secondary)]">{item.desc}</p>
-            </Link>
-          ))}
+      <div className="grid gap-4 md:grid-cols-4">
+        {[
+          ["Active Sessions", "3", "+1 today", "📚"],
+          ["Avg. Progress", "89%", "↑ 4%", "📊"],
+          ["Escrow Held", "12,450 ETB", "2 contracts", "🔒"],
+          ["Upcoming", "4", "This week", "📅"],
+        ].map(([label, value, sub, icon]) => (
+          <div
+            key={label}
+            className="rounded-2xl border border-slate-100 bg-white p-5 shadow-sm dark:border-slate-800 dark:bg-[#112240]"
+          >
+            <div className="mb-3 flex items-start justify-between">
+              <span className="text-2xl">{icon}</span>
+              <span className="rounded-full bg-teal-50 px-2 py-0.5 text-[10px] font-bold text-teal-700 dark:bg-teal-900/30 dark:text-teal-300">
+                {sub}
+              </span>
+            </div>
+            <p className="text-2xl font-extrabold text-teal-600">{value}</p>
+            <p className="mt-1 text-xs text-slate-500">{label}</p>
+          </div>
+        ))}
+      </div>
+
+      <div className="grid gap-4 md:grid-cols-3">
+        <div className="rounded-2xl border border-slate-100 bg-white p-5 dark:border-slate-800 dark:bg-[#112240] md:col-span-2">
+          <h3 className="mb-4 font-bold text-slate-800 dark:text-white">
+            Upcoming Sessions
+          </h3>
+          <div className="space-y-3">
+            {[
+              ["Kidane · Math", "Selamawit T.", "Today 4:00 PM", "confirmed"],
+              ["Meron · English", "Tigist H.", "Tomorrow 10:00 AM", "confirmed"],
+              ["Kidane · Physics", "Bereket S.", "Wed 3:30 PM", "pending"],
+            ].map(([name, tutor, time, status]) => (
+              <div
+                key={name}
+                className="flex items-center gap-3 rounded-xl bg-slate-50 p-3 dark:bg-slate-800/50"
+              >
+                <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-teal-100 text-lg dark:bg-teal-900/30">
+                  📚
+                </div>
+                <div className="flex-1">
+                  <p className="text-sm font-semibold text-slate-700 dark:text-slate-200">
+                    {name}
+                  </p>
+                  <p className="text-xs text-slate-400">
+                    {tutor} · {time}
+                  </p>
+                </div>
+                <span
+                  className={`rounded-full px-2 py-0.5 text-[10px] font-bold ${
+                    status === "confirmed"
+                      ? "bg-emerald-50 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-300"
+                      : "bg-amber-50 text-amber-700 dark:bg-amber-900/30 dark:text-amber-300"
+                  }`}
+                >
+                  {status}
+                </span>
+              </div>
+            ))}
+          </div>
         </div>
-      </section>
-    </main>
+
+        <div className="rounded-2xl border border-slate-100 bg-white p-5 dark:border-slate-800 dark:bg-[#112240]">
+          <h3 className="mb-4 font-bold text-slate-800 dark:text-white">
+            Children Summary
+          </h3>
+          <div className="space-y-3">
+            {[
+              ["Kidane M.", "Gr. 10", "87%"],
+              ["Meron H.", "Gr. 8", "92%"],
+            ].map(([name, grade, prog]) => (
+              <div
+                key={name}
+                className="rounded-xl bg-slate-50 p-3 dark:bg-slate-800/50"
+              >
+                <div className="mb-2 flex items-center gap-2">
+                  <div className="flex h-8 w-8 items-center justify-center rounded-full bg-teal-600 text-xs font-bold text-white">
+                    {name[0]}
+                  </div>
+                  <div>
+                    <p className="text-xs font-bold text-slate-800 dark:text-white">
+                      {name}
+                    </p>
+                    <p className="text-[10px] text-slate-400">{grade}</p>
+                  </div>
+                </div>
+                <div className="flex items-center gap-2">
+                  <div className="h-1.5 flex-1 rounded-full bg-slate-200 dark:bg-slate-700">
+                    <div
+                      className="h-full rounded-full bg-teal-500"
+                      style={{ width: prog }}
+                    />
+                  </div>
+                  <span className="text-xs font-bold text-teal-600">{prog}</span>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      </div>
+    </div>
   );
 }
