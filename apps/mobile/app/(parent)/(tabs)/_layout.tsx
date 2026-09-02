@@ -3,24 +3,29 @@ import { Ionicons } from "@expo/vector-icons";
 import { useTheme } from "@/hooks/useTheme";
 
 export default function ParentTabsLayout() {
-  const { colors, isDark } = useTheme();
+  const { isDark } = useTheme();
+
+  const active = "#0D9488";
+  const inactive = isDark ? "#64748B" : "#94A3B8";
+  const bg = isDark ? "#0F1B2D" : "#FFFFFF";
+  const border = isDark ? "#1E3A5F" : "#E2E8F0";
 
   return (
     <Tabs
       screenOptions={{
         headerShown: false,
-        tabBarActiveTintColor: colors.primary,
-        tabBarInactiveTintColor: colors.textSecondary,
+        tabBarActiveTintColor: active,
+        tabBarInactiveTintColor: inactive,
         tabBarStyle: {
-          backgroundColor: colors.surface,
-          borderTopColor: isDark ? "#334155" : "#E2E8F0",
-          height: 60,
-          paddingBottom: 8,
+          backgroundColor: bg,
+          borderTopColor: border,
+          height: 64,
+          paddingBottom: 10,
           paddingTop: 6,
         },
         tabBarLabelStyle: {
-          fontSize: 11,
-          fontWeight: "600",
+          fontSize: 10,
+          fontWeight: "700",
         },
       }}
     >
@@ -36,7 +41,7 @@ export default function ParentTabsLayout() {
       <Tabs.Screen
         name="find-tutors"
         options={{
-          title: "Find Tutors",
+          title: "Find",
           tabBarIcon: ({ color, size }) => (
             <Ionicons name="search" size={size} color={color} />
           ),
@@ -45,7 +50,7 @@ export default function ParentTabsLayout() {
       <Tabs.Screen
         name="jobs"
         options={{
-          title: "My Jobs",
+          title: "Jobs",
           tabBarIcon: ({ color, size }) => (
             <Ionicons name="briefcase" size={size} color={color} />
           ),
@@ -54,9 +59,9 @@ export default function ParentTabsLayout() {
       <Tabs.Screen
         name="messages"
         options={{
-          title: "Messages",
+          title: "Progress",
           tabBarIcon: ({ color, size }) => (
-            <Ionicons name="chatbubbles" size={size} color={color} />
+            <Ionicons name="stats-chart" size={size} color={color} />
           ),
         }}
       />
