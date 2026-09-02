@@ -1,30 +1,113 @@
+import Link from "next/link";
+
 export default function ForTutorsPage() {
   return (
-    <main className="min-h-screen py-20">
-      <div className="mx-auto max-w-4xl px-6">
-        <h1 className="text-4xl font-bold text-[var(--foreground)]">
-          For Tutors
-        </h1>
-        <p className="mt-6 text-lg text-[var(--secondary)]">
-          Join Ethiopia’s most trusted tutoring platform. Get verified, receive job requests,
-          and grow your income with secure payouts.
-        </p>
+    <div className="min-h-screen bg-white dark:bg-[#0A1628]">
+      <section className="bg-gradient-to-br from-blue-800 to-teal-700 px-6 py-20 text-white">
+        <div className="mx-auto max-w-4xl text-center">
+          <span className="mb-4 inline-block rounded-full bg-white/20 px-3 py-1 text-xs font-bold">
+            🧑‍🏫 For Tutors
+          </span>
+          <h1 className="mb-4 text-4xl font-extrabold">
+            Grow Your Tutoring Career with Tutor Be Betea
+          </h1>
+          <p className="mb-8 text-xl text-blue-200">
+            Join 12,000+ verified tutors earning consistent income across Ethiopia
+          </p>
+          <Link
+            href="/register"
+            className="inline-block rounded-xl bg-white px-6 py-3 text-sm font-bold text-blue-700 hover:bg-blue-50"
+          >
+            Apply as a Tutor →
+          </Link>
+        </div>
+      </section>
 
-        <div className="mt-12 space-y-6">
-          <div className="rounded-2xl border border-[var(--border)] p-6 bg-[var(--surface)]">
-            <h3 className="text-xl font-semibold">Get Verified & Stand Out</h3>
-            <p className="mt-2 text-[var(--secondary)]">
-              Earn Trust Badges (National ID, Degree, Gold Elite) and attract more parents.
-            </p>
-          </div>
-          <div className="rounded-2xl border border-[var(--border)] p-6 bg-[var(--surface)]">
-            <h3 className="text-xl font-semibold">Secure & Fast Payouts</h3>
-            <p className="mt-2 text-[var(--secondary)]">
-              Receive payments through Telebirr, CBE Birr or bank transfer after sessions are completed.
-            </p>
+      <section className="px-6 py-16">
+        <div className="mx-auto max-w-5xl">
+          <h2 className="mb-10 text-center text-2xl font-extrabold text-slate-900 dark:text-white">
+            Why Tutor Be Betea?
+          </h2>
+          <div className="grid gap-5 md:grid-cols-3">
+            {[
+              [
+                "💰",
+                "Earn 450–800+ ETB/hr",
+                "Set your own rates. Get paid securely via milestone escrow.",
+              ],
+              [
+                "🔗",
+                "Connects Job System",
+                "Purchase Connects to apply for jobs. Premium listings, priority placement.",
+              ],
+              [
+                "🛡️",
+                "Build Your Reputation",
+                "Earn Trust Badges. Gold Top 1% tutors get 3x more bookings.",
+              ],
+              [
+                "📊",
+                "Analytics Dashboard",
+                "Track earnings, sessions, student progress, and ranking.",
+              ],
+              [
+                "📅",
+                "Flexible Scheduling",
+                "Set availability, manage calendar, accept sessions on your terms.",
+              ],
+              [
+                "🚀",
+                "Boost Visibility",
+                "Promote your profile with Boost credits in search results.",
+              ],
+            ].map(([icon, title, desc]) => (
+              <div
+                key={title}
+                className="rounded-2xl border border-slate-100 bg-white p-6 shadow-sm dark:border-slate-700/60 dark:bg-slate-800/80"
+              >
+                <p className="mb-3 text-2xl">{icon}</p>
+                <p className="mb-1 font-bold text-slate-800 dark:text-white">
+                  {title}
+                </p>
+                <p className="text-sm text-slate-500 dark:text-slate-400">{desc}</p>
+              </div>
+            ))}
           </div>
         </div>
-      </div>
-    </main>
+      </section>
+
+      <section className="bg-slate-50 px-6 py-12 dark:bg-[#0D1B33]">
+        <div className="mx-auto max-w-3xl text-center">
+          <h2 className="mb-6 text-2xl font-extrabold text-slate-900 dark:text-white">
+            Verification Process
+          </h2>
+          <div className="flex flex-wrap items-start justify-center gap-2">
+            {[
+              ["Submit Docs", "National ID, Degree, Selfie"],
+              ["Admin Review", "Secure vault review"],
+              ["Get Verified", "Earn Trust Badges"],
+              ["Start Earning", "Accept jobs, get paid"],
+            ].map(([step, desc], i) => (
+              <div key={step} className="flex items-start gap-2">
+                <div className="flex w-28 flex-col items-center text-center">
+                  <div className="mb-2 flex h-10 w-10 items-center justify-center rounded-full bg-teal-600 text-sm font-extrabold text-white">
+                    {i + 1}
+                  </div>
+                  <p className="text-sm font-bold text-slate-800 dark:text-white">
+                    {step}
+                  </p>
+                  <p className="text-xs text-slate-500">{desc}</p>
+                </div>
+                {i < 3 && (
+                  <div className="mt-5 text-lg text-slate-300 dark:text-slate-600">
+                    →
+                  </div>
+                )}
+              </div>
+            ))}
+          </div>
+        </div>
+      </section>
+    </div>
   );
 }
