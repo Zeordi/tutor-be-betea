@@ -1,37 +1,39 @@
+@import url("https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:ital,wght@0,400;0,500;0,600;0,700;0,800&display=swap");
+
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
 
 :root {
-  --background: #f8fafc;
-  --foreground: #0f172a;
-  --primary: #0f766e;
-  --primary-hover: #0d9488;
+  --background: #f0f9f8;
+  --foreground: #0d2b2a;
+  --primary: #0d9488;
+  --primary-hover: #0f766e;
   --primary-foreground: #ffffff;
   --surface: #ffffff;
   --surface-2: #f1f5f9;
   --secondary: #64748b;
   --muted: #94a3b8;
   --border: #e2e8f0;
-  --success: #16a34a;
+  --success: #059669;
   --warning: #d97706;
   --danger: #dc2626;
-  --sidebar: #0f172a;
-  --sidebar-text: #cbd5e1;
-  --radius: 16px;
+  --sidebar: #0a1628;
+  --sidebar-text: #94a3b8;
+  --radius: 12px;
 }
 
 .dark {
-  --background: #0b1220;
-  --foreground: #f8fafc;
+  --background: #0a1628;
+  --foreground: #f0fafa;
   --primary: #14b8a6;
   --primary-hover: #2dd4bf;
-  --primary-foreground: #042f2e;
-  --surface: #111827;
-  --surface-2: #1f2937;
+  --primary-foreground: #ffffff;
+  --surface: #112240;
+  --surface-2: #1e3a5f;
   --secondary: #94a3b8;
   --muted: #64748b;
-  --border: #1f2937;
+  --border: #1e3a5f;
   --sidebar: #020617;
   --sidebar-text: #94a3b8;
 }
@@ -40,7 +42,8 @@
   box-sizing: border-box;
 }
 
-html, body {
+html,
+body {
   margin: 0;
   padding: 0;
 }
@@ -48,7 +51,7 @@ html, body {
 body {
   background: var(--background);
   color: var(--foreground);
-  font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  font-family: "Plus Jakarta Sans", Inter, system-ui, sans-serif;
 }
 
 a {
@@ -98,7 +101,7 @@ a {
 .card {
   background: var(--surface);
   border: 1px solid var(--border);
-  border-radius: 18px;
+  border-radius: 16px;
   padding: 20px;
 }
 
@@ -111,7 +114,7 @@ a {
 .stat-card {
   background: var(--surface);
   border: 1px solid var(--border);
-  border-radius: 18px;
+  border-radius: 16px;
   padding: 20px;
 }
 
