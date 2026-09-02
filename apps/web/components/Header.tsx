@@ -1,139 +1,100 @@
 "use client";
 
 import Link from "next/link";
+import { usePathname } from "next/navigation";
 import { useState } from "react";
 
-export function Header() {
-  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+const NAV = [
+  { href: "/", label: "Home" },
+  { href: "/for-parents", label: "For Parents" },
+  { href: "/for-tutors", label: "For Tutors" },
+  { href: "/how-it-works", label: "How It Works" },
+  { href: "/pricing", label: "Pricing" },
+];
+
+export default function Header() {
+  const pathname = usePathname();
+  const [open, setOpen] = useState(false);
 
   return (
-    <header className="w-full border-b border-slate-200 bg-white/95 backdrop-blur sticky top-0 z-50">
-      <div className="max-w-7xl mx-auto px-6 h-16 flex items-center justify-between">
-        {/* Logo */}
-        <Link href="/" className="font-extrabold text-xl text-blue-900 flex items-center gap-2">
-          <span className="text-2xl">🎓</span>
-          <span className="tracking-tight">Tutor Be Betea</span>
+    <nav className="sticky top-0 z-50 border-b border-slate-100 bg-white/90 backdrop-blur dark:border-slate-800 dark:bg-[#0A1628]/90">
+      <div className="mx-auto flex h-16 max-w-6xl items-center justify-between px-6">
+        <Link href="/" className="flex items-center gap-2.5">
+          <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-teal-600 text-lg text-white">
+            🎓
+          </div>
+          <div>
+            <p className="text-[9px] font-bold uppercase tracking-widest text-teal-600">
+              Tutor Be
+            </p>
+            <p className="-mt-1 text-base font-extrabold text-slate-900 dark:text-white">
+              BETEA
+            </p>
+          </div>
         </Link>
 
-        {/* Desktop Navigation Links */}
-        <nav className="hidden md:flex items-center gap-7 text-sm font-medium text-slate-700">
-          <Link href="/how-it-works" className="hover:text-blue-600 transition">
-            How It Works
-          </Link>
-          <Link href="/about" className="hover:text-blue-600 transition">
-            About Us
-          </Link>
-          <Link href="/pricing" className="hover:text-blue-600 transition">
-            Pricing
-          </Link>
-          <Link href="/for-parents" className="hover:text-blue-600 transition">
-            For Parents
-          </Link>
-          <Link href="/for-tutors" className="hover:text-blue-600 transition">
-            For Tutors
-          </Link>
-          <Link href="/contact" className="hover:text-blue-600 transition">
-            Contact
-          </Link>
-        </nav>
+        <div className="hidden items-center gap-6 md:flex">
+          {NAV.map((n) => (
+            <Link
+              key={n.href}
+              href={n.href}
+              className={`text-sm font-semibold transition-colors ${
+                pathname === n.href
+                  ? "text-teal-600"
+                  : "text-slate-600 hover:text-slate-900 dark:text-slate-400 dark:hover:text-white"
+              }`}
+            >
+              {n.label}
+            </Link>
+          ))}
+        </div>
 
-        {/* Auth Buttons */}
-        <div className="hidden md:flex items-center gap-4">
+        <div className="hidden items-center gap-3 md:flex">
           <Link
             href="/login"
-            className="text-sm font-semibold text-slate-700 hover:text-blue-600 transition"
+            className="rounded-xl px-4 py-2 text-sm font-semibold text-slate-700 hover:bg-slate-50 dark:text-slate-300 dark:hover:bg-slate-800"
           >
             Sign In
           </Link>
           <Link
             href="/register"
-            className="px-4 py-2 rounded-xl bg-blue-600 text-white text-sm font-semibold hover:bg-blue-700 transition shadow-sm"
+            className="rounded-xl bg-teal-600 px-4 py-2 text-sm font-bold text-white hover:bg-teal-700"
           >
-            Get Started
+            Get Started Free
           </Link>
         </div>
 
-        {/* Mobile Hamburger Button */}
         <button
-          onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
-          className="md:hidden p-2 text-slate-600 hover:text-slate-900"
-          aria-label="Toggle Menu"
+          className="text-slate-600 md:hidden dark:text-slate-300"
+          onClick={() => setOpen(!open)}
+          aria-label="Menu"
         >
-          <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            {mobileMenuOpen ? (
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-            ) : (
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" />
-            )}
-          </svg>
+          ☰
         </button>
       </div>
 
-      {/* Mobile Dropdown Menu */}
-      {mobileMenuOpen && (
-        <div className="md:hidden border-t border-slate-200 bg-white px-6 py-4 space-y-3">
-          <Link
-            href="/how-it-works"
-            onClick={() => setMobileMenuOpen(false)}
-            className="block text-sm font-medium text-slate-700 hover:text-blue-600 py-1"
-          >
-            How It Works
-          </Link>
-          <Link
-            href="/about"
-            onClick={() => setMobileMenuOpen(false)}
-            className="block text-sm font-medium text-slate-700 hover:text-blue-600 py-1"
-          >
-            About Us
-          </Link>
-          <Link
-            href="/pricing"
-            onClick={() => setMobileMenuOpen(false)}
-            className="block text-sm font-medium text-slate-700 hover:text-blue-600 py-1"
-          >
-            Pricing
-          </Link>
-          <Link
-            href="/for-parents"
-            onClick={() => setMobileMenuOpen(false)}
-            className="block text-sm font-medium text-slate-700 hover:text-blue-600 py-1"
-          >
-            For Parents
-          </Link>
-          <Link
-            href="/for-tutors"
-            onClick={() => setMobileMenuOpen(false)}
-            className="block text-sm font-medium text-slate-700 hover:text-blue-600 py-1"
-          >
-            For Tutors
-          </Link>
-          <Link
-            href="/contact"
-            onClick={() => setMobileMenuOpen(false)}
-            className="block text-sm font-medium text-slate-700 hover:text-blue-600 py-1"
-          >
-            Contact
-          </Link>
-          <div className="pt-3 border-t border-slate-100 flex flex-col gap-2">
+      {open && (
+        <div className="border-t border-slate-100 px-6 py-4 md:hidden dark:border-slate-800">
+          {NAV.map((n) => (
             <Link
-              href="/login"
-              onClick={() => setMobileMenuOpen(false)}
-              className="text-center py-2 text-sm font-semibold text-slate-700 bg-slate-100 rounded-lg"
+              key={n.href}
+              href={n.href}
+              onClick={() => setOpen(false)}
+              className="block py-2 text-sm font-semibold text-slate-700 dark:text-slate-300"
             >
+              {n.label}
+            </Link>
+          ))}
+          <div className="mt-3 flex gap-2">
+            <Link href="/login" className="flex-1 rounded-xl border border-slate-200 py-2 text-center text-sm font-semibold dark:border-slate-700">
               Sign In
             </Link>
-            <Link
-              href="/register"
-              onClick={() => setMobileMenuOpen(false)}
-              className="text-center py-2 text-sm font-semibold text-white bg-blue-600 rounded-lg"
-            >
+            <Link href="/register" className="flex-1 rounded-xl bg-teal-600 py-2 text-center text-sm font-bold text-white">
               Get Started
             </Link>
           </div>
         </div>
       )}
-    </header>
+    </nav>
   );
 }
-
-export default Header;
