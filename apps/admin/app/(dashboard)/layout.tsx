@@ -1,61 +1,117 @@
-export default function DashboardLayout({
+"use client";
+
+import Link from "next/link";
+import { usePathname, useRouter } from "next/navigation";
+import { useEffect, useState } from "react";
+
+const SIDEBAR = [
+  { href: "/", id: "dashboard", icon: "📊", label: "Dashboard" },
+  { href: "/users", id: "users", icon: "👥", label: "Users" },
+  { href: "/verification", id: "verification", icon: "🛡️", label: "Verification Queue" },
+  { href: "/vault", id: "vault", icon: "🔐", label: "Document Vault" },
+  { href: "/contracts", id: "escrow", icon: "💰", label: "Escrow Monitoring" },
+  { href: "/attendance", id: "geofence", icon: "📍", label: "Attendance & Geo" },
+  { href: "/tickets", id: "tickets", icon: "🎫", label: "Support & Disputes" },
+  { href: "/audit-logs", id: "audit", icon: "📋", label: "Audit Log" },
+  { href: "/analytics", id: "analytics", icon: "📈", label: "Analytics" },
+  { href: "/settings", id: "settings", icon: "⚙️", label: "System Settings" },
+];
+
+export default function AdminDashboardLayout({
   children,
 }: {
   children: React.ReactNode;
 }) {
+  const pathname = usePathname();
+  const router = useRouter();
+  const [ready, setReady] = useState(false);
+
+  useEffect(() => {
+    const token =
+      typeof window !== "undefined"
+        ? localStorage.getItem("admin_token") || localStorage.getItem("token")
+        : null;
+    // Keep soft gate for local preview; tighten when auth is wired
+    setReady(true);
+    if (!token) {
+      // router.replace("/login");
+    }
+  }, [router]);
+
+  if (!ready) {
+    return (
+      <div className="flex min-h-screen items-center justify-center bg-slate-100 dark:bg-[#060E1A]">
+        <p className="text-slate-500">Loading admin…</p>
+      </div>
+    );
+  }
+
   return (
-    <div className="min-h-screen flex">
-      {/* Sidebar */}
-      <aside className="w-64 bg-[var(--sidebar)] text-[var(--sidebar-foreground)] hidden lg:block">
-        <div className="p-6">
-          <h2 className="text-xl font-bold">Tutor Be Betea</h2>
-          <p className="text-sm opacity-70 mt-1">Admin Console</p>
+    <div className="flex h-screen overflow-hidden bg-slate-100 dark:bg-[#060E1A]">
+      <aside className="flex w-56 flex-shrink-0 flex-col bg-slate-900">
+        <div className="border-b border-slate-800 p-4">
+          <div className="flex items-center gap-2">
+            <div className="flex h-8 w-8 items-center justify-center rounded-xl bg-teal-600 text-sm">
+              🎓
+            </div>
+            <div>
+              <p className="text-[10px] font-bold text-teal-400">TUTOR BE BETEA</p>
+              <p className="text-xs font-bold text-white">Super Admin</p>
+            </div>
+          </div>
         </div>
 
-        <nav className="mt-6 px-3 space-y-1">
-          <a href="/admin" className="block rounded-lg px-3 py-2 hover:bg-white/10">
-            Dashboard
-          </a>
-          <a href="/admin/users" className="block rounded-lg px-3 py-2 hover:bg-white/10">
-            Users
-          </a>
-          <a href="/admin/verification" className="block rounded-lg px-3 py-2 hover:bg-white/10">
-            Verification Queue
-          </a>
-          <a href="/admin/contracts" className="block rounded-lg px-3 py-2 hover:bg-white/10">
-            Contracts & Escrow
-          </a>
-          <a href="/admin/attendance" className="block rounded-lg px-3 py-2 hover:bg-white/10">
-            Attendance
-          </a>
-          <a href="/admin/tickets" className="block rounded-lg px-3 py-2 hover:bg-white/10">
-            Support Tickets
-          </a>
-          <a href="/admin/audit-logs" className="block rounded-lg px-3 py-2 hover:bg-white/10">
-            Audit Logs
-          </a>
-          <a href="/admin/analytics" className="block rounded-lg px-3 py-2 hover:bg-white/10">
-            Analytics
-          </a>
-          <a href="/admin/settings" className="block rounded-lg px-3 py-2 hover:bg-white/10">
-            Settings
-          </a>
+        <nav className="flex-1 space-y-0.5 overflow-y-auto p-2">
+          {SIDEBAR.map((item) => {
+            const active =
+              item.href === "/"
+                ? pathname === "/"
+                : pathname === item.href || pathname.startsWith(item.href + "/");
+            return (
+              <Link
+                key={item.id}
+                href={item.href}
+                className={`flex w-full items-center gap-2.5 rounded-xl px-3 py-2.5 text-left text-sm transition-all ${
+                  active
+                    ? "bg-teal-600 font-semibold text-white"
+                    : "text-slate-400 hover:bg-slate-800 hover:text-white"
+                }`}
+              >
+                <span>{item.icon}</span>
+                <span>{item.label}</span>
+              </Link>
+            );
+          })}
         </nav>
+
+        <div className="border-t border-slate-800 p-3">
+          <button
+            onClick={() => {
+              localStorage.removeItem("admin_token");
+              localStorage.removeItem("token");
+              router.push("/login");
+            }}
+            className="w-full rounded-xl border border-slate-700 py-2 text-xs font-semibold text-slate-400 hover:text-white"
+          >
+            Sign Out
+          </button>
+        </div>
       </aside>
 
-      {/* Main Content */}
-      <div className="flex-1 flex flex-col">
-        <header className="h-16 border-b border-[var(--border)] bg-[var(--surface)] flex items-center justify-between px-6">
-          <h1 className="font-semibold text-[var(--foreground)]">Admin Panel</h1>
-          <div className="text-sm text-[var(--secondary)]">
-            Super Admin
+      <main className="flex-1 overflow-y-auto">
+        <div className="border-b border-slate-200 bg-white px-6 py-3 dark:border-slate-800 dark:bg-[#0A1628]">
+          <div className="flex items-center justify-between">
+            <p className="text-xs font-semibold text-slate-500">
+              Admin Console · Immutable audit · AES-256 vault
+            </p>
+            <div className="flex items-center gap-2">
+              <span className="h-2 w-2 rounded-full bg-emerald-500" />
+              <span className="text-xs text-slate-500">Systems operational</span>
+            </div>
           </div>
-        </header>
-
-        <main className="flex-1 p-6 overflow-auto">
-          {children}
-        </main>
-      </div>
+        </div>
+        <div className="p-6">{children}</div>
+      </main>
     </div>
   );
 }
