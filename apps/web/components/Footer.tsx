@@ -1,98 +1,76 @@
 import Link from "next/link";
 
-export function Footer() {
+export default function Footer() {
   return (
-    <footer className="bg-slate-900 text-slate-400 border-t border-slate-800">
-      <div className="max-w-7xl mx-auto px-6 py-16 grid grid-cols-1 md:grid-cols-4 gap-10">
-        {/* Brand & Mission */}
-        <div className="space-y-4 md:col-span-1">
-          <Link href="/" className="font-extrabold text-xl text-white flex items-center gap-2">
-            <span>🎓</span> Tutor Be Betea
-          </Link>
-          <p className="text-sm text-slate-400 leading-relaxed">
-            Ethiopia&apos;s premier tutoring platform. Verified educators, escrow payment protection,
-            and geofenced attendance for peace of mind.
-          </p>
-          <div className="text-xs text-slate-500">📍 Addis Ababa, Ethiopia 🇪🇹</div>
-        </div>
-
-        {/* Quick Links */}
-        <div>
-          <h4 className="text-sm font-semibold text-white uppercase tracking-wider mb-4">Platform</h4>
-          <ul className="space-y-2.5 text-sm">
-            <li>
-              <Link href="/how-it-works" className="hover:text-white transition">
-                How It Works
-              </Link>
-            </li>
-            <li>
-              <Link href="/about" className="hover:text-white transition">
-                About Us
-              </Link>
-            </li>
-            <li>
-              <Link href="/pricing" className="hover:text-white transition">
-                Pricing & Escrow
-              </Link>
-            </li>
-            <li>
-              <Link href="/for-parents" className="hover:text-white transition">
-                For Parents
-              </Link>
-            </li>
-            <li>
-              <Link href="/for-tutors" className="hover:text-white transition">
-                Become a Tutor
-              </Link>
-            </li>
-          </ul>
-        </div>
-
-        {/* Curricula Supported */}
-        <div>
-          <h4 className="text-sm font-semibold text-white uppercase tracking-wider mb-4">Curricula</h4>
-          <ul className="space-y-2.5 text-sm text-slate-400">
-            <li>National Ministry (Grade 1–12)</li>
-            <li>Cambridge IGCSE & A-Levels</li>
-            <li>American Curriculum</li>
-            <li>International Baccalaureate (IB)</li>
-            <li>Language & Coding Bootcamps</li>
-          </ul>
-        </div>
-
-        {/* Trust & Payments */}
-        <div>
-          <h4 className="text-sm font-semibold text-white uppercase tracking-wider mb-4">
-            Payment & Trust
-          </h4>
-          <p className="text-xs text-slate-400 leading-relaxed mb-4">
-            Integrated with Telebirr and CBE Birr escrow guarantees.
-          </p>
-          <div className="flex items-center gap-2">
-            <span className="px-2.5 py-1 rounded bg-slate-800 border border-slate-700 text-xs text-slate-300 font-medium">
-              Telebirr
-            </span>
-            <span className="px-2.5 py-1 rounded bg-slate-800 border border-slate-700 text-xs text-slate-300 font-medium">
-              CBE Birr
-            </span>
-            <span className="px-2.5 py-1 rounded bg-slate-800 border border-slate-700 text-xs text-slate-300 font-medium">
-              AES-256
-            </span>
+    <footer className="bg-slate-900 py-12 text-white">
+      <div className="mx-auto max-w-6xl px-6">
+        <div className="mb-8 grid gap-8 md:grid-cols-4">
+          <div>
+            <div className="mb-3 flex items-center gap-2">
+              <div className="flex h-8 w-8 items-center justify-center rounded-xl bg-teal-600 text-base">
+                🎓
+              </div>
+              <p className="font-extrabold">Tutor Be Betea</p>
+            </div>
+            <p className="text-sm text-slate-400">
+              Ethiopia&apos;s premier verified tutoring platform. Safe, trusted,
+              effective.
+            </p>
           </div>
-        </div>
-      </div>
 
-      {/* Bottom Copyright */}
-      <div className="max-w-7xl mx-auto px-6 py-6 border-t border-slate-800 text-xs text-slate-500 flex flex-col sm:flex-row items-center justify-between gap-4">
-        <p>&copy; {new Date().getFullYear()} Tutor Be Betea. All rights reserved.</p>
-        <div className="flex items-center gap-6">
-          <Link href="/contact" className="hover:text-slate-300 transition">
-            Contact Support
-          </Link>
+          {[
+            {
+              title: "Platform",
+              links: [
+                { label: "Find Tutors", href: "/tutors" },
+                { label: "How It Works", href: "/how-it-works" },
+                { label: "Pricing", href: "/pricing" },
+                { label: "For Parents", href: "/for-parents" },
+              ],
+            },
+            {
+              title: "Tutors",
+              links: [
+                { label: "Become a Tutor", href: "/for-tutors" },
+                { label: "Verification", href: "/for-tutors" },
+                { label: "Register", href: "/register" },
+              ],
+            },
+            {
+              title: "Support",
+              links: [
+                { label: "Contact Us", href: "/contact" },
+                { label: "About", href: "/about" },
+                { label: "Sign In", href: "/login" },
+              ],
+            },
+          ].map((col) => (
+            <div key={col.title}>
+              <p className="mb-3 text-sm font-semibold">{col.title}</p>
+              <div className="space-y-2">
+                {col.links.map((l) => (
+                  <Link
+                    key={l.label}
+                    href={l.href}
+                    className="block text-sm text-slate-400 transition-colors hover:text-white"
+                  >
+                    {l.label}
+                  </Link>
+                ))}
+              </div>
+            </div>
+          ))}
+        </div>
+
+        <div className="flex flex-wrap items-center justify-between gap-4 border-t border-slate-800 pt-6 text-sm text-slate-400">
+          <p>© {new Date().getFullYear()} Tutor Be Betea. All rights reserved.</p>
+          <div className="flex gap-2">
+            <div className="h-1 w-8 rounded-full bg-green-500" />
+            <div className="h-1 w-8 rounded-full bg-yellow-400" />
+            <div className="h-1 w-8 rounded-full bg-red-500" />
+          </div>
         </div>
       </div>
     </footer>
   );
 }
-
-export default Footer;
