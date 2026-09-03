@@ -1,75 +1,112 @@
 import Link from "next/link";
 
+const COLS = [
+  {
+    title: "Platform",
+    links: [
+      { href: "/tutors", label: "Find Tutors" },
+      { href: "/for-tutors", label: "Become a Tutor" },
+      { href: "/how-it-works", label: "How It Works" },
+      { href: "/pricing", label: "Pricing" },
+    ],
+  },
+  {
+    title: "Support",
+    links: [
+      { href: "/help", label: "Help Center" },
+      { href: "/contact", label: "Contact Us" },
+      { href: "/contact", label: "Report Issue" },
+      { href: "/help", label: "FAQ" },
+    ],
+  },
+  {
+    title: "Trust & Safety",
+    links: [
+      { href: "/about", label: "Background Checks" },
+      { href: "/about", label: "Fayda ID Verify" },
+      { href: "/about", label: "Replacement Guarantee" },
+      { href: "/about", label: "Community Rules" },
+    ],
+  },
+  {
+    title: "Company",
+    links: [
+      { href: "/about", label: "About Us" },
+      { href: "/blog", label: "Blog" },
+      { href: "/contact", label: "Careers" },
+      { href: "/contact", label: "Press" },
+    ],
+  },
+];
+
 export default function Footer() {
   return (
-    <footer className="bg-slate-900 py-12 text-white">
-      <div className="mx-auto max-w-6xl px-6">
-        <div className="mb-8 grid gap-8 md:grid-cols-4">
-          <div>
-            <div className="mb-3 flex items-center gap-2">
-              <div className="flex h-8 w-8 items-center justify-center rounded-xl bg-teal-600 text-base">
-                🎓
+    <footer className="bg-[#008779] text-white dark:bg-[#0A1628]">
+      <div className="mx-auto max-w-6xl px-4 pb-8 pt-14 md:px-6">
+        <div className="mb-12 grid gap-10 md:grid-cols-5">
+          <div className="md:col-span-1">
+            <div className="mb-4 flex items-center gap-2.5">
+              <div className="flex h-9 w-9 items-center justify-center rounded-[10px] bg-white/15 text-lg">
+                📚
               </div>
-              <p className="font-extrabold">Tutor Be Betea</p>
+              <span className="text-base font-extrabold">Tutor Be Betea</span>
             </div>
-            <p className="text-sm text-slate-400">
-              Ethiopia&apos;s premier verified tutoring platform. Safe, trusted,
-              effective.
+            <p className="mb-5 max-w-[260px] text-[13px] leading-relaxed text-white/65">
+              Ethiopia&apos;s trusted tutoring marketplace. Safe, verified, and built for Ethiopian
+              families.
+            </p>
+            <div className="mb-4 flex flex-wrap gap-2">
+              <span className="rounded-md bg-[#0072CE] px-2.5 py-1 text-[11px] font-bold">
+                Telebirr
+              </span>
+              <span className="rounded-md bg-[#8A1538] px-2.5 py-1 text-[11px] font-bold">
+                CBE Birr
+              </span>
+              <span className="rounded-md bg-[#00A859] px-2.5 py-1 text-[11px] font-bold">
+                M-Pesa
+              </span>
+            </div>
+            <p className="text-xs text-white/50">
+              <span className="font-mono font-semibold text-teal-300">12,847+</span> Tutors ·{" "}
+              <span className="font-mono font-semibold text-teal-300">284,000+</span> Safe Sessions
             </p>
           </div>
 
-          {[
-            {
-              title: "Platform",
-              links: [
-                { label: "Find Tutors", href: "/tutors" },
-                { label: "How It Works", href: "/how-it-works" },
-                { label: "Pricing", href: "/pricing" },
-                { label: "For Parents", href: "/for-parents" },
-              ],
-            },
-            {
-              title: "Tutors",
-              links: [
-                { label: "Become a Tutor", href: "/for-tutors" },
-                { label: "Verification", href: "/for-tutors" },
-                { label: "Register", href: "/register" },
-              ],
-            },
-            {
-              title: "Support",
-              links: [
-                { label: "Contact Us", href: "/contact" },
-                { label: "About", href: "/about" },
-                { label: "Sign In", href: "/login" },
-              ],
-            },
-          ].map((col) => (
+          {COLS.map((col) => (
             <div key={col.title}>
-              <p className="mb-3 text-sm font-semibold">{col.title}</p>
-              <div className="space-y-2">
-                {col.links.map((l) => (
-                  <Link
-                    key={l.label}
-                    href={l.href}
-                    className="block text-sm text-slate-400 transition-colors hover:text-white"
-                  >
-                    {l.label}
-                  </Link>
-                ))}
-              </div>
+              <div className="mb-3.5 text-[13px] font-bold text-white/90">{col.title}</div>
+              {col.links.map((l) => (
+                <Link
+                  key={l.label}
+                  href={l.href}
+                  className="mb-2 block text-[13px] text-white/55 transition hover:text-white"
+                >
+                  {l.label}
+                </Link>
+              ))}
             </div>
           ))}
         </div>
 
-        <div className="flex flex-wrap items-center justify-between gap-4 border-t border-slate-800 pt-6 text-sm text-slate-400">
-          <p>© {new Date().getFullYear()} Tutor Be Betea. All rights reserved.</p>
-          <div className="flex gap-2">
-            <div className="h-1 w-8 rounded-full bg-green-500" />
-            <div className="h-1 w-8 rounded-full bg-yellow-400" />
-            <div className="h-1 w-8 rounded-full bg-red-500" />
+        <div className="flex flex-col items-start justify-between gap-4 border-t border-white/10 pt-6 md:flex-row md:items-center">
+          <p className="text-xs text-white/45">
+            © 2026 Tutor Be Betea · Addis Ababa, Ethiopia · All rights reserved
+          </p>
+          <div className="flex flex-wrap gap-5">
+            {["Privacy Policy", "Terms of Service", "Cookie Policy"].map((l) => (
+              <Link key={l} href="/help" className="text-xs text-white/45 hover:text-white">
+                {l}
+              </Link>
+            ))}
           </div>
         </div>
+      </div>
+
+      {/* Ethiopian flag stripe */}
+      <div className="flex h-[5px]">
+        <div className="flex-1 bg-[#22C55E]" />
+        <div className="flex-1 bg-[#EAB308]" />
+        <div className="flex-1 bg-[#EF4444]" />
       </div>
     </footer>
   );
