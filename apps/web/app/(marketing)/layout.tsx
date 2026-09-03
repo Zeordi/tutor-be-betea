@@ -7,10 +7,10 @@ export default function MarketingLayout({
   children: React.ReactNode;
 }) {
   return (
-    <div className="min-h-screen bg-white dark:bg-[#0A1628]">
+    <>
       <Header />
-      <main>{children}</main>
+      <div className="min-h-[calc(100vh-4rem)]">{children}</div>
       <Footer />
-    </div>
+    </>
   );
 }
