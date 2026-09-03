@@ -1,98 +1,68 @@
-import Link from "next/link";
-import type { Metadata } from "next";
-
-export const metadata: Metadata = {
-  title: "About Us | Tutor Be Betea",
-  description: "Learn about Tutor Be Betea's mission for trusted home and online tutoring across Ethiopia.",
-};
+const PIPELINE = [
+  { n: 1, icon: "📝", title: "Application", desc: "Profile, subjects, and teaching experience" },
+  { n: 2, icon: "🪪", title: "Fayda ID Check", desc: "National ID verified via Ethiopia’s Fayda system" },
+  { n: 3, icon: "🎓", title: "Degree Auth.", desc: "University certificate validated with the institution" },
+  { n: 4, icon: "👮", title: "Police Check", desc: "Federal clearance where required" },
+  { n: 5, icon: "✅", title: "Live on Platform", desc: "Trust badges issued; tutor can accept bookings" },
+];
 
 export default function AboutPage() {
   return (
-    <div className="py-16 md:py-24">
-      <div className="container max-w-5xl mx-auto space-y-16">
-        {/* Mission Hero */}
-        <div className="text-center space-y-4 max-w-3xl mx-auto">
-          <div className="badge">Our Mission</div>
-          <h1 className="text-4xl md:text-5xl font-extrabold text-[var(--foreground)] leading-tight">
-            Empowering Ethiopian Students with Trusted, High-Impact Tutoring
+    <main className="min-h-screen bg-[var(--background)]">
+      <section className="mx-auto max-w-6xl px-4 py-14 md:px-6 md:py-20">
+        <div className="mb-14 max-w-2xl">
+          <p className="mb-3 text-sm font-bold uppercase tracking-wider text-[var(--primary)]">
+            About Tutor Be Betea
+          </p>
+          <h1 className="mb-4 text-4xl font-black text-[var(--foreground)] md:text-5xl">
+            Built for Ethiopian families
           </h1>
-          <p className="text-lg text-[var(--secondary)] leading-relaxed">
-            Tutor Be Betea connects parents with verified, top-tier educators across Addis Ababa and beyond.
-            We blend academic rigor with safety, transparency, and modern payment protection.
+          <p className="text-lg leading-relaxed text-[var(--secondary)]">
+            We connect parents with verified tutors across Addis Ababa and beyond.
+            Payments stay in escrow, chat stays on-platform, and credentials stay in
+            a private admin vault — only trust badges are public.
           </p>
         </div>
 
-        {/* 3 Core Vetting Steps */}
-        <div className="card p-8 bg-[var(--surface)] border border-[var(--border)] rounded-3xl space-y-8">
-          <h2 className="text-2xl font-bold text-[var(--foreground)] text-center">
-            How Our Verification & Safety Vault Works
-          </h2>
-          <div className="grid md:grid-cols-3 gap-6">
-            <div className="p-5 bg-[var(--background)] border border-[var(--border)] rounded-2xl">
-              <div className="text-2xl mb-3">🪪</div>
-              <h3 className="font-bold mb-1 text-[var(--foreground)]">1. National ID Vetting</h3>
-              <p className="text-sm text-[var(--secondary)]">
-                Fayda, Kebele ID, or Passport identity verification with biometric liveness checks.
-              </p>
+        <h2 className="mb-8 text-center text-2xl font-black text-[var(--foreground)] md:text-3xl">
+          5-step Fayda verification pipeline
+        </h2>
+        <div className="mb-16 flex flex-col gap-4 md:flex-row md:items-stretch md:gap-0">
+          {PIPELINE.map((step, i) => (
+            <div key={step.n} className="flex flex-1 items-center">
+              <div className="flex-1 px-2 text-center">
+                <div
+                  className={`mx-auto mb-3 flex h-14 w-14 items-center justify-center rounded-full border-2 text-2xl ${
+                    i === 4
+                      ? "border-teal-300 bg-teal-50 dark:bg-teal-950/40"
+                      : "border-teal-200 bg-teal-50/80 dark:border-teal-800 dark:bg-teal-950/20"
+                  }`}
+                >
+                  {step.icon}
+                </div>
+                <p className="mb-1 text-sm font-extrabold text-[var(--foreground)]">
+                  {step.title}
+                </p>
+                <p className="text-[11px] leading-snug text-[var(--secondary)]">
+                  {step.desc}
+                </p>
+              </div>
+              {i < 4 && (
+                <div className="hidden h-0.5 w-8 shrink-0 bg-teal-200 dark:bg-teal-800 md:block" />
+              )}
             </div>
-            <div className="p-5 bg-[var(--background)] border border-[var(--border)] rounded-2xl">
-              <div className="text-2xl mb-3">🎓</div>
-              <h3 className="font-bold mb-1 text-[var(--foreground)]">2. Degree Authentication</h3>
-              <p className="text-sm text-[var(--secondary)]">
-                Academic credentials and transcripts verified before Trust Badges are awarded.
-              </p>
-            </div>
-            <div className="p-5 bg-[var(--background)] border border-[var(--border)] rounded-2xl">
-              <div className="text-2xl mb-3">🔒</div>
-              <h3 className="font-bold mb-1 text-[var(--foreground)]">3. AES-256 Vault</h3>
-              <p className="text-sm text-[var(--secondary)]">
-                Raw documents are encrypted and never exposed. Parents see verified badges only.
-              </p>
-            </div>
-          </div>
+          ))}
         </div>
 
-        {/* Safety Pillars */}
-        <div className="grid md:grid-cols-3 gap-6">
-          <div className="card p-6 bg-[var(--surface)] border border-[var(--border)] rounded-2xl">
-            <h3 className="font-bold text-lg mb-2 text-[var(--foreground)]">💳 Escrow Security</h3>
-            <p className="text-sm text-[var(--secondary)]">
-              Payments via Telebirr and CBE Birr are held safely in escrow until you confirm completed lessons.
-            </p>
-          </div>
-          <div className="card p-6 bg-[var(--surface)] border border-[var(--border)] rounded-2xl">
-            <h3 className="font-bold text-lg mb-2 text-[var(--foreground)]">📍 Geofenced Check-ins</h3>
-            <p className="text-sm text-[var(--secondary)]">
-              GPS verification ensures tutors are physically present within 150m of your home.
-            </p>
-          </div>
-          <div className="card p-6 bg-[var(--surface)] border border-[var(--border)] rounded-2xl">
-            <h3 className="font-bold text-lg mb-2 text-[var(--foreground)]">📊 Weekly Reports</h3>
-            <p className="text-sm text-[var(--secondary)]">
-              Track your child&apos;s curriculum progress, quiz scores, and focus areas weekly.
-            </p>
-          </div>
-        </div>
-
-        {/* Bottom CTA */}
-        <div className="card text-center p-10 bg-[var(--surface)] border border-[var(--border)] rounded-3xl">
-          <h2 className="text-2xl font-bold mb-3 text-[var(--foreground)]">Start Your Learning Journey Today</h2>
-          <p className="text-sm text-[var(--secondary)] mb-6 max-w-lg mx-auto">
-            Find the right tutor for Ministry of Education, Cambridge IGCSE, or American curriculum.
+        <div className="rounded-2xl bg-gradient-to-br from-[var(--primary)] to-teal-700 px-8 py-12 text-center text-white dark:from-[#0D2A40] dark:to-[#0A1628]">
+          <div className="mb-4 text-5xl">🔄</div>
+          <h2 className="mb-3 text-3xl font-black">100% Replacement Guarantee</h2>
+          <p className="mx-auto mb-6 max-w-xl text-white/75">
+            Not satisfied? We match a new tutor within 24 hours. Escrow funds
+            carry over automatically — no questions asked within the guarantee window.
           </p>
-          <div className="flex justify-center gap-4 flex-wrap">
-            <Link href="/register?role=PARENT" className="btn btn-primary">
-              Find a Tutor
-            </Link>
-            <Link href="/for-tutors" className="btn btn-secondary">
-              Become a Tutor
-            </Link>
-          </div>
-          <div className="mt-6 text-xs text-[var(--secondary)]">
-            Questions? <Link href="/contact" className="text-[var(--primary)] underline">Contact Support</Link>
-          </div>
         </div>
-      </div>
-    </div>
+      </section>
+    </main>
   );
 }
