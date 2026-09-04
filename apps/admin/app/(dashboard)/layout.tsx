@@ -5,15 +5,24 @@ import { usePathname, useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 
 const SIDEBAR = [
+  // Core (already in repo)
   { href: "/", id: "dashboard", icon: "📊", label: "Dashboard" },
   { href: "/users", id: "users", icon: "👥", label: "Users" },
   { href: "/verification", id: "verification", icon: "🛡️", label: "Verification Queue" },
   { href: "/vault", id: "vault", icon: "🔐", label: "Document Vault" },
   { href: "/contracts", id: "escrow", icon: "💰", label: "Escrow Monitoring" },
   { href: "/attendance", id: "geofence", icon: "📍", label: "Attendance & Geo" },
-  { href: "/tickets", id: "tickets", icon: "🎫", label: "Support & Disputes" },
+  { href: "/tickets", id: "tickets", icon: "🎫", label: "Support Tickets" },
   { href: "/audit-logs", id: "audit", icon: "📋", label: "Audit Log" },
   { href: "/analytics", id: "analytics", icon: "📈", label: "Analytics" },
+  // Figma Admin Console (new)
+  { href: "/rbac", id: "rbac", icon: "🔑", label: "Role-Based Access" },
+  { href: "/disputes", id: "disputes", icon: "⚖️", label: "Dispute Resolution" },
+  { href: "/risk-flags", id: "risk-flags", icon: "🚨", label: "Risk Flagging" },
+  { href: "/promos", id: "promos", icon: "🎟️", label: "Promo & Banners" },
+  { href: "/payouts", id: "payouts", icon: "💸", label: "Payout Reconciliation" },
+  { href: "/impersonation", id: "impersonation", icon: "👁️", label: "User Impersonation" },
+  // Account
   { href: "/settings", id: "settings", icon: "⚙️", label: "System Settings" },
 ];
 
@@ -27,15 +36,10 @@ export default function AdminDashboardLayout({
   const [ready, setReady] = useState(false);
 
   useEffect(() => {
-    const token =
-      typeof window !== "undefined"
-        ? localStorage.getItem("admin_token") || localStorage.getItem("token")
-        : null;
-    // Keep soft gate for local preview; tighten when auth is wired
     setReady(true);
-    if (!token) {
-      // router.replace("/login");
-    }
+    // Soft gate for local preview — enable when auth is ready:
+    // const token = localStorage.getItem("admin_token") || localStorage.getItem("token");
+    // if (!token) router.replace("/login");
   }, [router]);
 
   if (!ready) {
@@ -48,15 +52,17 @@ export default function AdminDashboardLayout({
 
   return (
     <div className="flex h-screen overflow-hidden bg-slate-100 dark:bg-[#060E1A]">
-      <aside className="flex w-56 flex-shrink-0 flex-col bg-slate-900">
+      <aside className="flex w-60 shrink-0 flex-col bg-slate-900">
         <div className="border-b border-slate-800 p-4">
           <div className="flex items-center gap-2">
-            <div className="flex h-8 w-8 items-center justify-center rounded-xl bg-teal-600 text-sm">
-              🎓
+            <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-teal-600 text-sm">
+              🛡️
             </div>
             <div>
-              <p className="text-[10px] font-bold text-teal-400">TUTOR BE BETEA</p>
-              <p className="text-xs font-bold text-white">Super Admin</p>
+              <p className="text-[10px] font-bold tracking-wide text-teal-400">
+                TUTOR BE BETEA
+              </p>
+              <p className="text-xs font-bold text-white">Admin Console</p>
             </div>
           </div>
         </div>
@@ -66,7 +72,7 @@ export default function AdminDashboardLayout({
             const active =
               item.href === "/"
                 ? pathname === "/"
-                : pathname === item.href || pathname.startsWith(item.href + "/");
+                : pathname === item.href || pathname.startsWith(`${item.href}/`);
             return (
               <Link
                 key={item.id}
@@ -77,7 +83,7 @@ export default function AdminDashboardLayout({
                     : "text-slate-400 hover:bg-slate-800 hover:text-white"
                 }`}
               >
-                <span>{item.icon}</span>
+                <span className="text-base leading-none">{item.icon}</span>
                 <span>{item.label}</span>
               </Link>
             );
@@ -85,7 +91,16 @@ export default function AdminDashboardLayout({
         </nav>
 
         <div className="border-t border-slate-800 p-3">
+          <div className="mb-2 flex gap-2 px-1">
+            <span className="rounded-full bg-red-500/15 px-2 py-0.5 text-[10px] font-bold text-red-400">
+              3 flagged
+            </span>
+            <span className="rounded-full bg-amber-500/15 px-2 py-0.5 text-[10px] font-bold text-amber-400">
+              2 disputes
+            </span>
+          </div>
           <button
+            type="button"
             onClick={() => {
               localStorage.removeItem("admin_token");
               localStorage.removeItem("token");
@@ -98,9 +113,9 @@ export default function AdminDashboardLayout({
         </div>
       </aside>
 
-      <main className="flex-1 overflow-y-auto">
+      <main className="flex min-w-0 flex-1 flex-col overflow-hidden">
         <div className="border-b border-slate-200 bg-white px-6 py-3 dark:border-slate-800 dark:bg-[#0A1628]">
-          <div className="flex items-center justify-between">
+          <div className="flex items-center justify-between gap-3">
             <p className="text-xs font-semibold text-slate-500">
               Admin Console · Immutable audit · AES-256 vault
             </p>
@@ -110,7 +125,7 @@ export default function AdminDashboardLayout({
             </div>
           </div>
         </div>
-        <div className="p-6">{children}</div>
+        <div className="flex-1 overflow-y-auto p-6">{children}</div>
       </main>
     </div>
   );
