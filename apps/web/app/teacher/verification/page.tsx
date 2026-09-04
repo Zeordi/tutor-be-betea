@@ -1,81 +1,137 @@
+"use client";
+
+const DOCS = [
+  {
+    name: "National ID",
+    status: "rejected",
+    note: "Image blurry. Please re-upload a clear, unobstructed scan. Minimum 300 DPI.",
+    icon: "🪪",
+  },
+  {
+    name: "Degree Certificate",
+    status: "needs_info",
+    note: "Certificate must show university seal, signature, and full name. Partial scan submitted.",
+    icon: "🎓",
+  },
+  {
+    name: "Police Clearance",
+    status: "approved",
+    note: "Approved on Aug 20, 2026. Valid for 12 months.",
+    icon: "👮",
+  },
+];
+
+function statusMeta(status: string) {
+  if (status === "rejected")
+    return {
+      label: "Rejected",
+      chip: "bg-red-50 text-red-600 dark:bg-red-950/40 dark:text-red-300",
+      border: "border-red-300 dark:border-red-800",
+    };
+  if (status === "needs_info")
+    return {
+      label: "Needs More Info",
+      chip: "bg-amber-50 text-amber-700 dark:bg-amber-950/40 dark:text-amber-300",
+      border: "border-amber-300 dark:border-amber-800",
+    };
+  return {
+    label: "Approved",
+    chip: "bg-teal-50 text-[var(--primary)] dark:bg-teal-950/40",
+    border: "border-[var(--border)]",
+  };
+}
+
 export default function TeacherVerificationPage() {
   return (
-    <div className="space-y-5 p-6">
-      <h2 className="text-xl font-extrabold text-slate-800 dark:text-white">Verification Status</h2>
-      <div className="grid gap-4 md:grid-cols-2">
-        <div className="rounded-2xl border border-slate-100 bg-white p-5 dark:border-slate-800 dark:bg-[#112240]">
-          <h3 className="mb-4 font-bold text-slate-800 dark:text-white">Document Status</h3>
-          <div className="space-y-3">
-            {[
-              { name: "National ID (Fayda)", status: "verified", note: "Verified Aug 2024" },
-              { name: "University Degree", status: "verified", note: "MSc Mathematics – AAU" },
-              { name: "Police Clearance", status: "pending", note: "Under review · 2-3 days" },
-              { name: "Intro Video", status: "missing", note: "Not uploaded yet" },
-            ].map((doc) => (
-              <div
-                key={doc.name}
-                className="flex items-center gap-3 rounded-xl border border-slate-100 p-3 dark:border-slate-700"
-              >
-                <div
-                  className={`flex h-8 w-8 items-center justify-center rounded-lg text-sm ${
-                    doc.status === "verified"
-                      ? "bg-emerald-100 dark:bg-emerald-900/30"
-                      : doc.status === "pending"
-                        ? "bg-amber-100 dark:bg-amber-900/30"
-                        : "bg-slate-100 dark:bg-slate-800"
-                  }`}
-                >
-                  {doc.status === "verified" ? "✅" : doc.status === "pending" ? "⏳" : "📎"}
+    <div className="mx-auto max-w-3xl">
+      <h1 className="mb-2 text-2xl font-black text-[var(--foreground)]">
+        Document Verification
+      </h1>
+      <p className="mb-6 text-sm text-[var(--secondary)]">
+        AES-256 vault · admin-only access · public profiles show Trust Badges only
+      </p>
+
+      <div className="mb-6 flex gap-4 rounded-2xl border border-red-200 bg-red-50 p-5 dark:border-red-900 dark:bg-red-950/30">
+        <span className="text-3xl">⚠️</span>
+        <div>
+          <p className="font-extrabold text-red-700 dark:text-red-300">
+            Action required: 2 documents need attention
+          </p>
+          <p className="mt-1 text-sm text-red-600/90 dark:text-red-200/80">
+            Re-upload the flagged documents. Your profile goes live within 48 hours of
+            re-submission approval.
+          </p>
+        </div>
+      </div>
+
+      <div className="space-y-4">
+        {DOCS.map((doc) => {
+          const st = statusMeta(doc.status);
+          const needsAction = doc.status !== "approved";
+          return (
+            <div
+              key={doc.name}
+              className={`overflow-hidden rounded-2xl border-2 bg-[var(--card)] ${st.border}`}
+            >
+              <div className="flex items-center gap-4 border-b border-[var(--border)] px-5 py-4">
+                <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-[var(--muted)] text-2xl">
+                  {doc.icon}
                 </div>
                 <div className="flex-1">
-                  <p className="text-sm font-semibold text-slate-700 dark:text-slate-200">{doc.name}</p>
-                  <p className="text-xs text-slate-400">{doc.note}</p>
+                  <p className="font-extrabold text-[var(--foreground)]">{doc.name}</p>
+                  <span className={`mt-1 inline-block rounded-full px-2.5 py-0.5 text-[11px] font-bold ${st.chip}`}>
+                    {st.label}
+                  </span>
                 </div>
-                <span className="rounded-full bg-slate-100 px-2 py-0.5 text-[10px] font-bold capitalize text-slate-600 dark:bg-slate-800 dark:text-slate-300">
-                  {doc.status}
-                </span>
               </div>
-            ))}
-          </div>
-        </div>
-        <div className="space-y-3">
-          <div className="rounded-2xl border border-slate-100 bg-white p-5 dark:border-slate-800 dark:bg-[#112240]">
-            <h3 className="mb-3 font-bold text-slate-800 dark:text-white">Onboarding Checklist</h3>
-            <div className="space-y-2">
-              {[
-                ["Create account", true],
-                ["Verify phone", true],
-                ["Upload National ID", true],
-                ["Upload Degree", true],
-                ["Upload Police Check", false],
-                ["Add intro video", false],
-                ["Complete profile", true],
-                ["Pass quiz", true],
-              ].map(([step, done]) => (
-                <div key={String(step)} className="flex items-center gap-2">
-                  <div
-                    className={`flex h-5 w-5 items-center justify-center rounded-full text-[10px] font-bold ${
-                      done ? "bg-teal-500 text-white" : "bg-slate-200 text-slate-400 dark:bg-slate-700"
-                    }`}
-                  >
-                    {done ? "✓" : "○"}
-                  </div>
-                  <p
-                    className={`text-xs text-slate-700 dark:text-slate-300 ${done ? "line-through" : ""}`}
-                  >
-                    {step as string}
+
+              <div className="p-5">
+                <div
+                  className={`mb-4 rounded-xl p-4 ${
+                    needsAction
+                      ? "bg-[var(--muted)]"
+                      : "border border-[var(--border)] bg-[var(--muted)]"
+                  }`}
+                >
+                  <p className="mb-1 text-[11px] font-bold uppercase tracking-wide text-[var(--secondary)]">
+                    Admin review note
+                  </p>
+                  <p className="text-sm leading-relaxed text-[var(--foreground)]">
+                    {doc.note}
                   </p>
                 </div>
-              ))}
+
+                {needsAction && (
+                  <>
+                    <div className="mb-3 grid gap-3 sm:grid-cols-2">
+                      {["📷 Take Photo", "📁 Browse Files"].map((label) => (
+                        <button
+                          key={label}
+                          type="button"
+                          className="rounded-xl border border-dashed border-[var(--border)] bg-[var(--muted)] px-4 py-5 text-center transition hover:border-[var(--primary)]"
+                        >
+                          <p className="text-2xl">{label.slice(0, 2)}</p>
+                          <p className="mt-1 text-sm font-bold text-[var(--foreground)]">
+                            {label.slice(3)}
+                          </p>
+                          <p className="text-[11px] text-[var(--secondary)]">
+                            JPG, PNG, PDF · max 5MB
+                          </p>
+                        </button>
+                      ))}
+                    </div>
+                    <button
+                      type="button"
+                      className="w-full rounded-xl bg-[var(--primary)] py-3 text-sm font-bold text-white"
+                    >
+                      Re-Submit {doc.name}
+                    </button>
+                  </>
+                )}
+              </div>
             </div>
-          </div>
-          <div className="rounded-2xl border border-amber-200 bg-amber-50 p-4 dark:border-amber-800 dark:bg-amber-900/20">
-            <p className="mb-1 text-sm font-bold text-amber-700 dark:text-amber-300">Admin Message</p>
-            <p className="text-xs text-amber-600 dark:text-amber-400">
-              &quot;Your police clearance is under review. Expected completion: 2–3 business days.&quot;
-            </p>
-          </div>
-        </div>
+          );
+        })}
       </div>
     </div>
   );
