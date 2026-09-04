@@ -1,119 +1,184 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
-import { useParams } from "next/navigation";
-import { io, Socket } from "socket.io-client";
-import { apiFetch, getToken } from "@/lib/api";
+import Link from "next/link";
+import { useParams, useRouter } from "next/navigation";
+import { useMemo, useState } from "react";
 
-type ChatMessage = {
-  id?: string;
-  roomId: string;
-  senderId: string;
-  content: string;
-  originalBlocked?: boolean;
-  createdAt?: string;
+type Msg = {
+  id: string;
+  from: "me" | "them" | "system";
+  text: string;
+  time: string;
+  redacted?: boolean;
 };
 
-export default function ParentChatPage() {
-  const { id: roomId } = useParams<{ id: string }>();
-  const [messages, setMessages] = useState<ChatMessage[]>([]);
-  const [input, setInput] = useState("");
-  const [userId, setUserId] = useState("");
-  const socketRef = useRef<Socket | null>(null);
+const SEED: Msg[] = [
+  {
+    id: "1",
+    from: "them",
+    text: "Hello Berhane! Kidist did great on her test. Thank you!",
+    time: "10:02 AM",
+  },
+  {
+    id: "2",
+    from: "me",
+    text: "Wonderful news — her algebra improved a lot this month.",
+    time: "10:05 AM",
+  },
+  {
+    id: "3",
+    from: "them",
+    text: "Can we book extra sessions this week?",
+    time: "10:12 AM",
+  },
+  {
+    id: "4",
+    from: "system",
+    text: "🛡️ Safety: schedule only on-platform. Phone numbers, Telegram, and bank accounts are blocked.",
+    time: "10:13 AM",
+  },
+];
 
-  useEffect(() => {
-    const token = getToken();
-    if (!token || !roomId) return;
+const RESTRICTED =
+  /(\+251[\d\s-]{8,}|\b09\d{8}\b|\b07\d{8}\b|@[\w.]{3,}|[\w.-]+@[\w.-]+\.\w+|\b\d{10,16}\b)/gi;
 
-    // Optional: decode user id from token payload if available
-    try {
-      const payload = JSON.parse(atob(token.split(".")[1] || ""));
-      setUserId(payload.sub || payload.id || "");
-    } catch {
-      setUserId("");
-    }
+function sanitize(input: string): { text: string; redacted: boolean } {
+  let redacted = false;
+  const text = input.replace(RESTRICTED, () => {
+    redacted = true;
+    return "[RESTRICTED CONTACT INFO]";
+  });
+  return { text, redacted };
+}
 
-    const socket = io(process.env.NEXT_PUBLIC_API_URL || "http://localhost:4000", {
-      transports: ["websocket"],
-      auth: { token },
-    });
+export default function TeacherChatThreadPage() {
+  const params = useParams();
+  const router = useRouter();
+  const id = (params?.id as string) || "1";
+  const [messages, setMessages] = useState<Msg[]>(SEED);
+  const [draft, setDraft] = useState("");
 
-    socketRef.current = socket;
-    socket.emit("join_room", roomId);
+  const title = useMemo(() => {
+    if (id === "2") return "Platform Safety Team";
+    if (id === "3") return "Abel Hailu (Parent)";
+    return "Hana Mulugeta (Parent)";
+  }, [id]);
 
-    socket.on("new_message", (message: ChatMessage) => {
-      setMessages((prev) => [...prev, message]);
-    });
-
-    return () => {
-      socket.disconnect();
-    };
-  }, [roomId]);
-
-  const sendMessage = () => {
-    if (!input.trim() || !socketRef.current || !roomId) return;
-
-    socketRef.current.emit("send_message", {
-      roomId,
-      content: input.trim(),
-      senderId: userId,
-    });
-
-    setInput("");
+  const send = () => {
+    const raw = draft.trim();
+    if (!raw) return;
+    const { text, redacted } = sanitize(raw);
+    setMessages((prev) => [
+      ...prev,
+      {
+        id: String(Date.now()),
+        from: "me",
+        text,
+        time: new Date().toLocaleTimeString([], {
+          hour: "2-digit",
+          minute: "2-digit",
+        }),
+        redacted,
+      },
+    ]);
+    setDraft("");
   };
 
   return (
-    <div>
-      <h1 className="text-3xl font-bold mb-2">Chat</h1>
-      <p className="text-[var(--secondary)] mb-6">
-        Protected by Anti-Poaching Shield.
-      </p>
+    <div className="mx-auto flex h-[calc(100vh-8rem)] max-w-3xl flex-col">
+      <div className="mb-3 flex items-center justify-between gap-3">
+        <div>
+          <button
+            type="button"
+            onClick={() => router.push("/teacher/chat")}
+            className="mb-1 text-sm font-semibold text-[var(--secondary)] hover:text-[var(--primary)]"
+          >
+            ← All messages
+          </button>
+          <h1 className="text-xl font-black text-[var(--foreground)]">{title}</h1>
+          <p className="text-xs text-[var(--secondary)]">Encrypted · on-platform only</p>
+        </div>
+        <span className="rounded-full border border-amber-200 bg-amber-50 px-3 py-1 text-[11px] font-bold text-amber-700 dark:border-amber-900 dark:bg-amber-950/40 dark:text-amber-300">
+          🛡️ Anti-poaching active
+        </span>
+      </div>
 
-      <div className="card min-h-[480px] flex flex-col">
-        <div className="flex-1 space-y-3 mb-4 overflow-y-auto">
-          {messages.length === 0 ? (
-            <div className="h-full min-h-[300px] flex items-center justify-center text-[var(--secondary)]">
-              No messages yet. Start the conversation.
-            </div>
-          ) : (
-            messages.map((msg, idx) => {
-              const mine = msg.senderId === userId;
-              return (
+      <div className="mb-3 rounded-xl border border-amber-200 bg-amber-50 px-3 py-2.5 text-[12px] font-semibold text-amber-800 dark:border-amber-900 dark:bg-amber-950/30 dark:text-amber-200">
+        Phone, Telegram, email, and bank numbers are replaced with [RESTRICTED CONTACT INFO].
+      </div>
+
+      <div className="flex min-h-0 flex-1 flex-col overflow-hidden rounded-2xl border border-[var(--border)] bg-[var(--card)]">
+        <div className="flex-1 space-y-3 overflow-y-auto p-4">
+          {messages.map((m) =>
+            m.from === "system" ? (
+              <div
+                key={m.id}
+                className="rounded-xl border border-amber-200 bg-amber-50 px-3 py-2 text-center text-xs font-semibold text-amber-800 dark:border-amber-900 dark:bg-amber-950/30 dark:text-amber-200"
+              >
+                {m.text}
+              </div>
+            ) : (
+              <div
+                key={m.id}
+                className={`flex ${m.from === "me" ? "justify-end" : "justify-start"}`}
+              >
                 <div
-                  key={msg.id || idx}
-                  className={`max-w-[80%] rounded-2xl px-4 py-3 ${
-                    mine
-                      ? "ml-auto bg-[var(--primary)] text-white"
-                      : "bg-[var(--surface-2)]"
+                  className={`max-w-[85%] rounded-2xl px-3.5 py-2.5 text-sm ${
+                    m.from === "me"
+                      ? "bg-[var(--primary)] text-white"
+                      : "bg-[var(--muted)] text-[var(--foreground)]"
                   }`}
                 >
-                  <div>{msg.content}</div>
-                  {msg.originalBlocked && (
-                    <div className={`text-xs mt-1 ${mine ? "text-white/80" : "text-amber-600"}`}>
-                      Contact info was blocked
-                    </div>
-                  )}
+                  <p className="leading-relaxed">{m.text}</p>
+                  <div
+                    className={`mt-1 flex items-center gap-2 text-[10px] ${
+                      m.from === "me" ? "text-white/70" : "text-[var(--secondary)]"
+                    }`}
+                  >
+                    <span>{m.time}</span>
+                    {m.redacted && (
+                      <span className="rounded bg-black/10 px-1.5 py-0.5 font-bold">
+                        Contact info blocked
+                      </span>
+                    )}
+                  </div>
                 </div>
-              );
-            })
+              </div>
+            )
           )}
         </div>
 
-        <div className="flex gap-3">
-          <input
-            value={input}
-            onChange={(e) => setInput(e.target.value)}
-            placeholder="Type a message..."
-            className="flex-1 rounded-xl border border-[var(--border)] px-4 py-3 bg-[var(--surface)] outline-none"
-            onKeyDown={(e) => {
-              if (e.key === "Enter") sendMessage();
-            }}
-          />
-          <button onClick={sendMessage} className="btn btn-primary">
-            Send
-          </button>
+        <div className="border-t border-[var(--border)] p-3">
+          <div className="flex gap-2">
+            <input
+              value={draft}
+              onChange={(e) => setDraft(e.target.value)}
+              onKeyDown={(e) => {
+                if (e.key === "Enter" && !e.shiftKey) {
+                  e.preventDefault();
+                  send();
+                }
+              }}
+              placeholder="Type a message…"
+              className="flex-1 rounded-xl border border-[var(--border)] bg-[var(--muted)] px-3.5 py-2.5 text-sm outline-none focus:border-[var(--primary)]"
+            />
+            <button
+              type="button"
+              onClick={send}
+              className="rounded-xl bg-[var(--primary)] px-5 py-2.5 text-sm font-bold text-white"
+            >
+              Send
+            </button>
+          </div>
         </div>
       </div>
+
+      <p className="mt-2 text-center text-xs text-[var(--secondary)]">
+        Prefer scheduling? Use{" "}
+        <Link href="/teacher/calendar" className="font-bold text-[var(--primary)]">
+          My Calendar
+        </Link>
+      </p>
     </div>
   );
 }
