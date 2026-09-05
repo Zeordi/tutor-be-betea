@@ -1,9 +1,11 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { setToken } from "@/lib/api";
+
+const LANGS = ["EN", "አማ", "ORO", "ትግ"] as const;
 
 export default function LoginPage() {
   const router = useRouter();
@@ -12,12 +14,19 @@ export default function LoginPage() {
   const [phoneNumber, setPhoneNumber] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
-  const [otp, setOtp] = useState("");
+  const [otpDigits, setOtpDigits] = useState(["", "", "", "", "", ""]);
   const [loading, setLoading] = useState(false);
   const [message, setMessage] = useState("");
-  const [lang, setLang] = useState("EN");
+  const [lang, setLang] = useState<(typeof LANGS)[number]>("EN");
+  const [countdown, setCountdown] = useState(0);
 
   const api = process.env.NEXT_PUBLIC_API_URL || "http://localhost:4000";
+
+  useEffect(() => {
+    if (countdown <= 0) return;
+    const t = setTimeout(() => setCountdown((c) => c - 1), 1000);
+    return () => clearTimeout(t);
+  }, [countdown]);
 
   const redirectByRole = (role?: string) => {
     router.push(role === "TEACHER" ? "/teacher" : "/parent");
@@ -50,6 +59,7 @@ export default function LoginPage() {
       }
       await sendOtp();
       setStep("otp");
+      setCountdown(60);
       setMessage("OTP sent to your phone");
     } catch (err: any) {
       setMessage(err.message || "Could not send OTP");
@@ -63,13 +73,13 @@ export default function LoginPage() {
     setLoading(true);
     setMessage("");
     try {
+      const code = otpDigits.join("");
+      if (code.length < 6) throw new Error("Enter the full 6-digit OTP");
+
       const verifyRes = await fetch(`${api}/auth/otp/verify`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          phoneNumber: phoneNumber.trim(),
-          code: otp.trim(),
-        }),
+        body: JSON.stringify({ phoneNumber: phoneNumber.trim(), code }),
       });
       if (!verifyRes.ok) {
         const err = await verifyRes.json().catch(() => ({}));
@@ -100,9 +110,15 @@ export default function LoginPage() {
     }
   };
 
+  const setDigit = (i: number, v: string) => {
+    const d = v.replace(/\D/g, "").slice(-1);
+    const next = [...otpDigits];
+    next[i] = d;
+    setOtpDigits(next);
+  };
+
   return (
     <main className="min-h-screen flex bg-[var(--background)]">
-      {/* Left brand panel */}
       <aside className="hidden md:flex flex-col justify-between w-[420px] flex-shrink-0 bg-gradient-to-br from-teal-800 via-teal-900 to-blue-950 p-10 text-white relative overflow-hidden">
         <div className="absolute top-0 right-0 w-48 h-48 bg-teal-600/20 rounded-full blur-3xl -translate-y-1/2 translate-x-1/2" />
         <div className="relative">
@@ -125,31 +141,14 @@ export default function LoginPage() {
             Platform
           </h2>
           <p className="text-teal-200/80 text-sm leading-relaxed mb-10">
-            Connect with Fayda-verified, degree-certified tutors across Addis
-            Ababa and beyond.
+            Connect with Fayda-verified, degree-certified tutors across Addis Ababa and beyond.
           </p>
           <div className="space-y-5">
             {[
-              {
-                icon: "🛡️",
-                title: "Fayda-Verified Tutors",
-                sub: "National ID + biometric confirmation",
-              },
-              {
-                icon: "🔒",
-                title: "Milestone Escrow Payments",
-                sub: "Telebirr, CBE Birr, M-Pesa",
-              },
-              {
-                icon: "📊",
-                title: "AI Progress Reports",
-                sub: "Weekly insights per child",
-              },
-              {
-                icon: "📍",
-                title: "GPS Session Tracking",
-                sub: "Geofencing & auto check-in",
-              },
+              { icon: "🛡️", title: "Fayda-Verified Tutors", sub: "National ID + biometric confirmation" },
+              { icon: "🔒", title: "Milestone Escrow Payments", sub: "Telebirr, CBE Birr, M-Pesa" },
+              { icon: "📊", title: "AI Progress Reports", sub: "Weekly insights per child" },
+              { icon: "📍", title: "GPS Session Tracking", sub: "Geofencing & auto check-in" },
             ].map((f) => (
               <div key={f.title} className="flex items-start gap-3">
                 <div className="w-9 h-9 bg-white/10 rounded-xl flex items-center justify-center text-lg">
@@ -164,9 +163,7 @@ export default function LoginPage() {
           </div>
         </div>
         <div className="relative">
-          <p className="text-[11px] text-teal-200 mb-3">
-            12,000+ families trust us
-          </p>
+          <p className="text-[11px] text-teal-200 mb-3">12,000+ families trust us</p>
           <div className="flex gap-1">
             <div className="h-1 w-10 bg-green-500 rounded-full" />
             <div className="h-1 w-10 bg-yellow-400 rounded-full" />
@@ -175,28 +172,21 @@ export default function LoginPage() {
         </div>
       </aside>
 
-      {/* Right form */}
       <div className="flex-1 flex flex-col items-center justify-center p-6 md:p-10">
         <div className="w-full max-w-sm">
           <div className="flex justify-between items-center mb-6">
             <div>
-              <p className="text-2xl font-extrabold text-[var(--foreground)]">
-                Sign In
-              </p>
-              <p className="text-sm text-[var(--muted-foreground)]">
-                Welcome back
-              </p>
+              <p className="text-2xl font-extrabold text-[var(--foreground)]">Sign In</p>
+              <p className="text-sm text-[var(--muted-foreground)]">Welcome back</p>
             </div>
             <div className="flex gap-1">
-              {["EN", "አማ", "ORO", "ትግ"].map((l) => (
+              {LANGS.map((l) => (
                 <button
                   key={l}
                   type="button"
                   onClick={() => setLang(l)}
                   className={`text-[10px] font-bold px-2.5 py-1 rounded-full ${
-                    lang === l
-                      ? "bg-teal-600 text-white"
-                      : "text-[var(--muted-foreground)]"
+                    lang === l ? "bg-teal-600 text-white" : "text-[var(--muted-foreground)]"
                   }`}
                 >
                   {l}
@@ -231,9 +221,7 @@ export default function LoginPage() {
                   </label>
                   <div className="flex items-center gap-2 rounded-xl px-4 py-3 border border-[var(--border)] bg-[var(--card)]">
                     <span>🇪🇹</span>
-                    <span className="text-sm font-extrabold text-teal-600">
-                      +251
-                    </span>
+                    <span className="text-sm font-extrabold text-teal-600">+251</span>
                     <div className="w-px h-5 bg-[var(--border)]" />
                     <input
                       type="tel"
@@ -275,17 +263,13 @@ export default function LoginPage() {
               </div>
 
               <div className="flex justify-between text-xs">
-                <span className="text-[var(--muted-foreground)]">
-                  Remember me
-                </span>
-                <Link href="/login" className="text-teal-600 font-semibold">
+                <span className="text-[var(--muted-foreground)]">Remember me</span>
+                <Link href="/forgot-password" className="text-teal-600 font-semibold">
                   Forgot password?
                 </Link>
               </div>
 
-              {message && (
-                <p className="text-xs text-red-500 text-center">{message}</p>
-              )}
+              {message && <p className="text-xs text-red-500 text-center">{message}</p>}
 
               <button
                 type="submit"
@@ -298,23 +282,39 @@ export default function LoginPage() {
           ) : (
             <form onSubmit={handleVerifyAndLogin} className="space-y-4">
               <p className="text-xs text-[var(--muted-foreground)] text-center">
-                Code sent to{" "}
-                <strong className="text-[var(--foreground)]">
-                  {phoneNumber}
-                </strong>
+                Code sent to <strong className="text-[var(--foreground)]">{phoneNumber}</strong>
               </p>
-              <input
-                type="text"
-                inputMode="numeric"
-                maxLength={6}
-                required
-                value={otp}
-                onChange={(e) => setOtp(e.target.value)}
-                className="w-full rounded-xl border-2 border-teal-500 px-4 py-3 text-center tracking-[0.4em] text-lg font-extrabold outline-none bg-[var(--card)]"
-              />
-              {message && (
-                <p className="text-xs text-red-500 text-center">{message}</p>
-              )}
+              <div className="flex justify-center gap-2">
+                {otpDigits.map((d, i) => (
+                  <input
+                    key={i}
+                    value={d}
+                    onChange={(e) => setDigit(i, e.target.value)}
+                    maxLength={1}
+                    inputMode="numeric"
+                    className="w-11 h-12 rounded-xl border-2 border-teal-500 text-center text-lg font-extrabold outline-none bg-[var(--card)]"
+                  />
+                ))}
+              </div>
+              <p className="text-center text-xs text-[var(--muted-foreground)]">
+                {countdown > 0 ? `Resend in ${countdown}s` : (
+                  <button
+                    type="button"
+                    className="text-teal-600 font-semibold"
+                    onClick={async () => {
+                      try {
+                        await sendOtp();
+                        setCountdown(60);
+                      } catch (err: any) {
+                        setMessage(err.message);
+                      }
+                    }}
+                  >
+                    Resend code
+                  </button>
+                )}
+              </p>
+              {message && <p className="text-xs text-red-500 text-center">{message}</p>}
               <button
                 type="submit"
                 disabled={loading}
