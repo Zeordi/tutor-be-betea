@@ -1,76 +1,74 @@
-import { View, Text, ScrollView, Pressable, StyleSheet } from "react-native";
+import { View, Text, ScrollView, TouchableOpacity, StyleSheet, Alert } from "react-native";
 import { useRouter } from "expo-router";
 import { useTheme } from "@/hooks/useTheme";
+import { SafeAreaView } from "react-native-safe-area-context";
 
 const TX = [
-  { id: "1", title: "Escrow funded · Math pack", amount: "-5,400", type: "out", time: "Today" },
-  { id: "2", title: "Milestone released", amount: "-2,700", type: "out", time: "Yesterday" },
-  { id: "3", title: "Top-up Telebirr", amount: "+10,000", type: "in", time: "Mon" },
+  { t: "Escrow fund · Kidane Math", a: "−9,000 ETB", d: "Oct 1", plus: false },
+  { t: "Session release · Selamawit", a: "Escrow", d: "Oct 12", plus: false },
+  { t: "Top-up Telebirr", a: "+5,000 ETB", d: "Sep 28", plus: true },
 ];
 
-export default function WalletScreen() {
+export default function ParentWalletScreen() {
   const router = useRouter();
   const { colors, isDark } = useTheme();
+  const bg = colors.background ?? (isDark ? "#0A1628" : "#F8FAFC");
+  const card = colors.card ?? (isDark ? "#112240" : "#FFFFFF");
+  const text = colors.text ?? colors.foreground;
+  const sub = colors.subtext ?? colors.mutedForeground ?? "#64748B";
+  const primary = colors.primary ?? "#0D9488";
+  const border = colors.border ?? (isDark ? "#1E3A5F" : "#E2E8F0");
 
   return (
-    <ScrollView style={{ flex: 1, backgroundColor: colors.background }} contentContainerStyle={{ paddingBottom: 40 }}>
-      <View style={[styles.header, { backgroundColor: colors.card, borderBottomColor: colors.border }]}>
-        <Pressable onPress={() => router.back()}>
-          <Text style={{ fontSize: 18, color: colors.mutedForeground }}>←</Text>
-        </Pressable>
-        <Text style={[styles.title, { color: colors.foreground }]}>Wallet</Text>
+    <SafeAreaView style={{ flex: 1, backgroundColor: bg }} edges={["top"]}>
+      <View style={[styles.header, { borderBottomColor: border }]}>
+        <TouchableOpacity onPress={() => router.back()}>
+          <Text style={{ color: sub }}>←</Text>
+        </TouchableOpacity>
+        <Text style={{ color: text, fontSize: 16, fontWeight: "800", flex: 1, marginLeft: 10 }}>
+          Wallet & Escrow
+        </Text>
       </View>
-
-      <View style={{ padding: 16, gap: 14 }}>
-        <View style={[styles.balance, { backgroundColor: colors.primaryDark }]}>
-          <Text style={{ color: "rgba(255,255,255,0.7)", fontSize: 12 }}>Available balance</Text>
-          <Text style={{ color: "#fff", fontSize: 32, fontWeight: "800", marginTop: 4 }}>12,450 ETB</Text>
-          <Text style={{ color: "rgba(255,255,255,0.7)", fontSize: 12, marginTop: 4 }}>
-            Escrow held: 5,400 ETB
+      <ScrollView contentContainerStyle={{ padding: 16, gap: 12 }}>
+        <View style={styles.hero}>
+          <Text style={{ color: "rgba(255,255,255,0.8)", fontSize: 12 }}>Available balance</Text>
+          <Text style={{ color: "#fff", fontSize: 32, fontWeight: "900", marginTop: 4 }}>
+            4,250 ETB
           </Text>
-          <View style={{ flexDirection: "row", gap: 10, marginTop: 16 }}>
-            <Pressable style={styles.balBtn}>
-              <Text style={styles.balBtnText}>Top up</Text>
-            </Pressable>
-            <Pressable style={[styles.balBtn, { backgroundColor: "rgba(255,255,255,0.15)" }]}>
-              <Text style={[styles.balBtnText, { color: "#fff" }]}>History</Text>
-            </Pressable>
+          <Text style={{ color: "rgba(255,255,255,0.85)", fontSize: 12, marginTop: 6 }}>
+            12,800 ETB currently in escrow
+          </Text>
+          <View style={{ flexDirection: "row", gap: 8, marginTop: 14 }}>
+            <TouchableOpacity
+              style={styles.heroBtn}
+              onPress={() => Alert.alert("Top up", "Telebirr / CBE flow")}
+            >
+              <Text style={styles.heroBtnText}>Top up</Text>
+            </TouchableOpacity>
+            <TouchableOpacity
+              style={styles.heroBtn}
+              onPress={() => router.push("/(parent)/contracts")}
+            >
+              <Text style={styles.heroBtnText}>View escrow</Text>
+            </TouchableOpacity>
           </View>
         </View>
 
-        <View style={{ flexDirection: "row", gap: 10 }}>
-          {["Telebirr", "CBE Birr", "Card"].map((p) => (
-            <View
-              key={p}
-              style={[styles.payPill, { backgroundColor: colors.card, borderColor: colors.border }]}
-            >
-              <Text style={{ color: colors.foreground, fontWeight: "700", fontSize: 12 }}>{p}</Text>
-            </View>
-          ))}
-        </View>
-
-        <Text style={[styles.section, { color: colors.mutedForeground }]}>RECENT</Text>
-        {TX.map((t) => (
+        <Text style={[styles.section, { color: sub }]}>RECENT</Text>
+        {TX.map((x) => (
           <View
-            key={t.id}
-            style={[styles.tx, { backgroundColor: colors.card, borderColor: colors.border }]}
+            key={x.t}
+            style={[styles.tx, { backgroundColor: card, borderColor: border }]}
           >
-            <View>
-              <Text style={{ color: colors.foreground, fontWeight: "700", fontSize: 13 }}>{t.title}</Text>
-              <Text style={{ color: colors.mutedForeground, fontSize: 11 }}>{t.time}</Text>
+            <View style={{ flex: 1 }}>
+              <Text style={{ color: text, fontWeight: "700", fontSize: 12 }}>{x.t}</Text>
+              <Text style={{ color: sub, fontSize: 10 }}>{x.d}</Text>
             </View>
-            <Text
-              style={{
-                fontWeight: "800",
-                color: t.type === "in" ? "#059669" : colors.foreground,
-              }}
-            >
-              {t.amount} ETB
-            </Text>
+            <Text style={{ color: x.plus ? "#10B981" : text, fontWeight: "800" }}>{x.a}</Text>
           </View>
         ))}
-      </View>
-    </ScrollView>
+      </ScrollView>
+    </SafeAreaView>
   );
 }
 
@@ -78,33 +76,28 @@ const styles = StyleSheet.create({
   header: {
     flexDirection: "row",
     alignItems: "center",
-    gap: 12,
     padding: 14,
     borderBottomWidth: 1,
   },
-  title: { fontSize: 17, fontWeight: "800" },
-  balance: { borderRadius: 20, padding: 20 },
-  balBtn: {
-    backgroundColor: "#fff",
-    paddingHorizontal: 16,
-    paddingVertical: 10,
-    borderRadius: 10,
+  hero: {
+    backgroundColor: "#0F766E",
+    borderRadius: 20,
+    padding: 20,
   },
-  balBtnText: { color: "#0F766E", fontWeight: "800", fontSize: 13 },
-  payPill: {
+  heroBtn: {
     flex: 1,
-    borderWidth: 1,
+    backgroundColor: "rgba(255,255,255,0.15)",
     borderRadius: 12,
-    paddingVertical: 12,
+    paddingVertical: 10,
     alignItems: "center",
   },
-  section: { fontSize: 10, fontWeight: "800", letterSpacing: 0.8, marginTop: 4 },
+  heroBtnText: { color: "#fff", fontWeight: "800", fontSize: 12 },
+  section: { fontSize: 10, fontWeight: "800", letterSpacing: 0.5 },
   tx: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "center",
     borderRadius: 14,
     borderWidth: 1,
     padding: 14,
+    flexDirection: "row",
+    alignItems: "center",
   },
 });
