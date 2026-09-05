@@ -24,6 +24,8 @@ const SECTIONS = [
   { href: "/parent/history", label: "Session History", icon: "📋" },
   { href: "/parent/safety", label: "Safety Center", icon: "🛡️" },
   { href: "/parent/subscription", label: "My Plan", icon: "⭐" },
+  { href: "/parent/referral", label: "Referrals", icon: "🎁" },
+  { href: "/parent/help", label: "Help Center", icon: "❓" },
   // Account
   { href: "/parent/settings", label: "Settings", icon: "⚙️" },
 ];
