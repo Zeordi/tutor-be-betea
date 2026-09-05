@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import {
   View,
   Text,
@@ -15,9 +15,8 @@ import { useRouter } from "expo-router";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useTheme } from "@/hooks/useTheme";
 import { useAuth } from "@/hooks/useAuth";
-import { useEffect } from "react";
-import { getBiometricEnabled } from "@/lib/preferences";
 import { api, setToken } from "@/lib/api";
+import { getBiometricEnabled } from "@/lib/preferences";
 
 export default function LoginScreen() {
   const router = useRouter();
@@ -29,6 +28,11 @@ export default function LoginScreen() {
   const [password, setPassword] = useState("");
   const [otp, setOtp] = useState(["", "", "", "", "", ""]);
   const [loading, setLoading] = useState(false);
+  const [biometricOn, setBiometricOn] = useState(false);
+
+  useEffect(() => {
+    getBiometricEnabled().then(setBiometricOn);
+  }, []);
 
   const bg = isDark ? "#0A1628" : "#FFFFFF";
   const card = isDark ? "#112240" : "#FFFFFF";
@@ -101,7 +105,12 @@ export default function LoginScreen() {
         behavior={Platform.OS === "ios" ? "padding" : undefined}
       >
         <ScrollView contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled">
-          <View style={[styles.logoBox, { backgroundColor: isDark ? "rgba(13,148,136,0.25)" : "#CCFBF1" }]}>
+          <View
+            style={[
+              styles.logoBox,
+              { backgroundColor: isDark ? "rgba(13,148,136,0.25)" : "#CCFBF1" },
+            ]}
+          >
             <Text style={{ fontSize: 32 }}>🎓</Text>
           </View>
           <Text style={[styles.brand, { color: primary }]}>Tutor Be Betea</Text>
@@ -133,7 +142,10 @@ export default function LoginScreen() {
                 placeholder="••••••••"
                 secureTextEntry
                 placeholderTextColor={sub}
-                style={[styles.input, { borderColor: border, color: text, backgroundColor: card }]}
+                style={[
+                  styles.input,
+                  { borderColor: border, color: text, backgroundColor: card },
+                ]}
               />
 
               <TouchableOpacity
@@ -147,6 +159,18 @@ export default function LoginScreen() {
                   <Text style={styles.primaryBtnText}>Continue</Text>
                 )}
               </TouchableOpacity>
+
+              {/* Only if user enabled biometric in Settings */}
+              {biometricOn && (
+                <TouchableOpacity
+                  style={[styles.biometricBtn, { borderColor: primary }]}
+                  onPress={() => router.push("/(auth)/biometric")}
+                >
+                  <Text style={{ color: primary, fontWeight: "800", fontSize: 13 }}>
+                    👆 Use biometric Quick Sign In
+                  </Text>
+                </TouchableOpacity>
+              )}
             </>
           ) : (
             <>
@@ -249,6 +273,13 @@ const styles = StyleSheet.create({
     alignItems: "center",
   },
   primaryBtnText: { color: "#fff", fontWeight: "800", fontSize: 14 },
+  biometricBtn: {
+    marginTop: 12,
+    borderWidth: 1.5,
+    borderRadius: 14,
+    paddingVertical: 12,
+    alignItems: "center",
+  },
   centerBlock: { alignItems: "center", marginBottom: 16 },
   sectionTitle: { fontSize: 16, fontWeight: "800", marginBottom: 6 },
   otpRow: { flexDirection: "row", justifyContent: "center", gap: 8, marginBottom: 8 },
