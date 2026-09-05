@@ -1,12 +1,31 @@
 import { useState } from "react";
-import { View, Text, StyleSheet, TouchableOpacity, Alert } from "react-native";
+import {
+  View,
+  Text,
+  StyleSheet,
+  TouchableOpacity,
+  Alert,
+  ScrollView,
+} from "react-native";
 import { useRouter } from "expo-router";
 import { useTheme } from "@/hooks/useTheme";
 import { SafeAreaView } from "react-native-safe-area-context";
 
 const QUEUE = [
-  { id: "1", type: "CHECK_IN", when: "Today 16:02", status: "queued" },
-  { id: "2", type: "CHECK_OUT", when: "Today 17:31", status: "queued" },
+  {
+    id: "off-1",
+    type: "CHECK_IN",
+    when: "Today 16:02",
+    note: "Signed payload · offlineId",
+    status: "queued" as const,
+  },
+  {
+    id: "off-2",
+    type: "CHECK_OUT",
+    when: "Today 17:31",
+    note: "GPS + duration cached",
+    status: "queued" as const,
+  },
 ];
 
 export default function OfflineSessionScreen() {
@@ -21,19 +40,23 @@ export default function OfflineSessionScreen() {
   const sub = isDark ? "#94A3B8" : "#64748B";
   const primary = "#0D9488";
   const border = isDark ? "#1E3A5F" : "#E2E8F0";
+  const pending = items.filter((i) => i.status === "queued").length;
 
   const retry = () => {
     setSyncing(true);
     setTimeout(() => {
-      setItems((q) => q.map((x) => ({ ...x, status: "synced" })));
+      setItems((q) => q.map((x) => ({ ...x, status: "synced" as const })));
       setSyncing(false);
-      Alert.alert("Synced", "Offline attendance payloads uploaded with signed offlineId.");
+      Alert.alert(
+        "Synced",
+        "Offline attendance payloads uploaded with signed offlineId."
+      );
     }, 1200);
   };
 
   return (
     <SafeAreaView style={[styles.container, { backgroundColor: bg }]} edges={["top"]}>
-      <View style={{ padding: 16 }}>
+      <ScrollView contentContainerStyle={{ padding: 16, paddingBottom: 40 }}>
         <TouchableOpacity onPress={() => router.back()}>
           <Text style={{ color: sub, fontWeight: "700" }}>← Back</Text>
         </TouchableOpacity>
@@ -44,12 +67,32 @@ export default function OfflineSessionScreen() {
 
         <View style={[styles.banner, { backgroundColor: "#FEF3C7", borderColor: "#FCD34D" }]}>
           <Text style={{ color: "#92400E", fontWeight: "800", fontSize: 12 }}>
-            📡 Offline mode · {items.filter((i) => i.status === "queued").length} pending
+            📡 Offline mode · {pending} pending
           </Text>
         </View>
 
+        <View style={[styles.card, { backgroundColor: card, borderColor: border }]}>
+          <Text style={[styles.section, { color: sub }]}>CURRENT SESSION (OFFLINE)</Text>
+          <View style={{ flexDirection: "row", gap: 10, alignItems: "center" }}>
+            <View style={[styles.avatar, { backgroundColor: primary }]}>
+              <Text style={{ color: "#fff", fontWeight: "800" }}>ST</Text>
+            </View>
+            <View>
+              <Text style={{ color: text, fontWeight: "800", fontSize: 13 }}>
+                Mathematics · Grade 10
+              </Text>
+              <Text style={{ color: sub, fontSize: 11 }}>
+                Started 2:00 PM · elapsed on device
+              </Text>
+            </View>
+          </View>
+        </View>
+
         {items.map((item) => (
-          <View key={item.id} style={[styles.card, { backgroundColor: card, borderColor: border }]}>
+          <View
+            key={item.id}
+            style={[styles.card, { backgroundColor: card, borderColor: border }]}
+          >
             <View style={styles.rowBetween}>
               <Text style={{ color: text, fontWeight: "800" }}>{item.type}</Text>
               <Text
@@ -63,6 +106,7 @@ export default function OfflineSessionScreen() {
               </Text>
             </View>
             <Text style={{ color: sub, fontSize: 12, marginTop: 4 }}>{item.when}</Text>
+            <Text style={{ color: sub, fontSize: 11, marginTop: 2 }}>{item.note}</Text>
           </View>
         ))}
 
@@ -73,7 +117,7 @@ export default function OfflineSessionScreen() {
         >
           <Text style={styles.btnText}>{syncing ? "Syncing…" : "Retry sync now"}</Text>
         </TouchableOpacity>
-      </View>
+      </ScrollView>
     </SafeAreaView>
   );
 }
@@ -83,7 +127,25 @@ const styles = StyleSheet.create({
   title: { fontSize: 20, fontWeight: "900", marginTop: 12 },
   banner: { marginTop: 14, borderRadius: 12, borderWidth: 1, padding: 12 },
   card: { marginTop: 10, borderRadius: 14, borderWidth: 1, padding: 14 },
+  section: {
+    fontSize: 10,
+    fontWeight: "800",
+    letterSpacing: 0.4,
+    marginBottom: 10,
+  },
+  avatar: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    alignItems: "center",
+    justifyContent: "center",
+  },
   rowBetween: { flexDirection: "row", justifyContent: "space-between" },
-  btn: { marginTop: 18, borderRadius: 14, paddingVertical: 14, alignItems: "center" },
+  btn: {
+    marginTop: 18,
+    borderRadius: 14,
+    paddingVertical: 14,
+    alignItems: "center",
+  },
   btnText: { color: "#fff", fontWeight: "800" },
 });
