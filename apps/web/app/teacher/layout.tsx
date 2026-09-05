@@ -19,6 +19,8 @@ const SECTIONS = [
   { href: "/teacher/profile", label: "Profile", icon: "👤" },
   { href: "/teacher/analytics", label: "Analytics", icon: "📈" },
   { href: "/teacher/notifications", label: "Notifications", icon: "🔔" },
+  { href: "/teacher/onboarding", label: "Onboarding", icon: "🚀" },
+  { href: "/teacher/risk-flag", label: "Risk Flag", icon: "⚑" },
   { href: "/teacher/settings", label: "Settings", icon: "⚙️" },
 ];
 
