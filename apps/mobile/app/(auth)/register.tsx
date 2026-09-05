@@ -17,10 +17,22 @@ import { useTheme } from "@/hooks/useTheme";
 import { useAuth } from "@/hooks/useAuth";
 import { api, setToken } from "@/lib/api";
 
+function passwordStrength(pw: string): { score: number; label: string; color: string } {
+  let score = 0;
+  if (pw.length >= 6) score++;
+  if (pw.length >= 10) score++;
+  if (/[A-Z]/.test(pw) && /[a-z]/.test(pw)) score++;
+  if (/\d/.test(pw)) score++;
+  if (/[^A-Za-z0-9]/.test(pw)) score++;
+  if (score <= 1) return { score, label: "Weak", color: "#DC2626" };
+  if (score <= 3) return { score, label: "Fair", color: "#D97706" };
+  return { score, label: "Strong", color: "#059669" };
+}
+
 export default function RegisterScreen() {
   const router = useRouter();
   const params = useLocalSearchParams<{ role?: string }>();
-  const { colors, isDark } = useTheme();
+  const { isDark } = useTheme();
   const { login } = useAuth();
 
   const initialRole =
@@ -33,6 +45,9 @@ export default function RegisterScreen() {
   const [password, setPassword] = useState("");
   const [otp, setOtp] = useState(["", "", "", "", "", ""]);
   const [loading, setLoading] = useState(false);
+  const [countdown, setCountdown] = useState(0);
+
+  const strength = passwordStrength(password);
 
   const bg = isDark ? "#0A1628" : "#FFFFFF";
   const card = isDark ? "#112240" : "#FFFFFF";
@@ -40,6 +55,18 @@ export default function RegisterScreen() {
   const text = isDark ? "#F0FAFA" : "#0D2B2A";
   const sub = isDark ? "#94A3B8" : "#64748B";
   const primary = "#0D9488";
+
+  // countdown timer
+  useState(() => {
+    // no-op placeholder for SSR; effect below
+  });
+  // eslint-disable-next-line react-hooks/rules-of-hooks — useEffect for countdown
+  const React = require("react");
+  React.useEffect(() => {
+    if (countdown <= 0) return;
+    const t = setTimeout(() => setCountdown((c: number) => c - 1), 1000);
+    return () => clearTimeout(t);
+  }, [countdown]);
 
   const handleSendOtp = async () => {
     if (!fullName.trim() || !phoneNumber.trim() || password.length < 6) {
@@ -50,6 +77,7 @@ export default function RegisterScreen() {
     try {
       await api.post("/auth/otp/send", { phoneNumber: phoneNumber.trim() });
       setStep(3);
+      setCountdown(60);
     } catch (e: any) {
       Alert.alert("Error", e.message || "Failed to send OTP");
     } finally {
@@ -69,7 +97,6 @@ export default function RegisterScreen() {
         phoneNumber: phoneNumber.trim(),
         code,
       });
-
       const data = await api.post("/auth/register", {
         fullName: fullName.trim(),
         phoneNumber: phoneNumber.trim(),
@@ -77,10 +104,8 @@ export default function RegisterScreen() {
         role,
         verificationToken: verify.verificationToken,
       });
-
       await setToken(data.accessToken);
       await login(data.accessToken, data.user);
-
       if (role === "TEACHER") router.replace("/(teacher)/(tabs)");
       else router.replace("/(parent)/(tabs)");
     } catch (e: any) {
@@ -103,9 +128,15 @@ export default function RegisterScreen() {
         style={{ flex: 1 }}
         behavior={Platform.OS === "ios" ? "padding" : undefined}
       >
-        {/* Progress header — Figma */}
-        <View style={[styles.header, { borderBottomColor: border, backgroundColor: isDark ? "#0F1B2D" : "#FFFFFF" }]}>
-          <TouchableOpacity onPress={() => (step > 1 ? setStep((step - 1) as 1 | 2 | 3) : router.back())}>
+        <View
+          style={[
+            styles.header,
+            { borderBottomColor: border, backgroundColor: isDark ? "#0F1B2D" : "#FFFFFF" },
+          ]}
+        >
+          <TouchableOpacity
+            onPress={() => (step > 1 ? setStep((step - 1) as 1 | 2 | 3) : router.back())}
+          >
             <Text style={{ color: sub, fontSize: 16 }}>←</Text>
           </TouchableOpacity>
           <Text style={[styles.headerTitle, { color: text }]}>Create Account</Text>
@@ -208,6 +239,27 @@ export default function RegisterScreen() {
                 placeholderTextColor={sub}
                 style={[styles.input, { borderColor: border, color: text, backgroundColor: card }]}
               />
+              {password.length > 0 && (
+                <View style={{ marginTop: 6, marginBottom: 4 }}>
+                  <View style={{ flexDirection: "row", gap: 4, marginBottom: 4 }}>
+                    {[1, 2, 3, 4].map((i) => (
+                      <View
+                        key={i}
+                        style={{
+                          flex: 1,
+                          height: 4,
+                          borderRadius: 2,
+                          backgroundColor:
+                            strength.score >= i ? strength.color : isDark ? "#1E3A5F" : "#E2E8F0",
+                        }}
+                      />
+                    ))}
+                  </View>
+                  <Text style={{ fontSize: 11, fontWeight: "700", color: strength.color }}>
+                    {strength.label}
+                  </Text>
+                </View>
+              )}
 
               <View style={styles.rowBtns}>
                 <TouchableOpacity
@@ -217,7 +269,7 @@ export default function RegisterScreen() {
                   <Text style={{ color: sub, fontWeight: "700" }}>Back</Text>
                 </TouchableOpacity>
                 <TouchableOpacity
-                  style={[styles.primaryBtn, { backgroundColor: primary, flex: 1 }]}
+                  style={[styles.primaryBtn, { backgroundColor: primary, flex: 1, marginTop: 0 }]}
                   onPress={handleSendOtp}
                   disabled={loading}
                 >
@@ -234,7 +286,12 @@ export default function RegisterScreen() {
           {step === 3 && (
             <>
               <View style={styles.centerBlock}>
-                <View style={[styles.iconCircle, { backgroundColor: isDark ? "rgba(13,148,136,0.25)" : "#CCFBF1" }]}>
+                <View
+                  style={[
+                    styles.iconCircle,
+                    { backgroundColor: isDark ? "rgba(13,148,136,0.25)" : "#CCFBF1" },
+                  ]}
+                >
                   <Text style={{ fontSize: 28 }}>📱</Text>
                 </View>
                 <Text style={[styles.sectionTitle, { color: text, textAlign: "center" }]}>
@@ -265,6 +322,10 @@ export default function RegisterScreen() {
                   />
                 ))}
               </View>
+
+              <Text style={{ textAlign: "center", color: sub, fontSize: 12, marginBottom: 8 }}>
+                {countdown > 0 ? `Resend in ${countdown}s` : "You can request a new code"}
+              </Text>
 
               <TouchableOpacity
                 style={[styles.primaryBtn, { backgroundColor: primary }]}
@@ -353,7 +414,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 20,
     alignItems: "center",
   },
-  rowBtns: { flexDirection: "row", gap: 10, marginTop: 12 },
+  rowBtns: { flexDirection: "row", gap: 10, marginTop: 12, alignItems: "center" },
   centerBlock: { alignItems: "center", marginBottom: 20, marginTop: 12 },
   iconCircle: {
     width: 56,
