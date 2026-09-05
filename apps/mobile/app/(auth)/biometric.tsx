@@ -1,19 +1,34 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import {
   View,
   Text,
   TouchableOpacity,
   StyleSheet,
   Alert,
+  ActivityIndicator,
 } from "react-native";
 import { useRouter } from "expo-router";
 import { useTheme } from "@/hooks/useTheme";
 import { SafeAreaView } from "react-native-safe-area-context";
+import { getBiometricEnabled } from "@/lib/preferences";
+import { useAuth } from "@/hooks/useAuth";
 
 export default function BiometricLoginScreen() {
   const { colors, isDark } = useTheme();
   const router = useRouter();
+  const { user } = useAuth();
+  const [allowed, setAllowed] = useState<boolean | null>(null);
   const [scanning, setScanning] = useState(false);
+
+  useEffect(() => {
+    getBiometricEnabled().then((on) => {
+      if (!on) {
+        router.replace("/(auth)/login");
+        return;
+      }
+      setAllowed(true);
+    });
+  }, [router]);
 
   const bg = colors.background ?? (isDark ? "#0A1628" : "#FFFFFF");
   const text = colors.text ?? colors.foreground ?? (isDark ? "#F0FAFA" : "#0D2B2A");
@@ -26,28 +41,43 @@ export default function BiometricLoginScreen() {
     setScanning(true);
     setTimeout(() => {
       setScanning(false);
-      Alert.alert("Verified", "Biometric sign-in successful");
-      router.replace("/(parent)/(tabs)");
+      // UI-only success path until native biometric + session restore is wired
+      Alert.alert("Verified", "Biometric check passed. Continue with your last session or login.");
+      if (user?.role === "TEACHER") router.replace("/(teacher)/(tabs)");
+      else if (user?.role === "PARENT") router.replace("/(parent)/(tabs)");
+      else router.replace("/(auth)/login");
     }, 1200);
   };
+
+  if (allowed === null) {
+    return (
+      <SafeAreaView style={[styles.safe, { backgroundColor: bg, justifyContent: "center" }]}>
+        <ActivityIndicator color={primary} />
+      </SafeAreaView>
+    );
+  }
 
   return (
     <SafeAreaView style={[styles.safe, { backgroundColor: bg }]}>
       <View style={[styles.header, { borderBottomColor: border }]}>
-        <Text style={{ color: text, fontWeight: "800", fontSize: 15 }}>
-          Quick Sign In
-        </Text>
+        <Text style={{ color: text, fontWeight: "800", fontSize: 15 }}>Quick Sign In</Text>
       </View>
 
       <View style={styles.body}>
         <View style={[styles.avatar, { backgroundColor: primary }]}>
-          <Text style={{ color: "#fff", fontWeight: "900", fontSize: 22 }}>YH</Text>
+          <Text style={{ color: "#fff", fontWeight: "900", fontSize: 22 }}>
+            {(user?.fullName || "U")
+              .split(" ")
+              .map((n) => n[0])
+              .slice(0, 2)
+              .join("")}
+          </Text>
         </View>
         <Text style={{ color: text, fontWeight: "800", fontSize: 18, marginTop: 12 }}>
-          Yeshi Haile
+          {user?.fullName || "Welcome back"}
         </Text>
         <Text style={{ color: sub, fontSize: 12, marginTop: 4 }}>
-          Parent · Premium Plan ⭐
+          Biometric is on in Settings · optional only
         </Text>
 
         <TouchableOpacity
@@ -62,7 +92,6 @@ export default function BiometricLoginScreen() {
                   : "#CCFBF1"
                 : surface,
               borderColor: scanning ? primary : border,
-              transform: [{ scale: scanning ? 1.06 : 1 }],
             },
           ]}
         >
@@ -72,25 +101,15 @@ export default function BiometricLoginScreen() {
         <Text style={{ color: text, fontWeight: "700", fontSize: 14, marginTop: 16 }}>
           {scanning ? "Verified! Signing in…" : "Touch to sign in"}
         </Text>
-        <Text style={{ color: sub, fontSize: 12, marginTop: 4 }}>
-          Or use Face ID / PIN
-        </Text>
 
-        <View style={styles.actions}>
-          <TouchableOpacity
-            style={[styles.outline, { borderColor: border }]}
-            onPress={() => router.push("/(auth)/login")}
-          >
-            <Text style={{ color: sub, fontWeight: "700", fontSize: 13 }}>
-              Use phone + OTP
-            </Text>
-          </TouchableOpacity>
-          <TouchableOpacity onPress={() => router.replace("/(auth)/login")}>
-            <Text style={{ color: primary, fontWeight: "700", fontSize: 13, marginTop: 14 }}>
-              Not you? Switch account
-            </Text>
-          </TouchableOpacity>
-        </View>
+        <TouchableOpacity
+          style={[styles.outline, { borderColor: border }]}
+          onPress={() => router.replace("/(auth)/login")}
+        >
+          <Text style={{ color: sub, fontWeight: "700", fontSize: 13 }}>
+            Use phone + password + OTP instead
+          </Text>
+        </TouchableOpacity>
       </View>
     </SafeAreaView>
   );
@@ -125,12 +144,12 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "center",
   },
-  actions: { width: "100%", marginTop: 32, alignItems: "center" },
   outline: {
     width: "100%",
     borderWidth: 1,
     borderRadius: 14,
     paddingVertical: 14,
     alignItems: "center",
+    marginTop: 28,
   },
 });
