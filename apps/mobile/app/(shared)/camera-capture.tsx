@@ -1,22 +1,40 @@
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import {
   View,
   Text,
   TouchableOpacity,
   StyleSheet,
   Alert,
+  Animated,
 } from "react-native";
 import { useRouter } from "expo-router";
 import { useTheme } from "@/hooks/useTheme";
 import { SafeAreaView } from "react-native-safe-area-context";
 
-const DOCS = ["Fayda ID (front)", "Fayda ID (back)", "Degree / transcript", "Liveness selfie"];
+const DOCS = [
+  "Fayda ID (front)",
+  "Fayda ID (back)",
+  "Degree / transcript",
+  "Liveness selfie",
+] as const;
 
 export default function CameraCaptureScreen() {
   const { isDark } = useTheme();
   const router = useRouter();
-  const [doc, setDoc] = useState(DOCS[0]);
+  const [doc, setDoc] = useState<(typeof DOCS)[number]>(DOCS[0]);
   const [capturing, setCapturing] = useState(false);
+  const scanY = useRef(new Animated.Value(0)).current;
+
+  useEffect(() => {
+    const anim = Animated.loop(
+      Animated.sequence([
+        Animated.timing(scanY, { toValue: 1, duration: 1600, useNativeDriver: true }),
+        Animated.timing(scanY, { toValue: 0, duration: 1600, useNativeDriver: true }),
+      ])
+    );
+    anim.start();
+    return () => anim.stop();
+  }, [scanY]);
 
   const bg = isDark ? "#0A1628" : "#0F172A";
   const primary = "#0D9488";
@@ -27,10 +45,15 @@ export default function CameraCaptureScreen() {
       setCapturing(false);
       Alert.alert(
         "Captured",
-        `${doc} saved securely. Upload uses AES-256 vault pipeline.`
+        `${doc} saved securely. Upload uses AES-256 vault pipeline (admin eyes only).`
       );
     }, 900);
   };
+
+  const translateY = scanY.interpolate({
+    inputRange: [0, 1],
+    outputRange: [20, 200],
+  });
 
   return (
     <SafeAreaView style={[styles.safe, { backgroundColor: bg }]}>
@@ -47,9 +70,17 @@ export default function CameraCaptureScreen() {
         <View style={[styles.corner, styles.tr]} />
         <View style={[styles.corner, styles.bl]} />
         <View style={[styles.corner, styles.br]} />
-        <View style={styles.scanLine} />
+        <Animated.View
+          style={[styles.scanLine, { transform: [{ translateY }] }]}
+        />
         <Text style={styles.hint}>
-          Align document inside the frame · good lighting
+          Align document inside the frame · good lighting · no glare
+        </Text>
+      </View>
+
+      <View style={styles.privacyNote}>
+        <Text style={{ color: "#94A3B8", fontSize: 11, textAlign: "center" }}>
+          🔒 AES-256 vault · visible only to verification officers
         </Text>
       </View>
 
@@ -126,7 +157,7 @@ const styles = StyleSheet.create({
     left: 24,
     right: 24,
     height: 2,
-    backgroundColor: "rgba(45,212,191,0.6)",
+    backgroundColor: "rgba(45,212,191,0.75)",
   },
   hint: {
     position: "absolute",
@@ -136,6 +167,7 @@ const styles = StyleSheet.create({
     textAlign: "center",
     paddingHorizontal: 16,
   },
+  privacyNote: { paddingHorizontal: 24, marginTop: 10 },
   docRow: {
     flexDirection: "row",
     flexWrap: "wrap",
