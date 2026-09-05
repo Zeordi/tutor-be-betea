@@ -213,6 +213,7 @@ export default function AvailabilityCalendarScreen() {
         <View style={[styles.card, { backgroundColor: colors.card, borderColor: colors.border }]}>
           <Text style={[styles.sectionLabel, { color: colors.sub }]}>ESCROW SUMMARY</Text>
           <Row label="Rate" value={`${ratePerHour} ETB/hr`} colors={colors} />
+          {/* FIXED: was broken escaped string */}
           <Row label="Duration" value={`\( {duration} min ( \){hours}h)`} colors={colors} />
           <Row label="Session total" value={`${total.toLocaleString()} ETB`} colors={colors} bold />
           <Text style={{ color: colors.sub, fontSize: 10, marginTop: 8, lineHeight: 15 }}>
