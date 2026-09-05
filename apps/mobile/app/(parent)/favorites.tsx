@@ -1,84 +1,84 @@
-import { View, Text, StyleSheet, ScrollView, TouchableOpacity } from "react-native";
+import { View, Text, ScrollView, TouchableOpacity, StyleSheet } from "react-native";
 import { useRouter } from "expo-router";
 import { useTheme } from "@/hooks/useTheme";
 import { SafeAreaView } from "react-native-safe-area-context";
 
 const SAVED = [
-  { id: "1", name: "Selamawit Tadesse", sub: "Math · Physics · Grade 9–12", rate: 450, rating: 4.9 },
-  { id: "2", name: "Bereket Solomon", sub: "Physics · Chemistry", rate: 500, rating: 4.8 },
+  { id: "1", name: "Selamawit Tadesse", sub: "Math · Physics", rate: 450, rating: 4.9, idOk: true, gold: true },
+  { id: "2", name: "Bereket Solomon", sub: "Physics · Chem", rate: 500, rating: 4.8, idOk: true, gold: false },
 ];
 
 export default function FavoritesScreen() {
-  const { isDark } = useTheme();
   const router = useRouter();
-  const bg = isDark ? "#0A1628" : "#F8FAFC";
-  const card = isDark ? "#112240" : "#FFFFFF";
-  const text = isDark ? "#F0FAFA" : "#0D2B2A";
-  const sub = isDark ? "#94A3B8" : "#64748B";
-  const primary = "#0D9488";
-  const border = isDark ? "#1E3A5F" : "#E2E8F0";
+  const { colors, isDark } = useTheme();
+  const bg = colors.background ?? (isDark ? "#0A1628" : "#F8FAFC");
+  const card = colors.card ?? (isDark ? "#112240" : "#FFFFFF");
+  const text = colors.text ?? colors.foreground;
+  const sub = colors.subtext ?? colors.mutedForeground ?? "#64748B";
+  const primary = colors.primary ?? "#0D9488";
+  const border = colors.border ?? (isDark ? "#1E3A5F" : "#E2E8F0");
 
   return (
-    <SafeAreaView style={[styles.container, { backgroundColor: bg }]} edges={["top"]}>
+    <SafeAreaView style={{ flex: 1, backgroundColor: bg }} edges={["top"]}>
       <View style={[styles.header, { borderBottomColor: border }]}>
         <TouchableOpacity onPress={() => router.back()}>
-          <Text style={{ color: sub, fontSize: 16 }}>←</Text>
+          <Text style={{ color: sub }}>←</Text>
         </TouchableOpacity>
-        <Text style={[styles.title, { color: text }]}>Saved Tutors</Text>
+        <Text style={{ color: text, fontSize: 16, fontWeight: "800", flex: 1, marginLeft: 10 }}>
+          Saved Tutors
+        </Text>
       </View>
-      <ScrollView contentContainerStyle={styles.content}>
+      <ScrollView contentContainerStyle={{ padding: 14, gap: 12 }}>
         {SAVED.map((t) => (
           <TouchableOpacity
             key={t.id}
-            style={[styles.card, { backgroundColor: card }]}
+            style={[styles.card, { backgroundColor: card, borderColor: border }]}
             onPress={() => router.push(`/(parent)/tutor/${t.id}`)}
           >
             <View style={[styles.avatar, { backgroundColor: primary }]}>
-              <Text style={styles.avatarText}>
-                {t.name.split(" ").map((n) => n[0]).slice(0, 2).join("")}
-              </Text>
+              <Text style={{ color: "#fff", fontWeight: "800" }}>{t.name[0]}</Text>
             </View>
             <View style={{ flex: 1 }}>
-              <Text style={[styles.name, { color: text }]}>{t.name}</Text>
-              <Text style={{ color: sub, fontSize: 11 }}>{t.sub}</Text>
-              <Text style={{ color: primary, fontWeight: "800", marginTop: 4 }}>
+              <Text style={{ color: text, fontWeight: "800" }}>{t.name}</Text>
+              <Text style={{ color: sub, fontSize: 12 }}>{t.sub}</Text>
+              <Text style={{ color: sub, fontSize: 11, marginTop: 2 }}>
                 ⭐ {t.rating} · {t.rate} ETB/hr
+                {t.idOk ? " · 🛡️" : ""}
+                {t.gold ? " · 🥇" : ""}
               </Text>
             </View>
-            <Text style={{ fontSize: 18 }}>❤️</Text>
           </TouchableOpacity>
         ))}
+        {SAVED.length === 0 && (
+          <Text style={{ color: sub, textAlign: "center", marginTop: 40 }}>
+            No saved tutors yet. Heart a profile to pin it here.
+          </Text>
+        )}
       </ScrollView>
     </SafeAreaView>
   );
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1 },
   header: {
     flexDirection: "row",
     alignItems: "center",
-    gap: 12,
-    paddingHorizontal: 14,
-    paddingVertical: 12,
+    padding: 14,
     borderBottomWidth: 1,
   },
-  title: { fontSize: 16, fontWeight: "800" },
-  content: { padding: 16, gap: 10 },
   card: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 12,
     borderRadius: 16,
+    borderWidth: 1,
     padding: 14,
+    flexDirection: "row",
+    gap: 12,
+    alignItems: "center",
   },
   avatar: {
-    width: 44,
-    height: 44,
+    width: 48,
+    height: 48,
     borderRadius: 14,
     alignItems: "center",
     justifyContent: "center",
   },
-  avatarText: { color: "#fff", fontWeight: "800", fontSize: 13 },
-  name: { fontSize: 14, fontWeight: "800" },
 });
