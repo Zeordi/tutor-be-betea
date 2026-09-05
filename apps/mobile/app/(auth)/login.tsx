@@ -18,21 +18,31 @@ import { useAuth } from "@/hooks/useAuth";
 import { api, setToken } from "@/lib/api";
 import { getBiometricEnabled } from "@/lib/preferences";
 
+const LANGS = ["EN", "አማ", "ORO", "ትግ"] as const;
+
 export default function LoginScreen() {
   const router = useRouter();
-  const { colors, isDark } = useTheme();
+  const { isDark } = useTheme();
   const { login } = useAuth();
 
   const [step, setStep] = useState<"credentials" | "otp">("credentials");
+  const [lang, setLang] = useState<(typeof LANGS)[number]>("EN");
   const [phoneNumber, setPhoneNumber] = useState("");
   const [password, setPassword] = useState("");
   const [otp, setOtp] = useState(["", "", "", "", "", ""]);
   const [loading, setLoading] = useState(false);
   const [biometricOn, setBiometricOn] = useState(false);
+  const [countdown, setCountdown] = useState(0);
 
   useEffect(() => {
     getBiometricEnabled().then(setBiometricOn);
   }, []);
+
+  useEffect(() => {
+    if (countdown <= 0) return;
+    const t = setTimeout(() => setCountdown((c) => c - 1), 1000);
+    return () => clearTimeout(t);
+  }, [countdown]);
 
   const bg = isDark ? "#0A1628" : "#FFFFFF";
   const card = isDark ? "#112240" : "#FFFFFF";
@@ -55,8 +65,23 @@ export default function LoginScreen() {
     try {
       await api.post("/auth/otp/send", { phoneNumber: phoneNumber.trim() });
       setStep("otp");
+      setCountdown(60);
     } catch (e: any) {
       Alert.alert("Error", e.message || "Failed to send OTP");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleResend = async () => {
+    if (countdown > 0) return;
+    setLoading(true);
+    try {
+      await api.post("/auth/otp/send", { phoneNumber: phoneNumber.trim() });
+      setCountdown(60);
+      Alert.alert("Sent", "A new code was sent.");
+    } catch (e: any) {
+      Alert.alert("Error", e.message || "Failed to resend");
     } finally {
       setLoading(false);
     }
@@ -74,13 +99,11 @@ export default function LoginScreen() {
         phoneNumber: phoneNumber.trim(),
         code,
       });
-
       const data = await api.post("/auth/login", {
         phoneNumber: phoneNumber.trim(),
         password,
         verificationToken: verify.verificationToken,
       });
-
       await setToken(data.accessToken);
       await login(data.accessToken, data.user);
       redirectByRole(data.user?.role);
@@ -105,6 +128,31 @@ export default function LoginScreen() {
         behavior={Platform.OS === "ios" ? "padding" : undefined}
       >
         <ScrollView contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled">
+          <View style={styles.langRow}>
+            {LANGS.map((l) => (
+              <TouchableOpacity
+                key={l}
+                onPress={() => setLang(l)}
+                style={[
+                  styles.langChip,
+                  {
+                    backgroundColor: lang === l ? primary : isDark ? "#1E3A5F" : "#F1F5F9",
+                  },
+                ]}
+              >
+                <Text
+                  style={{
+                    fontSize: 10,
+                    fontWeight: "800",
+                    color: lang === l ? "#fff" : sub,
+                  }}
+                >
+                  {l}
+                </Text>
+              </TouchableOpacity>
+            ))}
+          </View>
+
           <View
             style={[
               styles.logoBox,
@@ -135,7 +183,14 @@ export default function LoginScreen() {
                 />
               </View>
 
-              <Text style={[styles.label, { color: sub }]}>Password</Text>
+              <View style={styles.labelRow}>
+                <Text style={[styles.label, { color: sub, marginTop: 0 }]}>Password</Text>
+                <TouchableOpacity onPress={() => router.push("/(auth)/forgot-password")}>
+                  <Text style={{ color: primary, fontSize: 11, fontWeight: "700" }}>
+                    Forgot?
+                  </Text>
+                </TouchableOpacity>
+              </View>
               <TextInput
                 value={password}
                 onChangeText={setPassword}
@@ -160,7 +215,6 @@ export default function LoginScreen() {
                 )}
               </TouchableOpacity>
 
-              {/* Only if user enabled biometric in Settings */}
               {biometricOn && (
                 <TouchableOpacity
                   style={[styles.biometricBtn, { borderColor: primary }]}
@@ -203,6 +257,12 @@ export default function LoginScreen() {
                 ))}
               </View>
 
+              <TouchableOpacity onPress={handleResend} disabled={countdown > 0 || loading}>
+                <Text style={{ textAlign: "center", color: countdown > 0 ? sub : primary, fontSize: 12, fontWeight: "700", marginBottom: 8 }}>
+                  {countdown > 0 ? `Resend in ${countdown}s` : "Resend code"}
+                </Text>
+              </TouchableOpacity>
+
               <TouchableOpacity
                 style={[styles.primaryBtn, { backgroundColor: primary }]}
                 onPress={handleVerifyAndLogin}
@@ -234,7 +294,9 @@ export default function LoginScreen() {
 
 const styles = StyleSheet.create({
   container: { flex: 1 },
-  content: { padding: 24, paddingTop: 36 },
+  content: { padding: 24, paddingTop: 20 },
+  langRow: { flexDirection: "row", gap: 6, marginBottom: 16, justifyContent: "flex-end" },
+  langChip: { paddingHorizontal: 10, paddingVertical: 5, borderRadius: 99 },
   logoBox: {
     width: 64,
     height: 64,
@@ -247,6 +309,13 @@ const styles = StyleSheet.create({
   title: { fontSize: 26, fontWeight: "800", marginBottom: 6 },
   subtitle: { fontSize: 13, marginBottom: 22 },
   label: { fontSize: 11, fontWeight: "700", marginBottom: 6, marginTop: 8 },
+  labelRow: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    marginTop: 8,
+    marginBottom: 6,
+  },
   input: {
     borderWidth: 1,
     borderRadius: 14,
