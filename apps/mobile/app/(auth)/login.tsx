@@ -15,6 +15,8 @@ import { useRouter } from "expo-router";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useTheme } from "@/hooks/useTheme";
 import { useAuth } from "@/hooks/useAuth";
+import { useEffect } from "react";
+import { getBiometricEnabled } from "@/lib/preferences";
 import { api, setToken } from "@/lib/api";
 
 export default function LoginScreen() {
