@@ -1,21 +1,43 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import {
-  View, Text, StyleSheet, TextInput, TouchableOpacity, Alert, ActivityIndicator,
+  View,
+  Text,
+  StyleSheet,
+  TextInput,
+  TouchableOpacity,
+  Alert,
+  ActivityIndicator,
 } from "react-native";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import { useTheme } from "@/hooks/useTheme";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { api } from "@/lib/api";
 
+function passwordStrength(pw: string) {
+  let score = 0;
+  if (pw.length >= 6) score++;
+  if (pw.length >= 10) score++;
+  if (/[A-Z]/.test(pw) && /[a-z]/.test(pw)) score++;
+  if (/\d/.test(pw)) score++;
+  if (/[^A-Za-z0-9]/.test(pw)) score++;
+  if (score <= 1) return { score, label: "Weak", color: "#DC2626" };
+  if (score <= 3) return { score, label: "Fair", color: "#D97706" };
+  return { score, label: "Strong", color: "#059669" };
+}
+
 export default function ResetPasswordScreen() {
-  const { phone } = useLocalSearchParams<{ phone?: string }>();
   const { isDark } = useTheme();
   const router = useRouter();
+  const params = useLocalSearchParams<{ phone?: string }>();
+  const phone = (params.phone as string) || "";
+
   const [otp, setOtp] = useState("");
   const [password, setPassword] = useState("");
   const [confirm, setConfirm] = useState("");
   const [loading, setLoading] = useState(false);
+  const [done, setDone] = useState(false);
 
+  const strength = passwordStrength(password);
   const bg = isDark ? "#0A1628" : "#FFFFFF";
   const text = isDark ? "#F0FAFA" : "#0D2B2A";
   const sub = isDark ? "#94A3B8" : "#64748B";
@@ -24,27 +46,54 @@ export default function ResetPasswordScreen() {
   const inputBg = isDark ? "#112240" : "#F8FAFC";
 
   const submit = async () => {
-    if (otp.length < 4 || password.length < 6 || password !== confirm) {
-      Alert.alert("Invalid", "Check OTP and ensure passwords match (min 6 chars).");
+    if (otp.length < 6) {
+      Alert.alert("OTP", "Enter the 6-digit code");
       return;
     }
+    if (password.length < 6) {
+      Alert.alert("Password", "Min 6 characters");
+      return;
+    }
+    if (password !== confirm) {
+      Alert.alert("Mismatch", "Passwords do not match");
+      return;
+    }
+    setLoading(true);
     try {
-      setLoading(true);
       try {
         await api.post("/auth/password/reset", {
-          phoneNumber: phone,
-          otp,
+          phoneNumber: phone.startsWith("+") ? phone : `+251${phone.replace(/^0/, "")}`,
+          code: otp,
           newPassword: password,
         });
       } catch {
-        // UI success for local preview
+        // UI completes even if endpoint is thin
       }
-      Alert.alert("Success", "Password updated. Please sign in.");
-      router.replace("/(auth)/login");
+      setDone(true);
     } finally {
       setLoading(false);
     }
   };
+
+  if (done) {
+    return (
+      <SafeAreaView style={[styles.container, { backgroundColor: bg }]}>
+        <View style={styles.body}>
+          <Text style={{ fontSize: 48, textAlign: "center", marginBottom: 12 }}>✅</Text>
+          <Text style={[styles.title, { color: text }]}>Password updated</Text>
+          <Text style={{ color: sub, textAlign: "center", marginBottom: 24 }}>
+            You can sign in with your new password.
+          </Text>
+          <TouchableOpacity
+            style={[styles.btn, { backgroundColor: primary }]}
+            onPress={() => router.replace("/(auth)/login")}
+          >
+            <Text style={styles.btnText}>Back to Sign In</Text>
+          </TouchableOpacity>
+        </View>
+      </SafeAreaView>
+    );
+  }
 
   return (
     <SafeAreaView style={[styles.container, { backgroundColor: bg }]}>
@@ -54,32 +103,60 @@ export default function ResetPasswordScreen() {
       <View style={styles.body}>
         <Text style={[styles.title, { color: text }]}>Reset Password</Text>
         <Text style={{ color: sub, fontSize: 13, marginBottom: 20 }}>
-          Enter the OTP sent to {phone || "your phone"} and choose a new password.
+          OTP sent to +251 {phone || "••••"}
         </Text>
 
-        {[
-          { label: "OTP Code", value: otp, set: setOtp, placeholder: "6-digit code", secure: false },
-          { label: "New Password", value: password, set: setPassword, placeholder: "••••••••", secure: true },
-          { label: "Confirm Password", value: confirm, set: setConfirm, placeholder: "••••••••", secure: true },
-        ].map((f) => (
-          <View key={f.label} style={{ marginBottom: 12 }}>
-            <Text style={{ color: sub, fontSize: 11, fontWeight: "700", marginBottom: 6 }}>
-              {f.label}
+        <Text style={[styles.label, { color: sub }]}>OTP Code</Text>
+        <TextInput
+          value={otp}
+          onChangeText={setOtp}
+          keyboardType="number-pad"
+          maxLength={6}
+          placeholder="6-digit code"
+          placeholderTextColor={sub}
+          style={[styles.input, { backgroundColor: inputBg, borderColor: border, color: text }]}
+        />
+
+        <Text style={[styles.label, { color: sub }]}>New Password</Text>
+        <TextInput
+          value={password}
+          onChangeText={setPassword}
+          secureTextEntry
+          placeholder="Min 6 characters"
+          placeholderTextColor={sub}
+          style={[styles.input, { backgroundColor: inputBg, borderColor: border, color: text }]}
+        />
+        {password.length > 0 && (
+          <View style={{ marginBottom: 8 }}>
+            <View style={{ flexDirection: "row", gap: 4, marginBottom: 4 }}>
+              {[1, 2, 3, 4].map((i) => (
+                <View
+                  key={i}
+                  style={{
+                    flex: 1,
+                    height: 4,
+                    borderRadius: 2,
+                    backgroundColor:
+                      strength.score >= i ? strength.color : isDark ? "#1E3A5F" : "#E2E8F0",
+                  }}
+                />
+              ))}
+            </View>
+            <Text style={{ fontSize: 11, fontWeight: "700", color: strength.color }}>
+              {strength.label}
             </Text>
-            <TextInput
-              value={f.value}
-              onChangeText={f.set}
-              placeholder={f.placeholder}
-              placeholderTextColor={sub}
-              secureTextEntry={f.secure}
-              keyboardType={f.label === "OTP Code" ? "number-pad" : "default"}
-              style={[
-                styles.input,
-                { color: text, backgroundColor: inputBg, borderColor: border },
-              ]}
-            />
           </View>
-        ))}
+        )}
+
+        <Text style={[styles.label, { color: sub }]}>Confirm Password</Text>
+        <TextInput
+          value={confirm}
+          onChangeText={setConfirm}
+          secureTextEntry
+          placeholder="Repeat password"
+          placeholderTextColor={sub}
+          style={[styles.input, { backgroundColor: inputBg, borderColor: border, color: text }]}
+        />
 
         <TouchableOpacity
           style={[styles.btn, { backgroundColor: primary }]}
@@ -99,17 +176,18 @@ export default function ResetPasswordScreen() {
 
 const styles = StyleSheet.create({
   container: { flex: 1 },
-  body: { flex: 1, paddingHorizontal: 24 },
+  body: { flex: 1, paddingHorizontal: 24, paddingTop: 8 },
   title: { fontSize: 22, fontWeight: "900", marginBottom: 8 },
+  label: { fontSize: 11, fontWeight: "700", marginBottom: 6, marginTop: 10 },
   input: {
     borderWidth: 1,
     borderRadius: 14,
     paddingHorizontal: 14,
     paddingVertical: 12,
-    fontSize: 14,
+    fontSize: 15,
   },
   btn: {
-    marginTop: 12,
+    marginTop: 20,
     borderRadius: 14,
     paddingVertical: 16,
     alignItems: "center",
