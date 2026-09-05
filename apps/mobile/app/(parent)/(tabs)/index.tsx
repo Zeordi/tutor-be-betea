@@ -1,167 +1,380 @@
-import { View, Text, ScrollView, Pressable, StyleSheet } from "react-native";
+import { useState } from "react";
+import {
+  View,
+  Text,
+  TextInput,
+  ScrollView,
+  Pressable,
+  StyleSheet,
+} from "react-native";
 import { useRouter } from "expo-router";
 import { useTheme } from "@/hooks/useTheme";
+import FiltersBottomSheet, {
+  type FiltersValue,
+} from "@/components/FiltersBottomSheet";
 
-const QUICK = [
-  { icon: "🔍", label: "Find", href: "/(parent)/(tabs)/find-tutors" },
-  { icon: "💼", label: "Post Job", href: "/(parent)/job/create" },
-  { icon: "📊", label: "Reports", href: "/(parent)/progress" },
-  { icon: "💰", label: "Wallet", href: "/(parent)/wallet" },
+const FILTERS = ["All", "Math", "Physics", "Chemistry", "English"];
+const TUTORS = [
+  {
+    id: "1",
+    name: "Selamawit Tadesse",
+    sub: "Mathematics · Physics",
+    rate: 450,
+    rating: 4.9,
+    dist: "1.2 km",
+    idOk: true,
+    deg: true,
+    gold: true,
+  },
+  {
+    id: "2",
+    name: "Bereket Solomon",
+    sub: "Physics · Chemistry",
+    rate: 500,
+    rating: 4.8,
+    dist: "2.1 km",
+    idOk: true,
+    deg: true,
+    gold: false,
+  },
+  {
+    id: "3",
+    name: "Tigist Haile",
+    sub: "Mathematics · Stats",
+    rate: 380,
+    rating: 4.7,
+    dist: "3.4 km",
+    idOk: true,
+    deg: false,
+    gold: false,
+  },
 ];
 
-const CHILDREN = [
-  { name: "Kidane", grade: "10", progress: "87%" },
-  { name: "Meron", grade: "8", progress: "92%" },
-];
-
-export default function ParentHomeScreen() {
+export default function FindTutorsScreen() {
   const router = useRouter();
   const { colors, isDark } = useTheme();
+  const [active, setActive] = useState(0);
+  const [q, setQ] = useState("");
+  const [verifiedOnly, setVerifiedOnly] = useState(false);
+  const [filtersOpen, setFiltersOpen] = useState(false);
+  const [advanced, setAdvanced] = useState<FiltersValue | null>(null);
+
+  const filtered = TUTORS.filter((t) => {
+    const mustVerified = verifiedOnly || advanced?.verifiedOnly;
+    if (mustVerified && !t.idOk) return false;
+    if (
+      active > 0 &&
+      !t.sub.toLowerCase().includes(FILTERS[active].toLowerCase())
+    )
+      return false;
+    if (
+      q &&
+      !t.name.toLowerCase().includes(q.toLowerCase()) &&
+      !t.sub.toLowerCase().includes(q.toLowerCase())
+    )
+      return false;
+    if (advanced?.subjects?.length) {
+      const hit = advanced.subjects.some((s) =>
+        t.sub.toLowerCase().includes(s.toLowerCase())
+      );
+      if (!hit) return false;
+    }
+    if (advanced?.maxRate && t.rate > advanced.maxRate) return false;
+    return true;
+  });
 
   return (
-    <ScrollView
-      style={[styles.root, { backgroundColor: colors.background }]}
-      contentContainerStyle={{ paddingBottom: 100 }}
-    >
-      <View style={[styles.hero, { backgroundColor: colors.primaryDark }]}>
-        <View style={styles.heroRow}>
-          <View>
-            <Text style={styles.heroSub}>Good morning 👋</Text>
-            <Text style={styles.heroName}>Yeshi Haile</Text>
-          </View>
-          <View style={[styles.avatar, { backgroundColor: "rgba(255,255,255,0.2)" }]}>
-            <Text style={{ color: "#fff", fontWeight: "700" }}>YH</Text>
-            <View style={styles.badgeDot}>
-              <Text style={styles.badgeDotText}>3</Text>
-            </View>
-          </View>
-        </View>
-        <View style={styles.subCard}>
-          <View>
-            <Text style={styles.subLabel}>Subscription</Text>
-            <Text style={styles.subTitle}>Elite Plan ⭐</Text>
-          </View>
-          <View style={styles.elitePill}>
-            <Text style={styles.elitePillText}>Active</Text>
-          </View>
-        </View>
-      </View>
-
-      <View style={[styles.card, { backgroundColor: colors.card, borderColor: colors.border }]}>
-        <Text style={[styles.sectionLabel, { color: colors.mutedForeground }]}>QUICK ACTIONS</Text>
-        <View style={styles.quickGrid}>
-          {QUICK.map((q) => (
-            <Pressable key={q.label} style={styles.quickItem} onPress={() => router.push(q.href as any)}>
-              <View style={[styles.quickIcon, { backgroundColor: isDark ? "#134E4A" : "#F0FDFA" }]}>
-                <Text style={{ fontSize: 20 }}>{q.icon}</Text>
-              </View>
-              <Text style={[styles.quickLabel, { color: colors.foreground }]}>{q.label}</Text>
-            </Pressable>
-          ))}
-        </View>
-      </View>
-
-      <View style={[styles.card, { backgroundColor: colors.card, borderColor: colors.border }]}>
-        <Text style={[styles.sectionLabel, { color: colors.mutedForeground }]}>UPCOMING SESSION</Text>
-        <View style={[styles.sessionRow, { backgroundColor: isDark ? "#134E4A" : "#F0FDFA" }]}>
-          <View style={[styles.sessionIcon, { backgroundColor: colors.primary }]}>
-            <Text>📚</Text>
-          </View>
-          <View style={{ flex: 1 }}>
-            <Text style={[styles.sessionTitle, { color: colors.foreground }]}>Mathematics – Grade 10</Text>
-            <Text style={{ color: colors.mutedForeground, fontSize: 11 }}>Selamawit T. · Today 4:00 PM</Text>
-          </View>
-          <View style={styles.in2h}>
-            <Text style={styles.in2hText}>In 2h</Text>
-          </View>
-        </View>
-      </View>
-
-      <View style={[styles.card, { backgroundColor: colors.card, borderColor: colors.border }]}>
-        <View style={styles.rowBetween}>
-          <Text style={[styles.sectionLabel, { color: colors.mutedForeground }]}>MY CHILDREN</Text>
-          <Pressable onPress={() => router.push("/(parent)/children")}>
-            <Text style={{ color: colors.primary, fontSize: 12, fontWeight: "600" }}>See all</Text>
+    <View style={[styles.root, { backgroundColor: colors.background }]}>
+      <View
+        style={[
+          styles.header,
+          {
+            backgroundColor: colors.card,
+            borderBottomColor: colors.border,
+          },
+        ]}
+      >
+        <View style={styles.titleRow}>
+          <Text style={[styles.title, { color: colors.foreground }]}>
+            Find Tutors
+          </Text>
+          <Pressable
+            onPress={() => setFiltersOpen(true)}
+            style={[
+              styles.filterBtn,
+              {
+                backgroundColor: isDark ? "#1E3A5F" : "#F1F5F9",
+                borderColor: colors.border,
+              },
+            ]}
+          >
+            <Text style={{ fontSize: 14 }}>⚙️</Text>
+            <Text
+              style={{
+                color: colors.primary,
+                fontSize: 12,
+                fontWeight: "800",
+              }}
+            >
+              Filters
+            </Text>
           </Pressable>
         </View>
-        <ScrollView horizontal showsHorizontalScrollIndicator={false}>
-          {CHILDREN.map((c) => (
-            <View key={c.name} style={[styles.childCard, { backgroundColor: colors.surface2 }]}>
-              <View style={[styles.childAvatar, { backgroundColor: colors.primary }]}>
-                <Text style={{ color: "#fff", fontWeight: "700" }}>{c.name[0]}</Text>
-              </View>
-              <Text style={[styles.childName, { color: colors.foreground }]}>{c.name}</Text>
-              <Text style={{ color: colors.mutedForeground, fontSize: 10 }}>Gr. {c.grade}</Text>
-              <Text style={{ color: colors.primary, fontWeight: "800", fontSize: 13 }}>{c.progress}</Text>
-            </View>
+
+        <View
+          style={[
+            styles.search,
+            { backgroundColor: isDark ? "#1E3A5F" : "#F1F5F9" },
+          ]}
+        >
+          <Text>🔍</Text>
+          <TextInput
+            value={q}
+            onChangeText={setQ}
+            placeholder="Search subjects, names..."
+            placeholderTextColor={colors.mutedForeground}
+            style={[styles.searchInput, { color: colors.foreground }]}
+          />
+        </View>
+
+        <ScrollView
+          horizontal
+          showsHorizontalScrollIndicator={false}
+          style={{ marginTop: 10 }}
+        >
+          {FILTERS.map((f, i) => (
+            <Pressable
+              key={f}
+              onPress={() => setActive(i)}
+              style={[
+                styles.chip,
+                {
+                  backgroundColor:
+                    active === i
+                      ? colors.primary
+                      : isDark
+                        ? "#1E3A5F"
+                        : "#F1F5F9",
+                },
+              ]}
+            >
+              <Text
+                style={{
+                  color:
+                    active === i ? "#fff" : colors.mutedForeground,
+                  fontSize: 12,
+                  fontWeight: "700",
+                }}
+              >
+                {f}
+              </Text>
+            </Pressable>
           ))}
           <Pressable
-            style={[styles.childCard, { backgroundColor: colors.surface2, borderStyle: "dashed", borderWidth: 1, borderColor: colors.border }]}
-            onPress={() => router.push("/(parent)/children")}
+            onPress={() => setVerifiedOnly((v) => !v)}
+            style={[
+              styles.chip,
+              {
+                backgroundColor: verifiedOnly
+                  ? colors.primary
+                  : isDark
+                    ? "#1E3A5F"
+                    : "#F1F5F9",
+              },
+            ]}
           >
-            <Text style={{ fontSize: 22, color: colors.mutedForeground }}>+</Text>
-            <Text style={{ color: colors.mutedForeground, fontSize: 10 }}>Add Child</Text>
+            <Text
+              style={{
+                color: verifiedOnly ? "#fff" : colors.mutedForeground,
+                fontSize: 12,
+                fontWeight: "700",
+              }}
+            >
+              🛡️ Verified only
+            </Text>
           </Pressable>
         </ScrollView>
       </View>
 
-      <View style={{ paddingHorizontal: 16, marginTop: 8 }}>
-        <View style={styles.rowBetween}>
-          <Text style={[styles.sectionLabel, { color: colors.mutedForeground }]}>RECOMMENDED TUTORS</Text>
-          <Pressable onPress={() => router.push("/(parent)/(tabs)/find-tutors")}>
-            <Text style={{ color: colors.primary, fontSize: 12, fontWeight: "600" }}>See all</Text>
+      <ScrollView
+        contentContainerStyle={{
+          padding: 16,
+          gap: 12,
+          paddingBottom: 100,
+        }}
+      >
+        <Text style={{ color: colors.mutedForeground, fontSize: 12 }}>
+          {filtered.length} tutors nearby
+        </Text>
+
+        {filtered.map((t) => (
+          <Pressable
+            key={t.id}
+            style={[
+              styles.card,
+              {
+                backgroundColor: colors.card,
+                borderColor: colors.border,
+              },
+            ]}
+            onPress={() => router.push(`/(parent)/tutor/${t.id}`)}
+          >
+            <View style={{ flexDirection: "row", gap: 12 }}>
+              <View
+                style={[styles.avatar, { backgroundColor: colors.primary }]}
+              >
+                <Text style={{ color: "#fff", fontWeight: "800" }}>
+                  {t.name
+                    .split(" ")
+                    .map((n) => n[0])
+                    .slice(0, 2)
+                    .join("")}
+                </Text>
+              </View>
+              <View style={{ flex: 1 }}>
+                <View style={styles.rowBetween}>
+                  <Text
+                    style={[styles.name, { color: colors.foreground }]}
+                  >
+                    {t.name}
+                  </Text>
+                  <Text
+                    style={{ color: colors.primary, fontWeight: "800" }}
+                  >
+                    {t.rate} ETB/hr
+                  </Text>
+                </View>
+                <Text
+                  style={{
+                    color: colors.mutedForeground,
+                    fontSize: 12,
+                  }}
+                >
+                  {t.sub}
+                </Text>
+                <Text
+                  style={{
+                    color: colors.mutedForeground,
+                    fontSize: 11,
+                    marginTop: 2,
+                  }}
+                >
+                  ⭐ {t.rating} · 📍 {t.dist}
+                </Text>
+                <View
+                  style={{
+                    flexDirection: "row",
+                    gap: 6,
+                    marginTop: 6,
+                    flexWrap: "wrap",
+                  }}
+                >
+                  {t.idOk && <MiniBadge text="🛡️ ID" />}
+                  {t.deg && <MiniBadge text="🎓 Degree" />}
+                  {t.gold && <MiniBadge text="🥇 Gold" gold />}
+                </View>
+              </View>
+            </View>
+            <View style={{ flexDirection: "row", gap: 8, marginTop: 12 }}>
+              <Pressable
+                style={[
+                  styles.btn,
+                  { backgroundColor: colors.primary, flex: 1 },
+                ]}
+                onPress={() => router.push(`/(parent)/tutor/${t.id}`)}
+              >
+                <Text style={styles.btnText}>Book</Text>
+              </Pressable>
+              <Pressable
+                style={[
+                  styles.btnOutline,
+                  { borderColor: colors.primary, flex: 1 },
+                ]}
+                onPress={() => router.push(`/(parent)/tutor/${t.id}`)}
+              >
+                <Text
+                  style={[
+                    styles.btnOutlineText,
+                    { color: colors.primary },
+                  ]}
+                >
+                  Profile
+                </Text>
+              </Pressable>
+            </View>
           </Pressable>
-        </View>
-        <View style={[styles.card, { backgroundColor: colors.card, borderColor: colors.border, marginTop: 8 }]}>
-          <View style={{ flexDirection: "row", gap: 12 }}>
-            <View style={[styles.tutorAvatar, { backgroundColor: colors.primary }]}>
-              <Text style={{ color: "#fff", fontWeight: "700" }}>ST</Text>
-            </View>
-            <View style={{ flex: 1 }}>
-              <View style={styles.rowBetween}>
-                <Text style={[styles.tutorName, { color: colors.foreground }]}>Selamawit Tadesse</Text>
-                <Text style={{ color: colors.primary, fontWeight: "700" }}>450 ETB</Text>
-              </View>
-              <Text style={{ color: colors.mutedForeground, fontSize: 12 }}>Math · Grade 9–12</Text>
-              <View style={{ flexDirection: "row", gap: 6, marginTop: 6, flexWrap: "wrap" }}>
-                <BadgePill label="🛡️ ID" teal />
-                <BadgePill label="🎓 Degree" />
-                <BadgePill label="🥇 Gold" gold />
-              </View>
-            </View>
-          </View>
-          <View style={{ flexDirection: "row", gap: 8, marginTop: 12 }}>
-            <Pressable
-              style={[styles.btnPrimary, { backgroundColor: colors.primary, flex: 1 }]}
-              onPress={() => router.push("/(parent)/tutor/1")}
+        ))}
+
+        {filtered.length === 0 && (
+          <View style={{ alignItems: "center", paddingVertical: 40 }}>
+            <Text style={{ fontSize: 32 }}>🔍</Text>
+            <Text
+              style={[
+                styles.name,
+                { color: colors.foreground, marginTop: 8 },
+              ]}
             >
-              <Text style={styles.btnPrimaryText}>Book Now</Text>
-            </Pressable>
-            <Pressable
-              style={[styles.btnOutline, { borderColor: colors.primary, flex: 1 }]}
-              onPress={() => router.push("/(parent)/tutor/1")}
+              No tutors found
+            </Text>
+            <Text
+              style={{
+                color: colors.mutedForeground,
+                fontSize: 13,
+                textAlign: "center",
+                marginTop: 4,
+              }}
             >
-              <Text style={[styles.btnOutlineText, { color: colors.primary }]}>Profile</Text>
+              Try adjusting filters or search nearby areas like Bole or
+              Kazanchis.
+            </Text>
+            <Pressable
+              onPress={() => setFiltersOpen(true)}
+              style={[
+                styles.btn,
+                {
+                  backgroundColor: colors.primary,
+                  marginTop: 16,
+                  paddingHorizontal: 24,
+                },
+              ]}
+            >
+              <Text style={styles.btnText}>Open Filters</Text>
             </Pressable>
           </View>
-        </View>
-      </View>
-    </ScrollView>
+        )}
+      </ScrollView>
+
+      <FiltersBottomSheet
+        visible={filtersOpen}
+        onClose={() => setFiltersOpen(false)}
+        resultCount={filtered.length}
+        onApply={(f) => {
+          setAdvanced(f);
+          if (f.verifiedOnly) setVerifiedOnly(true);
+        }}
+      />
+    </View>
   );
 }
 
-function BadgePill({ label, teal, gold }: { label: string; teal?: boolean; gold?: boolean }) {
+function MiniBadge({ text, gold }: { text: string; gold?: boolean }) {
   return (
     <View
       style={{
         paddingHorizontal: 8,
-        paddingVertical: 3,
+        paddingVertical: 2,
         borderRadius: 999,
-        backgroundColor: gold ? "#FEF3C7" : teal ? "#0D9488" : "#E0F2FE",
+        backgroundColor: gold ? "#FEF3C7" : "#CCFBF1",
       }}
     >
-      <Text style={{ fontSize: 10, fontWeight: "700", color: gold ? "#92400E" : teal ? "#fff" : "#0369A1" }}>
-        {label}
+      <Text
+        style={{
+          fontSize: 10,
+          fontWeight: "700",
+          color: gold ? "#92400E" : "#0F766E",
+        }}
+      >
+        {text}
       </Text>
     </View>
   );
@@ -169,67 +382,68 @@ function BadgePill({ label, teal, gold }: { label: string; teal?: boolean; gold?
 
 const styles = StyleSheet.create({
   root: { flex: 1 },
-  hero: { paddingHorizontal: 16, paddingTop: 16, paddingBottom: 24, borderBottomLeftRadius: 0 },
-  heroRow: { flexDirection: "row", justifyContent: "space-between", alignItems: "center", marginBottom: 12 },
-  heroSub: { color: "rgba(255,255,255,0.7)", fontSize: 12 },
-  heroName: { color: "#fff", fontSize: 18, fontWeight: "800" },
-  avatar: { width: 40, height: 40, borderRadius: 20, alignItems: "center", justifyContent: "center" },
-  badgeDot: {
-    position: "absolute",
-    top: -4,
-    right: -4,
-    width: 18,
-    height: 18,
-    borderRadius: 9,
-    backgroundColor: "#FBBF24",
+  header: {
+    paddingHorizontal: 16,
+    paddingTop: 12,
+    paddingBottom: 12,
+    borderBottomWidth: 1,
+  },
+  titleRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    marginBottom: 10,
+  },
+  title: { fontSize: 18, fontWeight: "800" },
+  filterBtn: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 6,
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    borderRadius: 12,
+    borderWidth: 1,
+  },
+  search: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 8,
+    borderRadius: 12,
+    paddingHorizontal: 12,
+    paddingVertical: 10,
+  },
+  searchInput: { flex: 1, fontSize: 14 },
+  chip: {
+    paddingHorizontal: 14,
+    paddingVertical: 7,
+    borderRadius: 999,
+    marginRight: 8,
+  },
+  card: { borderRadius: 16, borderWidth: 1, padding: 14 },
+  avatar: {
+    width: 48,
+    height: 48,
+    borderRadius: 14,
     alignItems: "center",
     justifyContent: "center",
   },
-  badgeDotText: { fontSize: 10, fontWeight: "800", color: "#78350F" },
-  subCard: {
-    backgroundColor: "rgba(255,255,255,0.12)",
-    borderRadius: 12,
-    padding: 12,
+  name: { fontSize: 14, fontWeight: "700" },
+  rowBetween: {
     flexDirection: "row",
     justifyContent: "space-between",
+    alignItems: "flex-start",
+  },
+  btn: {
+    paddingVertical: 10,
+    borderRadius: 10,
     alignItems: "center",
   },
-  subLabel: { color: "rgba(255,255,255,0.7)", fontSize: 11 },
-  subTitle: { color: "#fff", fontWeight: "700", fontSize: 13 },
-  elitePill: { backgroundColor: "#7C3AED", paddingHorizontal: 10, paddingVertical: 4, borderRadius: 999 },
-  elitePillText: { color: "#fff", fontSize: 11, fontWeight: "700" },
-  card: {
-    marginHorizontal: 16,
-    marginTop: 12,
-    borderRadius: 16,
-    borderWidth: 1,
-    padding: 14,
-  },
-  sectionLabel: { fontSize: 10, fontWeight: "800", letterSpacing: 0.8, marginBottom: 10 },
-  quickGrid: { flexDirection: "row", justifyContent: "space-between" },
-  quickItem: { alignItems: "center", width: "22%" },
-  quickIcon: { width: 44, height: 44, borderRadius: 12, alignItems: "center", justifyContent: "center", marginBottom: 4 },
-  quickLabel: { fontSize: 11, fontWeight: "600" },
-  sessionRow: { flexDirection: "row", alignItems: "center", gap: 10, borderRadius: 12, padding: 10 },
-  sessionIcon: { width: 36, height: 36, borderRadius: 10, alignItems: "center", justifyContent: "center" },
-  sessionTitle: { fontSize: 13, fontWeight: "700" },
-  in2h: { backgroundColor: "#D1FAE5", paddingHorizontal: 8, paddingVertical: 4, borderRadius: 999 },
-  in2hText: { color: "#065F46", fontSize: 11, fontWeight: "700" },
-  rowBetween: { flexDirection: "row", justifyContent: "space-between", alignItems: "center" },
-  childCard: {
-    width: 80,
+  btnText: { color: "#fff", fontWeight: "700", fontSize: 13 },
+  btnOutline: {
+    paddingVertical: 10,
+    borderRadius: 10,
+    borderWidth: 1.5,
     alignItems: "center",
-    gap: 4,
-    borderRadius: 12,
-    padding: 10,
-    marginRight: 8,
   },
-  childAvatar: { width: 36, height: 36, borderRadius: 18, alignItems: "center", justifyContent: "center" },
-  childName: { fontSize: 11, fontWeight: "700" },
-  tutorAvatar: { width: 48, height: 48, borderRadius: 14, alignItems: "center", justifyContent: "center" },
-  tutorName: { fontSize: 14, fontWeight: "700" },
-  btnPrimary: { paddingVertical: 10, borderRadius: 10, alignItems: "center" },
-  btnPrimaryText: { color: "#fff", fontWeight: "700", fontSize: 13 },
-  btnOutline: { paddingVertical: 10, borderRadius: 10, borderWidth: 1.5, alignItems: "center" },
   btnOutlineText: { fontWeight: "700", fontSize: 13 },
 });
