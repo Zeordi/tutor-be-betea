@@ -1,199 +1,125 @@
+import { useState } from "react";
 import {
   View,
   Text,
-  StyleSheet,
-  FlatList,
   TextInput,
+  ScrollView,
   Pressable,
+  StyleSheet,
   KeyboardAvoidingView,
   Platform,
-  TouchableOpacity,
 } from "react-native";
-import { useLocalSearchParams, useRouter } from "expo-router";
-import { useEffect, useState, useRef } from "react";
+import { useRouter } from "expo-router";
 import { useTheme } from "@/hooks/useTheme";
-import { useAuth } from "@/hooks/useAuth";
-import { SafeAreaView } from "react-native-safe-area-context";
-import { io, Socket } from "socket.io-client";
 
-type Message = {
-  roomId: string;
-  senderId: string;
-  content: string;
-  originalBlocked?: boolean;
-  createdAt: string;
-};
+const RESTRICTED =
+  /(\+251[\d\s-]{8,}|09\d{8}|07\d{8}|[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}|@[a-zA-Z0-9_]{3,}|\b\d{10,16}\b)/gi;
+
+function sanitize(text: string) {
+  return text.replace(RESTRICTED, "[RESTRICTED CONTACT INFO]");
+}
+
+const INITIAL = [
+  { id: "1", me: true, text: "Are you available for a session tomorrow at 4pm?" },
+  { id: "2", me: false, text: "Yes, I'm available! We can cover algebra." },
+  { id: "3", me: true, text: "Send me your number please." },
+  {
+    id: "4",
+    me: false,
+    text: "My number is [RESTRICTED CONTACT INFO], Telegram [RESTRICTED CONTACT INFO]",
+    redacted: true,
+  },
+];
 
 export default function ChatScreen() {
-  const { id: roomId } = useLocalSearchParams<{ id: string }>();
-  const { isDark } = useTheme();
-  const { user } = useAuth();
   const router = useRouter();
-  const [messages, setMessages] = useState<Message[]>([]);
+  const { colors, isDark } = useTheme();
+  const [messages, setMessages] = useState(INITIAL);
   const [input, setInput] = useState("");
-  const socketRef = useRef<Socket | null>(null);
-  const flatListRef = useRef<FlatList>(null);
 
-  const bg = isDark ? "#0A1628" : "#F8FAFC";
-  const card = isDark ? "#112240" : "#FFFFFF";
-  const text = isDark ? "#F0FAFA" : "#0D2B2A";
-  const sub = isDark ? "#94A3B8" : "#64748B";
-  const primary = "#0D9488";
-  const border = isDark ? "#1E3A5F" : "#E2E8F0";
-  const headerBg = isDark ? "#0F1B2D" : "#FFFFFF";
-
-  useEffect(() => {
-    const socket = io(process.env.EXPO_PUBLIC_API_URL || "http://localhost:4000", {
-      transports: ["websocket"],
-    });
-    socketRef.current = socket;
-    socket.emit("join_room", roomId);
-    socket.on("new_message", (message: Message) => {
-      setMessages((prev) => [...prev, message]);
-      setTimeout(() => flatListRef.current?.scrollToEnd({ animated: true }), 100);
-    });
-    return () => {
-      socket.disconnect();
-    };
-  }, [roomId]);
-
-  const sendMessage = () => {
-    if (!input.trim() || !socketRef.current || !user) return;
-    socketRef.current.emit("send_message", {
-      roomId,
-      content: input.trim(),
-      senderId: user.id,
-    });
+  const send = () => {
+    if (!input.trim()) return;
+    const cleaned = sanitize(input.trim());
+    const redacted = cleaned !== input.trim();
+    setMessages((m) => [
+      ...m,
+      { id: String(Date.now()), me: true, text: cleaned, redacted },
+    ]);
     setInput("");
   };
 
-  const formatTime = (dateString: string) => {
-    try {
-      return new Date(dateString).toLocaleTimeString([], {
-        hour: "2-digit",
-        minute: "2-digit",
-      });
-    } catch {
-      return "";
-    }
-  };
-
   return (
-    <SafeAreaView style={[styles.container, { backgroundColor: bg }]} edges={["top"]}>
-      {/* Figma header */}
-      <View style={[styles.header, { backgroundColor: headerBg, borderBottomColor: border }]}>
-        <TouchableOpacity onPress={() => router.back()}>
-          <Text style={{ color: sub, fontSize: 16 }}>←</Text>
-        </TouchableOpacity>
-        <View style={styles.headerAvatar}>
-          <Text style={{ color: "#fff", fontWeight: "800", fontSize: 12 }}>ST</Text>
+    <KeyboardAvoidingView
+      style={[styles.root, { backgroundColor: colors.background }]}
+      behavior={Platform.OS === "ios" ? "padding" : undefined}
+    >
+      <View style={[styles.header, { backgroundColor: colors.card, borderBottomColor: colors.border }]}>
+        <Pressable onPress={() => router.back()}>
+          <Text style={{ fontSize: 18, color: colors.mutedForeground }}>←</Text>
+        </Pressable>
+        <View style={[styles.av, { backgroundColor: colors.primary }]}>
+          <Text style={{ color: "#fff", fontWeight: "700" }}>ST</Text>
         </View>
         <View style={{ flex: 1 }}>
-          <Text style={[styles.headerName, { color: text }]}>Selamawit Tadesse</Text>
-          <Text style={{ color: "#10B981", fontSize: 11, fontWeight: "600" }}>
-            Online · Verified ✓
-          </Text>
+          <Text style={[styles.name, { color: colors.foreground }]}>Selamawit Tadesse</Text>
+          <Text style={{ color: "#10B981", fontSize: 11 }}>Online · Verified ✓</Text>
         </View>
-        <Text style={{ fontSize: 16 }}>📞</Text>
       </View>
 
-      <FlatList
-        ref={flatListRef}
-        data={messages}
-        keyExtractor={(_, index) => index.toString()}
-        contentContainerStyle={{ padding: 14, flexGrow: 1, gap: 8 }}
-        ListHeaderComponent={
-          <View style={styles.dayPill}>
-            <Text style={{ color: sub, fontSize: 10 }}>Today</Text>
-          </View>
-        }
-        renderItem={({ item }) => {
-          const isMe = item.senderId === user?.id;
-          return (
-            <View style={{ alignItems: isMe ? "flex-end" : "flex-start" }}>
-              <View
-                style={[
-                  styles.bubble,
-                  {
-                    backgroundColor: isMe ? primary : card,
-                    borderBottomRightRadius: isMe ? 4 : 18,
-                    borderBottomLeftRadius: isMe ? 18 : 4,
-                  },
-                ]}
-              >
-                <Text style={{ color: isMe ? "#fff" : text, fontSize: 13, lineHeight: 18 }}>
-                  {item.content}
-                </Text>
-                {item.originalBlocked && (
-                  <Text
-                    style={{
-                      color: isMe ? "rgba(255,255,255,0.8)" : "#EF4444",
-                      fontSize: 10,
-                      marginTop: 4,
-                      fontWeight: "700",
-                    }}
-                  >
-                    ⚠️ Contact info auto-redacted · Platform policy
-                  </Text>
-                )}
-                <Text
-                  style={{
-                    color: isMe ? "rgba(255,255,255,0.7)" : sub,
-                    fontSize: 10,
-                    marginTop: 4,
-                    alignSelf: "flex-end",
-                  }}
-                >
-                  {formatTime(item.createdAt)}
-                </Text>
-              </View>
-            </View>
-          );
-        }}
-        ListEmptyComponent={
-          <View style={styles.empty}>
-            <Text style={{ fontSize: 36, marginBottom: 8 }}>💬</Text>
-            <Text style={[styles.emptyTitle, { color: text }]}>No messages yet</Text>
-            <Text style={{ color: sub, textAlign: "center", fontSize: 12, lineHeight: 18 }}>
-              Send a message to start.{"\n"}
-              Phone numbers, Telegram & emails are auto-blocked.
-            </Text>
-          </View>
-        }
-      />
-
-      <KeyboardAvoidingView
-        behavior={Platform.OS === "ios" ? "padding" : undefined}
-        keyboardVerticalOffset={8}
-      >
-        <View
-          style={[
-            styles.inputRow,
-            { backgroundColor: headerBg, borderTopColor: border },
-          ]}
-        >
-          <View style={[styles.inputWrap, { backgroundColor: isDark ? "#112240" : "#F1F5F9" }]}>
-            <Text style={{ fontSize: 16 }}>😊</Text>
-            <TextInput
-              style={[styles.input, { color: text }]}
-              placeholder="Type a message..."
-              placeholderTextColor={sub}
-              value={input}
-              onChangeText={setInput}
-              multiline
-            />
-          </View>
-          <Pressable style={[styles.sendBtn, { backgroundColor: primary }]} onPress={sendMessage}>
-            <Text style={{ color: "#fff", fontWeight: "800" }}>➤</Text>
-          </Pressable>
+      <ScrollView contentContainerStyle={{ padding: 16, gap: 10 }}>
+        <View style={{ alignItems: "center" }}>
+          <Text style={[styles.day, { backgroundColor: isDark ? "#1E3A5F" : "#F1F5F9", color: colors.mutedForeground }]}>
+            Today
+          </Text>
         </View>
-      </KeyboardAvoidingView>
-    </SafeAreaView>
+        {messages.map((m) => (
+          <View key={m.id} style={{ alignItems: m.me ? "flex-end" : "flex-start" }}>
+            <View
+              style={[
+                styles.bubble,
+                m.me
+                  ? { backgroundColor: colors.primary, borderBottomRightRadius: 4 }
+                  : {
+                      backgroundColor: isDark ? "#1E3A5F" : "#fff",
+                      borderBottomLeftRadius: 4,
+                      borderWidth: 1,
+                      borderColor: colors.border,
+                    },
+              ]}
+            >
+              <Text style={{ color: m.me ? "#fff" : colors.foreground, fontSize: 14, lineHeight: 20 }}>
+                {m.text}
+              </Text>
+            </View>
+            {m.redacted && (
+              <Text style={{ color: "#EF4444", fontSize: 10, fontWeight: "600", marginTop: 2, marginHorizontal: 4 }}>
+                ⚠️ Contact info auto-redacted · Platform policy
+              </Text>
+            )}
+          </View>
+        ))}
+      </ScrollView>
+
+      <View style={[styles.composer, { backgroundColor: colors.card, borderTopColor: colors.border }]}>
+        <View style={[styles.inputWrap, { backgroundColor: isDark ? "#1E3A5F" : "#F1F5F9" }]}>
+          <TextInput
+            value={input}
+            onChangeText={setInput}
+            placeholder="Message..."
+            placeholderTextColor={colors.mutedForeground}
+            style={{ flex: 1, color: colors.foreground, fontSize: 14, paddingVertical: 8 }}
+          />
+        </View>
+        <Pressable style={[styles.send, { backgroundColor: colors.primary }]} onPress={send}>
+          <Text style={{ color: "#fff", fontWeight: "800" }}>Send</Text>
+        </Pressable>
+      </View>
+    </KeyboardAvoidingView>
   );
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1 },
+  root: { flex: 1 },
   header: {
     flexDirection: "row",
     alignItems: "center",
@@ -202,59 +128,17 @@ const styles = StyleSheet.create({
     paddingVertical: 12,
     borderBottomWidth: 1,
   },
-  headerAvatar: {
-    width: 36,
-    height: 36,
-    borderRadius: 12,
-    backgroundColor: "#0D9488",
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  headerName: { fontSize: 13, fontWeight: "800" },
-  dayPill: {
-    alignSelf: "center",
-    backgroundColor: "rgba(148,163,184,0.15)",
-    paddingHorizontal: 10,
-    paddingVertical: 4,
-    borderRadius: 99,
-    marginBottom: 8,
-  },
-  bubble: {
-    maxWidth: "78%",
-    paddingHorizontal: 14,
-    paddingVertical: 10,
-    borderRadius: 18,
-  },
-  empty: {
-    flex: 1,
-    justifyContent: "center",
-    alignItems: "center",
-    paddingHorizontal: 32,
-    paddingTop: 80,
-  },
-  emptyTitle: { fontSize: 16, fontWeight: "800", marginBottom: 6 },
-  inputRow: {
-    flexDirection: "row",
-    padding: 12,
-    gap: 10,
-    alignItems: "flex-end",
-    borderTopWidth: 1,
-  },
-  inputWrap: {
-    flex: 1,
+  av: { width: 36, height: 36, borderRadius: 12, alignItems: "center", justifyContent: "center" },
+  name: { fontSize: 14, fontWeight: "700" },
+  day: { fontSize: 11, paddingHorizontal: 10, paddingVertical: 4, borderRadius: 999 },
+  bubble: { maxWidth: "78%", paddingHorizontal: 14, paddingVertical: 10, borderRadius: 18 },
+  composer: {
     flexDirection: "row",
     alignItems: "center",
     gap: 8,
-    borderRadius: 16,
-    paddingHorizontal: 12,
-    paddingVertical: 8,
+    padding: 12,
+    borderTopWidth: 1,
   },
-  input: { flex: 1, fontSize: 14, maxHeight: 100 },
-  sendBtn: {
-    width: 42,
-    height: 42,
-    borderRadius: 14,
-    alignItems: "center",
-    justifyContent: "center",
-  },
+  inputWrap: { flex: 1, borderRadius: 14, paddingHorizontal: 12 },
+  send: { paddingHorizontal: 16, paddingVertical: 12, borderRadius: 12 },
 });
