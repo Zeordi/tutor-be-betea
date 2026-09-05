@@ -1,56 +1,62 @@
 "use client";
 
-import { useEffect, useState } from "react";
-import { apiFetch, getToken } from "@/lib/api";
+import { useState } from "react";
+
+const TABS = ["All", "Jobs", "Sessions", "Payouts", "System"];
+const ITEMS = [
+  { tab: "Jobs", title: "New job near Bole", body: "Grade 12 Physics · 500 ETB/hr", time: "2h", unread: true },
+  { tab: "Sessions", title: "Session tomorrow", body: "Kidane · Math · 4:00 PM", time: "5h", unread: true },
+  { tab: "Payouts", title: "Payout received", body: "3,000 ETB via Telebirr", time: "1d", unread: false },
+  { tab: "System", title: "Verification reminder", body: "1 document needs re-upload", time: "2d", unread: false },
+];
 
 export default function TeacherNotificationsPage() {
-  const [items, setItems] = useState<any[]>([]);
-  const [loading, setLoading] = useState(true);
-
-  useEffect(() => {
-    const load = async () => {
-      try {
-        const token = localStorage.getItem("token");
-        const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/notifications`, {
-          headers: { Authorization: `Bearer ${token}` },
-        });
-        const data = await res.json();
-        setItems(Array.isArray(data) ? data : []);
-      } catch {
-        setItems([]);
-      } finally {
-        setLoading(false);
-      }
-    };
-    load();
-  }, []);
+  const [tab, setTab] = useState("All");
+  const list = tab === "All" ? ITEMS : ITEMS.filter((i) => i.tab === tab);
 
   return (
-    <main className="min-h-screen bg-[var(--background)]">
-      <section className="container py-10">
-        <h1 className="text-3xl font-bold mb-2">Notifications</h1>
-        <p className="text-[var(--secondary)] mb-8">
-          Updates about jobs, contracts, and verification.
-        </p>
+    <div className="space-y-6">
+      <div>
+        <h1 className="text-2xl font-extrabold text-[var(--text)]">Notifications</h1>
+        <p className="text-sm text-[var(--secondary)]">Job alerts, sessions, and payouts</p>
+      </div>
 
-        {loading ? (
-          <p className="text-[var(--secondary)]">Loading...</p>
-        ) : items.length === 0 ? (
-          <div className="card text-center py-12">
-            <h3 className="text-xl font-bold mb-2">No notifications</h3>
-            <p className="text-[var(--secondary)]">You’re all caught up.</p>
-          </div>
-        ) : (
-          <div className="space-y-3">
-            {items.map((item) => (
-              <div key={item.id} className="card">
-                <h3 className="font-bold">{item.title}</h3>
-                <p className="text-sm text-[var(--secondary)] mt-1">{item.body}</p>
+      <div className="flex flex-wrap gap-2">
+        {TABS.map((t) => (
+          <button
+            key={t}
+            type="button"
+            onClick={() => setTab(t)}
+            className={`rounded-full px-4 py-1.5 text-xs font-bold ${
+              tab === t
+                ? "bg-[var(--primary)] text-white"
+                : "border border-[var(--border)] bg-[var(--card)] text-[var(--secondary)]"
+            }`}
+          >
+            {t}
+          </button>
+        ))}
+      </div>
+
+      <div className="space-y-2">
+        {list.map((n) => (
+          <div
+            key={n.title}
+            className="flex items-start gap-3 rounded-2xl border border-[var(--border)] bg-[var(--card)] p-4"
+          >
+            {n.unread && (
+              <span className="mt-1.5 h-2 w-2 shrink-0 rounded-full bg-[var(--primary)]" />
+            )}
+            <div className={`min-w-0 flex-1 ${n.unread ? "" : "ml-4"}`}>
+              <div className="flex items-start justify-between gap-2">
+                <p className="font-bold text-[var(--text)]">{n.title}</p>
+                <span className="text-xs text-[var(--secondary)]">{n.time}</span>
               </div>
-            ))}
+              <p className="text-sm text-[var(--secondary)]">{n.body}</p>
+            </div>
           </div>
-        )}
-      </section>
-    </main>
+        ))}
+      </div>
+    </div>
   );
 }
