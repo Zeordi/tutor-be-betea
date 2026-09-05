@@ -24,6 +24,12 @@ export const colors = {
     infoLight: "#E0F2FE",
     accent: "#F59E0B",
     ring: "#0D9488",
+    teal900: "#134E4A",
+    teal700: "#0F766E",
+    teal600: "#0D9488",
+    teal500: "#14B8A6",
+    teal300: "#5EEAD4",
+    teal100: "#CCFBF1",
   },
   dark: {
     background: "#0A1628",
@@ -50,6 +56,12 @@ export const colors = {
     infoLight: "#082F49",
     accent: "#F59E0B",
     ring: "#14B8A6",
+    teal900: "#134E4A",
+    teal700: "#0F766E",
+    teal600: "#0D9488",
+    teal500: "#14B8A6",
+    teal300: "#5EEAD4",
+    teal100: "#CCFBF1",
   },
 } as const;
 
@@ -99,3 +111,4 @@ export const shadows = {
 } as const;
 
 export type ThemeMode = "light" | "dark";
+export type ColorTokens = typeof colors.light;
