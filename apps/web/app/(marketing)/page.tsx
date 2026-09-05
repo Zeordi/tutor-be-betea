@@ -175,6 +175,117 @@ export default function LandingPage() {
         </div>
       </section>
 
+{/* Featured Tutors — V1 */}
+      <section className="py-20">
+        <div className="mx-auto max-w-6xl px-6">
+          <div className="mb-10 flex items-end justify-between gap-4">
+            <div>
+              <h2 className="text-3xl font-extrabold text-slate-900 dark:text-white">
+                Featured Tutors
+              </h2>
+              <p className="mt-1 text-slate-500 dark:text-slate-400">
+                Top-rated verified professionals in Addis Ababa
+              </p>
+            </div>
+            <Link
+              href="/tutors"
+              className="shrink-0 rounded-xl border border-teal-600 px-4 py-2 text-sm font-bold text-teal-600 hover:bg-teal-50 dark:hover:bg-teal-900/20"
+            >
+              View All Tutors →
+            </Link>
+          </div>
+          <div className="grid gap-5 md:grid-cols-3">
+            {[
+              {
+                name: "Selamawit Tadesse",
+                subjects: "Mathematics · Physics · Statistics",
+                rating: "4.9",
+                reviews: 86,
+                rate: 450,
+                location: "Bole · 1.2 km",
+                badges: ["🛡️ ID", "🎓 Degree", "🥇 Gold", "⭐ Elite"],
+                online: true,
+              },
+              {
+                name: "Bereket Solomon",
+                subjects: "Physics · Chemistry · Biology",
+                rating: "4.8",
+                reviews: 64,
+                rate: 500,
+                location: "Kazanchis · 2.1 km",
+                badges: ["🛡️ ID", "🎓 Degree"],
+                online: true,
+              },
+              {
+                name: "Tigist Haile",
+                subjects: "Mathematics · Statistics · Grade 12",
+                rating: "4.7",
+                reviews: 42,
+                rate: 380,
+                location: "Arat Kilo · 3.4 km",
+                badges: ["🛡️ ID"],
+                online: false,
+              },
+            ].map((t) => (
+              <div
+                key={t.name}
+                className="rounded-2xl border border-slate-100 bg-white p-5 shadow-sm transition hover:-translate-y-0.5 hover:shadow-lg dark:border-slate-700/60 dark:bg-slate-800/80"
+              >
+                <div className="flex gap-3">
+                  <div className="relative flex h-14 w-14 shrink-0 items-center justify-center rounded-2xl bg-teal-600 text-sm font-bold text-white">
+                    {t.name
+                      .split(" ")
+                      .map((n) => n[0])
+                      .slice(0, 2)
+                      .join("")}
+                    {t.online && (
+                      <span className="absolute -bottom-0.5 -right-0.5 h-3.5 w-3.5 rounded-full border-2 border-white bg-emerald-500 dark:border-slate-800" />
+                    )}
+                  </div>
+                  <div className="min-w-0 flex-1">
+                    <div className="flex items-start justify-between gap-2">
+                      <p className="font-bold text-slate-800 dark:text-white">{t.name}</p>
+                      <p className="shrink-0 text-sm font-bold text-teal-600">
+                        {t.rate}
+                        <span className="text-xs font-normal text-slate-400"> ETB/hr</span>
+                      </p>
+                    </div>
+                    <p className="text-xs text-slate-500">{t.subjects}</p>
+                    <p className="mt-0.5 text-xs text-slate-500">
+                      ★ {t.rating} ({t.reviews}) · 📍 {t.location}
+                    </p>
+                    <div className="mt-2 flex flex-wrap gap-1">
+                      {t.badges.map((b) => (
+                        <span
+                          key={b}
+                          className="rounded-full bg-teal-50 px-2 py-0.5 text-[10px] font-bold text-teal-700 dark:bg-teal-900/30 dark:text-teal-300"
+                        >
+                          {b}
+                        </span>
+                      ))}
+                    </div>
+                  </div>
+                </div>
+                <div className="mt-4 flex gap-2">
+                  <Link
+                    href="/register"
+                    className="flex-1 rounded-xl bg-teal-600 py-2.5 text-center text-xs font-bold text-white hover:bg-teal-700"
+                  >
+                    Book Session
+                  </Link>
+                  <Link
+                    href="/tutors"
+                    className="flex-1 rounded-xl border border-teal-600 py-2.5 text-center text-xs font-bold text-teal-600 hover:bg-teal-50 dark:hover:bg-teal-900/20"
+                  >
+                    View Profile
+                  </Link>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      </section>
+
       {/* Safety */}
       <section className="bg-gradient-to-br from-teal-700 to-teal-900 py-20 text-white">
         <div className="mx-auto max-w-6xl px-6">
