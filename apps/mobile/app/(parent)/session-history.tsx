@@ -1,59 +1,60 @@
-import { View, Text, StyleSheet, ScrollView, TouchableOpacity } from "react-native";
+import { View, Text, ScrollView, TouchableOpacity, StyleSheet } from "react-native";
 import { useRouter } from "expo-router";
 import { useTheme } from "@/hooks/useTheme";
 import { SafeAreaView } from "react-native-safe-area-context";
 
 const SESSIONS = [
-  { date: "Mon, Jun 2", time: "4:00–5:30 PM", tutor: "Selamawit Tadesse", subject: "Mathematics", hours: 1.5, amount: 675, status: "Completed" },
-  { date: "Thu, May 30", time: "3:00–4:30 PM", tutor: "Selamawit Tadesse", subject: "Physics", hours: 1.5, amount: 675, status: "Completed" },
-  { date: "Mon, May 27", time: "4:00–5:00 PM", tutor: "Bereket Solomon", subject: "Chemistry", hours: 1, amount: 500, status: "Completed" },
-  { date: "Fri, May 24", time: "5:00–6:00 PM", tutor: "Tigist Haile", subject: "Statistics", hours: 1, amount: 380, status: "Cancelled" },
+  { id: "s1", student: "Kidane", subject: "Math", when: "Oct 12 · 4:00 PM", tutor: "Selamawit", status: "Completed", amount: "675 ETB" },
+  { id: "s2", student: "Meron", subject: "English", when: "Oct 10 · 3:00 PM", tutor: "Bereket", status: "Completed", amount: "500 ETB" },
+  { id: "s3", student: "Kidane", subject: "Physics", when: "Oct 8 · 5:00 PM", tutor: "Selamawit", status: "Disputed", amount: "675 ETB" },
 ];
 
 export default function SessionHistoryScreen() {
-  const { isDark } = useTheme();
   const router = useRouter();
-  const bg = isDark ? "#0A1628" : "#F8FAFC";
-  const card = isDark ? "#112240" : "#FFFFFF";
-  const text = isDark ? "#F0FAFA" : "#0D2B2A";
-  const sub = isDark ? "#94A3B8" : "#64748B";
-  const primary = "#0D9488";
-  const border = isDark ? "#1E3A5F" : "#E2E8F0";
+  const { colors, isDark } = useTheme();
+  const bg = colors.background ?? (isDark ? "#0A1628" : "#F8FAFC");
+  const card = colors.card ?? (isDark ? "#112240" : "#FFFFFF");
+  const text = colors.text ?? colors.foreground;
+  const sub = colors.subtext ?? colors.mutedForeground ?? "#64748B";
+  const primary = colors.primary ?? "#0D9488";
+  const border = colors.border ?? (isDark ? "#1E3A5F" : "#E2E8F0");
 
   return (
-    <SafeAreaView style={[styles.container, { backgroundColor: bg }]} edges={["top"]}>
+    <SafeAreaView style={{ flex: 1, backgroundColor: bg }} edges={["top"]}>
       <View style={[styles.header, { borderBottomColor: border }]}>
         <TouchableOpacity onPress={() => router.back()}>
           <Text style={{ color: sub }}>←</Text>
         </TouchableOpacity>
-        <View>
-          <Text style={[styles.title, { color: text }]}>Session History</Text>
-          <Text style={{ color: sub, fontSize: 11 }}>24 sessions · Filtered: All</Text>
-        </View>
+        <Text style={{ color: text, fontSize: 16, fontWeight: "800", flex: 1, marginLeft: 10 }}>
+          Session History
+        </Text>
       </View>
-      <ScrollView contentContainerStyle={styles.content}>
-        {SESSIONS.map((s, i) => (
-          <View key={i} style={[styles.card, { backgroundColor: card }]}>
-            <View style={styles.rowBetween}>
-              <Text style={{ color: sub, fontSize: 11 }}>{s.date} · {s.time}</Text>
+      <ScrollView contentContainerStyle={{ padding: 14, gap: 10 }}>
+        {SESSIONS.map((s) => (
+          <TouchableOpacity
+            key={s.id}
+            style={[styles.card, { backgroundColor: card, borderColor: border }]}
+            onPress={() => router.push(`/(parent)/session/${s.id}`)}
+          >
+            <View style={styles.row}>
+              <Text style={{ color: text, fontWeight: "800", flex: 1 }}>
+                {s.student} · {s.subject}
+              </Text>
               <Text
                 style={{
-                  color: s.status === "Completed" ? primary : "#EF4444",
-                  fontSize: 11,
+                  color: s.status === "Disputed" ? "#DC2626" : "#059669",
                   fontWeight: "800",
+                  fontSize: 11,
                 }}
               >
                 {s.status}
               </Text>
             </View>
-            <Text style={[styles.subject, { color: text }]}>
-              {s.subject} with {s.tutor}
+            <Text style={{ color: sub, fontSize: 12, marginTop: 4 }}>
+              {s.when} · {s.tutor}
             </Text>
-            <View style={styles.rowBetween}>
-              <Text style={{ color: sub, fontSize: 11 }}>{s.hours}h · Bole, Addis Ababa</Text>
-              <Text style={{ color: text, fontWeight: "800" }}>{s.amount} ETB</Text>
-            </View>
-          </View>
+            <Text style={{ color: primary, fontWeight: "800", marginTop: 6 }}>{s.amount}</Text>
+          </TouchableOpacity>
         ))}
       </ScrollView>
     </SafeAreaView>
@@ -61,22 +62,12 @@ export default function SessionHistoryScreen() {
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1 },
   header: {
     flexDirection: "row",
     alignItems: "center",
-    gap: 12,
     padding: 14,
     borderBottomWidth: 1,
   },
-  title: { fontSize: 16, fontWeight: "800" },
-  content: { padding: 16, gap: 8 },
-  card: { borderRadius: 16, padding: 14 },
-  rowBetween: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "center",
-    marginTop: 6,
-  },
-  subject: { fontSize: 13, fontWeight: "800", marginTop: 4 },
+  card: { borderRadius: 16, borderWidth: 1, padding: 14 },
+  row: { flexDirection: "row", alignItems: "center" },
 });
