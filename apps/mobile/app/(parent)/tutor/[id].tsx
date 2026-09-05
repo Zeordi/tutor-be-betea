@@ -1,197 +1,147 @@
-import {
-  View,
-  Text,
-  StyleSheet,
-  ScrollView,
-  TouchableOpacity,
-  ActivityIndicator,
-} from "react-native";
-import { useEffect, useState } from "react";
-import { useTheme } from "@/hooks/useTheme";
-import { SafeAreaView } from "react-native-safe-area-context";
+import { View, Text, ScrollView, Pressable, StyleSheet } from "react-native";
 import { useLocalSearchParams, useRouter } from "expo-router";
-
-type TutorProfile = {
-  id: string;
-  fullName: string;
-  subjects: string[];
-  rating: number;
-  totalReviews: number;
-  hourlyRate: number;
-  bio?: string;
-  isIdVerified?: boolean;
-  isEduVerified?: boolean;
-  badgeTier?: string;
-  sessionsCompleted?: number;
-  punctuality?: number;
-};
+import { useTheme } from "@/hooks/useTheme";
 
 export default function TutorProfileScreen() {
-  const { isDark } = useTheme();
   const { id } = useLocalSearchParams<{ id: string }>();
   const router = useRouter();
-  const [tutor, setTutor] = useState<TutorProfile | null>(null);
-  const [loading, setLoading] = useState(true);
-
-  const bg = isDark ? "#0A1628" : "#F8FAFC";
-  const card = isDark ? "#112240" : "#FFFFFF";
-  const text = isDark ? "#F0FAFA" : "#0D2B2A";
-  const sub = isDark ? "#94A3B8" : "#64748B";
-  const primary = "#0D9488";
-
-  useEffect(() => {
-    (async () => {
-      try {
-        setLoading(true);
-        const res = await fetch(
-          `\( {process.env.EXPO_PUBLIC_API_URL || "http://localhost:4000"}/teachers/ \){id}/public`
-        );
-        if (res.ok) {
-          const data = await res.json();
-          setTutor(data);
-        } else {
-          throw new Error("fallback");
-        }
-      } catch {
-        setTutor({
-          id: String(id),
-          fullName: "Selamawit Tadesse",
-          subjects: ["Mathematics", "Physics"],
-          rating: 4.9,
-          totalReviews: 128,
-          hourlyRate: 450,
-          bio: "MSc Mathematics from AAU. 7 years teaching experience. Specializes in Grade 9–12 Ethiopian National Exam prep.",
-          isIdVerified: true,
-          isEduVerified: true,
-          badgeTier: "GOLD",
-          sessionsCompleted: 128,
-          punctuality: 98,
-        });
-      } finally {
-        setLoading(false);
-      }
-    })();
-  }, [id]);
-
-  if (loading) {
-    return (
-      <View style={[styles.center, { backgroundColor: bg }]}>
-        <ActivityIndicator color={primary} />
-      </View>
-    );
-  }
-
-  if (!tutor) {
-    return (
-      <View style={[styles.center, { backgroundColor: bg }]}>
-        <Text style={{ color: sub }}>Tutor not found</Text>
-      </View>
-    );
-  }
+  const { colors, isDark } = useTheme();
 
   return (
-    <SafeAreaView style={[styles.container, { backgroundColor: bg }]} edges={["top"]}>
-      <ScrollView showsVerticalScrollIndicator={false}>
-        <View style={styles.hero}>
-          <TouchableOpacity style={styles.backBtn} onPress={() => router.back()}>
+    <View style={[styles.root, { backgroundColor: colors.background }]}>
+      <ScrollView contentContainerStyle={{ paddingBottom: 120 }}>
+        <View style={[styles.cover, { backgroundColor: colors.primaryDark }]}>
+          <Pressable style={styles.backBtn} onPress={() => router.back()}>
             <Text style={{ color: "#fff", fontSize: 16 }}>←</Text>
-          </TouchableOpacity>
+          </Pressable>
         </View>
 
-        <View style={styles.content}>
-          <View style={styles.avatarWrap}>
-            <View style={styles.avatar}>
-              <Text style={{ color: "#fff", fontSize: 22, fontWeight: "800" }}>
-                {tutor.fullName
-                  .split(" ")
-                  .map((n) => n[0])
-                  .slice(0, 2)
-                  .join("")}
-              </Text>
+        <View style={{ paddingHorizontal: 16, marginTop: -36 }}>
+          <View style={styles.headerRow}>
+            <View style={[styles.avatarLg, { backgroundColor: colors.primary, borderColor: colors.background }]}>
+              <Text style={{ color: "#fff", fontSize: 22, fontWeight: "800" }}>ST</Text>
             </View>
-            <View style={styles.iconActions}>
-              <TouchableOpacity style={[styles.iconBtn, { backgroundColor: card }]}>
+            <View style={{ flexDirection: "row", gap: 8, marginBottom: 8 }}>
+              <Pressable
+                style={[styles.iconBtn, { backgroundColor: colors.card, borderColor: colors.border }]}
+                onPress={() => router.push(`/(shared)/chat/${id}`)}
+              >
                 <Text>💬</Text>
-              </TouchableOpacity>
-              <TouchableOpacity style={[styles.iconBtn, { backgroundColor: card }]}>
+              </Pressable>
+              <Pressable style={[styles.iconBtn, { backgroundColor: colors.card, borderColor: colors.border }]}>
                 <Text>❤️</Text>
-              </TouchableOpacity>
+              </Pressable>
             </View>
           </View>
 
-          <Text style={[styles.name, { color: text }]}>{tutor.fullName}</Text>
-          <Text style={{ color: sub, fontSize: 13, marginBottom: 8 }}>
-            {tutor.subjects?.join(" · ")} · Grade 9–12
+          <Text style={[styles.name, { color: colors.foreground }]}>Selamawit Tadesse</Text>
+          <Text style={{ color: colors.mutedForeground, fontSize: 13, marginBottom: 8 }}>
+            Mathematics · Physics · Grade 9–12
           </Text>
 
-          <View style={styles.badgeRow}>
-            {tutor.isIdVerified && <Text style={styles.badge}>🛡️ National ID Verified</Text>}
-            {tutor.isEduVerified && <Text style={styles.badge}>🎓 Degree Verified</Text>}
-            {tutor.badgeTier?.includes("GOLD") && <Text style={styles.badge}>🥇 Gold Top 1%</Text>}
+          <View style={{ flexDirection: "row", flexWrap: "wrap", gap: 6, marginBottom: 12 }}>
+            <Pill text="🛡️ National ID Verified" solid />
+            <Pill text="🎓 Degree Verified" />
+            <Pill text="🥇 Gold Top 1%" gold />
+            <Pill text="⭐ Elite" elite />
           </View>
 
-          <View style={[styles.stats, { backgroundColor: card }]}>
+          <View style={[styles.stats, { backgroundColor: colors.card, borderColor: colors.border }]}>
             {[
-              ["⭐", tutor.rating?.toFixed?.(1) ?? "4.9", "Rating"],
-              ["📚", String(tutor.sessionsCompleted ?? 128), "Sessions"],
-              ["⏰", `${tutor.punctuality ?? 98}%`, "Punctual"],
-              ["🔁", "94%", "Rehire"],
-            ].map(([icon, val, label]) => (
-              <View key={label as string} style={styles.statItem}>
-                <Text>{icon}</Text>
-                <Text style={{ color: primary, fontWeight: "800", fontSize: 13 }}>{val}</Text>
-                <Text style={{ color: sub, fontSize: 9 }}>{label}</Text>
+              ["4.9", "⭐", "Rating"],
+              ["128", "📚", "Sessions"],
+              ["98%", "⏰", "Punctual"],
+              ["94%", "🔁", "Rehire"],
+            ].map(([v, icon, label]) => (
+              <View key={label} style={{ alignItems: "center", flex: 1 }}>
+                <Text style={{ fontSize: 14 }}>{icon}</Text>
+                <Text style={{ color: colors.primary, fontWeight: "800", fontSize: 14 }}>{v}</Text>
+                <Text style={{ color: colors.mutedForeground, fontSize: 10 }}>{label}</Text>
               </View>
             ))}
           </View>
 
-          <View style={[styles.card, { backgroundColor: card }]}>
-            <Text style={{ color: text, fontSize: 13, lineHeight: 20 }}>
-              {tutor.bio || "Verified tutor on Tutor Be Betea."}
+          <View style={[styles.block, { backgroundColor: colors.card, borderColor: colors.border }]}>
+            <Text style={{ color: colors.foreground, fontSize: 13, lineHeight: 20 }}>
+              MSc Mathematics from AAU. 7 years teaching experience. Specializes in helping Grade 9–12 students prepare
+              for Ethiopian National Exams.
             </Text>
           </View>
 
-          <View style={[styles.card, { backgroundColor: card }]}>
-            <Text style={[styles.sectionLabel, { color: sub }]}>RATES</Text>
+          <View style={[styles.block, { backgroundColor: colors.card, borderColor: colors.border }]}>
+            <Text style={[styles.section, { color: colors.mutedForeground }]}>RATES</Text>
             {[
-              ["Single Session", `${tutor.hourlyRate} ETB/hr`],
+              ["Single Session", "450 ETB/hr"],
               ["5-Session Pack", "2,000 ETB"],
               ["Monthly (20hrs)", "7,500 ETB"],
             ].map(([n, p]) => (
               <View key={n} style={styles.rateRow}>
-                <Text style={{ color: sub, fontSize: 12 }}>{n}</Text>
-                <Text style={{ color: primary, fontWeight: "800", fontSize: 12 }}>{p}</Text>
+                <Text style={{ color: colors.foreground, fontSize: 13 }}>{n}</Text>
+                <Text style={{ color: colors.primary, fontWeight: "800", fontSize: 13 }}>{p}</Text>
               </View>
             ))}
           </View>
 
-          <View style={{ height: 90 }} />
+          {/* Video placeholder */}
+          <View style={[styles.video, { backgroundColor: isDark ? "#1E3A5F" : "#E2E8F0" }]}>
+            <Text style={{ fontSize: 28 }}>▶️</Text>
+            <Text style={{ color: colors.mutedForeground, fontSize: 12, marginTop: 6 }}>Intro video</Text>
+          </View>
         </View>
       </ScrollView>
 
-      <View style={[styles.footer, { backgroundColor: isDark ? "#0F1B2D" : "#FFFFFF", borderTopColor: isDark ? "#1E3A5F" : "#E2E8F0" }]}>
-        <TouchableOpacity style={[styles.footerPrimary, { backgroundColor: primary }]}>
-          <Text style={styles.footerPrimaryText}>📅 Book Session</Text>
-        </TouchableOpacity>
-        <TouchableOpacity style={[styles.footerSecondary, { backgroundColor: isDark ? "rgba(13,148,136,0.2)" : "#F0FDFA" }]}>
-          <Text style={[styles.footerSecondaryText, { color: primary }]}>💬 Message</Text>
-        </TouchableOpacity>
+      <View style={[styles.footer, { backgroundColor: colors.card, borderTopColor: colors.border }]}>
+        <Pressable style={[styles.cta, { backgroundColor: colors.primary, flex: 1 }]}>
+          <Text style={styles.ctaText}>📅 Book Session</Text>
+        </Pressable>
+        <Pressable
+          style={[styles.ctaSoft, { backgroundColor: isDark ? "#134E4A" : "#F0FDFA", flex: 1 }]}
+          onPress={() => router.push(`/(shared)/chat/${id}`)}
+        >
+          <Text style={[styles.ctaSoftText, { color: colors.primary }]}>💬 Message</Text>
+        </Pressable>
       </View>
-    </SafeAreaView>
+    </View>
+  );
+}
+
+function Pill({
+  text,
+  solid,
+  gold,
+  elite,
+}: {
+  text: string;
+  solid?: boolean;
+  gold?: boolean;
+  elite?: boolean;
+}) {
+  let bg = "#E0F2FE";
+  let color = "#0369A1";
+  if (solid) {
+    bg = "#0D9488";
+    color = "#fff";
+  } else if (gold) {
+    bg = "#FEF3C7";
+    color = "#92400E";
+  } else if (elite) {
+    bg = "#7C3AED";
+    color = "#fff";
+  }
+  return (
+    <View style={{ backgroundColor: bg, paddingHorizontal: 10, paddingVertical: 4, borderRadius: 999 }}>
+      <Text style={{ fontSize: 11, fontWeight: "700", color }}>{text}</Text>
+    </View>
   );
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1 },
-  center: { flex: 1, justifyContent: "center", alignItems: "center" },
-  hero: {
-    height: 96,
-    backgroundColor: "#0F766E",
-    justifyContent: "flex-start",
-    paddingTop: 12,
-    paddingHorizontal: 14,
-  },
+  root: { flex: 1 },
+  cover: { height: 100 },
   backBtn: {
+    position: "absolute",
+    top: 12,
+    left: 12,
     width: 32,
     height: 32,
     borderRadius: 10,
@@ -199,51 +149,40 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "center",
   },
-  content: { paddingHorizontal: 16, marginTop: -32 },
-  avatarWrap: { flexDirection: "row", justifyContent: "space-between", alignItems: "flex-end", marginBottom: 10 },
-  avatar: {
-    width: 72,
-    height: 72,
-    borderRadius: 22,
-    backgroundColor: "#0D9488",
+  headerRow: { flexDirection: "row", justifyContent: "space-between", alignItems: "flex-end" },
+  avatarLg: {
+    width: 80,
+    height: 80,
+    borderRadius: 20,
+    borderWidth: 4,
     alignItems: "center",
     justifyContent: "center",
-    borderWidth: 4,
-    borderColor: "#fff",
   },
-  iconActions: { flexDirection: "row", gap: 8, marginBottom: 8 },
   iconBtn: {
     width: 36,
     height: 36,
     borderRadius: 12,
+    borderWidth: 1,
     alignItems: "center",
     justifyContent: "center",
   },
-  name: { fontSize: 20, fontWeight: "900" },
-  badgeRow: { flexDirection: "row", flexWrap: "wrap", gap: 6, marginBottom: 12 },
-  badge: {
-    fontSize: 10,
-    backgroundColor: "#F0FDFA",
-    color: "#0F766E",
-    paddingHorizontal: 8,
-    paddingVertical: 4,
-    borderRadius: 99,
-    overflow: "hidden",
-    fontWeight: "700",
-  },
+  name: { fontSize: 22, fontWeight: "800", marginTop: 8 },
   stats: {
-    borderRadius: 18,
-    padding: 12,
     flexDirection: "row",
+    borderRadius: 16,
+    borderWidth: 1,
+    padding: 12,
     marginBottom: 12,
   },
-  statItem: { flex: 1, alignItems: "center", gap: 2 },
-  card: { borderRadius: 18, padding: 14, marginBottom: 12 },
-  sectionLabel: { fontSize: 10, fontWeight: "800", letterSpacing: 0.6, marginBottom: 8 },
-  rateRow: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    paddingVertical: 6,
+  block: { borderRadius: 16, borderWidth: 1, padding: 14, marginBottom: 12 },
+  section: { fontSize: 10, fontWeight: "800", letterSpacing: 0.6, marginBottom: 8 },
+  rateRow: { flexDirection: "row", justifyContent: "space-between", paddingVertical: 6 },
+  video: {
+    height: 140,
+    borderRadius: 16,
+    alignItems: "center",
+    justifyContent: "center",
+    marginBottom: 16,
   },
   footer: {
     position: "absolute",
@@ -255,8 +194,8 @@ const styles = StyleSheet.create({
     padding: 14,
     borderTopWidth: 1,
   },
-  footerPrimary: { flex: 1, borderRadius: 14, paddingVertical: 14, alignItems: "center" },
-  footerPrimaryText: { color: "#fff", fontWeight: "800", fontSize: 13 },
-  footerSecondary: { flex: 1, borderRadius: 14, paddingVertical: 14, alignItems: "center" },
-  footerSecondaryText: { fontWeight: "800", fontSize: 13 },
+  cta: { paddingVertical: 14, borderRadius: 12, alignItems: "center" },
+  ctaText: { color: "#fff", fontWeight: "800", fontSize: 14 },
+  ctaSoft: { paddingVertical: 14, borderRadius: 12, alignItems: "center" },
+  ctaSoftText: { fontWeight: "800", fontSize: 14 },
 });
