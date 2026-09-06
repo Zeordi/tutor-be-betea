@@ -3,39 +3,82 @@
 import Link from "next/link";
 
 const DAYS = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"];
-const DATES = [2, 3, 4, 5, 6, 7, 8];
+const DATES = [1, 2, 3, 4, 5, 6, 7];
+
 const SESSIONS = [
-  { day: "Mon", time: "4:00 PM", student: "Kidane M.", sub: "Mathematics", id: "c1" },
-  { day: "Wed", time: "3:00 PM", student: "Liya A.", sub: "Physics", id: "c2" },
-  { day: "Fri", time: "5:00 PM", student: "Kidane M.", sub: "Algebra", id: "c1" },
-  { day: "Sat", time: "10:00 AM", student: "Meron H.", sub: "English", id: "c3" },
+  {
+    day: "Mon",
+    time: "4:00 PM",
+    student: "Kidane M.",
+    sub: "Mathematics",
+    loc: "Bole",
+    id: "c1",
+  },
+  {
+    day: "Wed",
+    time: "3:00 PM",
+    student: "Liya A.",
+    sub: "Physics",
+    loc: "Yeka",
+    id: "c2",
+  },
+  {
+    day: "Fri",
+    time: "5:00 PM",
+    student: "Kidane M.",
+    sub: "Algebra",
+    loc: "Bole",
+    id: "c1",
+  },
+  {
+    day: "Sat",
+    time: "10:00 AM",
+    student: "Meron H.",
+    sub: "English",
+    loc: "Sarbet",
+    id: "c3",
+  },
 ];
 
 export default function TeacherCalendarPage() {
+  const today = "Mon";
+
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between">
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <div>
-          <h1 className="text-2xl font-extrabold text-[var(--text)]">Calendar</h1>
-          <p className="text-sm text-[var(--secondary)]">June 2025 · {SESSIONS.length} sessions this week</p>
+          <h1 className="text-2xl font-extrabold text-[var(--foreground)]">Calendar</h1>
+          <p className="text-sm text-[var(--secondary)]">
+            Sep 2026 · {SESSIONS.length} sessions this week
+          </p>
         </div>
-        <Link
-          href="/teacher/availability"
-          className="rounded-xl bg-[var(--primary)] px-4 py-2 text-sm font-bold text-white"
-        >
-          Edit availability
-        </Link>
+        <div className="flex flex-wrap gap-2">
+          <Link
+            href="/teacher/sessions"
+            className="rounded-xl border border-[var(--border)] px-4 py-2 text-sm font-bold text-[var(--foreground)]"
+          >
+            Session list
+          </Link>
+          <Link
+            href="/teacher/availability"
+            className="rounded-xl bg-[var(--primary)] px-4 py-2 text-sm font-bold text-white"
+          >
+            Edit availability
+          </Link>
+        </div>
       </div>
 
       <div className="grid grid-cols-7 gap-2">
         {DAYS.map((d, i) => {
-          const active = i === 0;
+          const active = d === today;
           const has = SESSIONS.some((s) => s.day === d);
           return (
             <div
               key={d}
-              className={`rounded-xl border border-[var(--border)] p-3 text-center ${
-                active ? "bg-[var(--primary)] text-white" : "bg-[var(--card)]"
+              className={`rounded-xl border p-3 text-center ${
+                active
+                  ? "border-[var(--primary)] bg-[var(--primary)] text-white"
+                  : "border-[var(--border)] bg-[var(--card)]"
               }`}
             >
               <p className="text-[10px] font-bold opacity-80">{d}</p>
@@ -53,22 +96,27 @@ export default function TeacherCalendarPage() {
       </div>
 
       <div className="space-y-3">
+        <h2 className="text-sm font-extrabold uppercase tracking-wide text-[var(--secondary)]">
+          Upcoming this week
+        </h2>
         {SESSIONS.map((s, i) => (
           <Link
-            key={`\( {s.id}- \){i}`}
+            key={`\( {s.id}- \){s.day}-${i}`}
             href={`/teacher/sessions/${s.id}`}
             className="flex items-center gap-4 rounded-2xl border border-[var(--border)] bg-[var(--card)] p-4 transition hover:shadow-md"
           >
-            <div className="w-16 text-center">
+            <div className="w-16 shrink-0 text-center">
               <p className="text-xs font-bold text-[var(--primary)]">{s.day}</p>
-              <p className="text-sm font-extrabold text-[var(--text)]">{s.time}</p>
+              <p className="text-sm font-extrabold text-[var(--foreground)]">{s.time}</p>
             </div>
             <div className="h-10 w-px bg-[var(--border)]" />
-            <div className="flex-1">
-              <p className="font-bold text-[var(--text)]">{s.student}</p>
-              <p className="text-sm text-[var(--secondary)]">{s.sub}</p>
+            <div className="min-w-0 flex-1">
+              <p className="font-bold text-[var(--foreground)]">{s.student}</p>
+              <p className="text-sm text-[var(--secondary)]">
+                {s.sub} · 📍 {s.loc}
+              </p>
             </div>
-            <span className="text-[var(--primary)] font-bold">→</span>
+            <span className="font-bold text-[var(--primary)]">→</span>
           </Link>
         ))}
       </div>
