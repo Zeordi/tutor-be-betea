@@ -2,6 +2,8 @@
 
 import Link from "next/link";
 
+const MILESTONES = ["Funded", "In Escrow", "Sessions", "Released"] as const;
+
 const CONTRACTS = [
   {
     id: "c1",
@@ -14,6 +16,7 @@ const CONTRACTS = [
     sessionsDone: 6,
     sessionsTotal: 8,
     nextSession: "Today · 10:00 AM",
+    milestoneIndex: 2,
   },
   {
     id: "c2",
@@ -26,6 +29,7 @@ const CONTRACTS = [
     sessionsDone: 3,
     sessionsTotal: 6,
     nextSession: "Tomorrow · 2:00 PM",
+    milestoneIndex: 2,
   },
   {
     id: "c3",
@@ -38,6 +42,7 @@ const CONTRACTS = [
     sessionsDone: 10,
     sessionsTotal: 10,
     nextSession: "—",
+    milestoneIndex: 3,
   },
 ];
 
@@ -45,11 +50,9 @@ export default function TeacherContractsPage() {
   return (
     <div>
       <div className="mb-6">
-        <h1 className="text-2xl font-black text-[var(--foreground)]">
-          Active Contracts
-        </h1>
+        <h1 className="text-2xl font-black text-[var(--foreground)]">Active Contracts</h1>
         <p className="text-sm text-[var(--secondary)]">
-          Escrow-backed tutoring agreements · funds release after verified sessions
+          Escrow-backed agreements · funds release after verified sessions
         </p>
       </div>
 
@@ -79,9 +82,7 @@ export default function TeacherContractsPage() {
             >
               <div className="mb-4 flex flex-wrap items-start justify-between gap-3">
                 <div>
-                  <p className="text-lg font-extrabold text-[var(--foreground)]">
-                    {c.family}
-                  </p>
+                  <p className="text-lg font-extrabold text-[var(--foreground)]">{c.family}</p>
                   <p className="text-sm text-[var(--secondary)]">
                     {c.child} · {c.subject}
                   </p>
@@ -95,6 +96,47 @@ export default function TeacherContractsPage() {
                 >
                   {c.status}
                 </span>
+              </div>
+
+              {/* Escrow milestone timeline */}
+              <div className="mb-5 flex items-center gap-1">
+                {MILESTONES.map((m, i) => {
+                  const done = i <= c.milestoneIndex;
+                  return (
+                    <div key={m} className="flex flex-1 flex-col items-center gap-1">
+                      <div className="flex w-full items-center">
+                        {i > 0 && (
+                          <div
+                            className={`h-0.5 flex-1 ${
+                              i <= c.milestoneIndex
+                                ? "bg-[var(--primary)]"
+                                : "bg-[var(--border)]"
+                            }`}
+                          />
+                        )}
+                        <div
+                          className={`flex h-7 w-7 shrink-0 items-center justify-center rounded-full text-[10px] font-black ${
+                            done
+                              ? "bg-[var(--primary)] text-white"
+                              : "bg-[var(--muted)] text-[var(--secondary)]"
+                          }`}
+                        >
+                          {done ? "✓" : i + 1}
+                        </div>
+                        {i < MILESTONES.length - 1 && (
+                          <div
+                            className={`h-0.5 flex-1 ${
+                              i < c.milestoneIndex
+                                ? "bg-[var(--primary)]"
+                                : "bg-[var(--border)]"
+                            }`}
+                          />
+                        )}
+                      </div>
+                      <span className="text-[10px] font-bold text-[var(--secondary)]">{m}</span>
+                    </div>
+                  );
+                })}
               </div>
 
               <div className="mb-4 grid gap-3 sm:grid-cols-3">
