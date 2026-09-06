@@ -5,8 +5,7 @@ export const redis = new Redis({
   token: process.env.UPSTASH_REDIS_REST_TOKEN!,
 });
 
-// Helper to test connection
-export async function testRedisConnection() {
+export async function testRedisConnection(): Promise<boolean> {
   try {
     await redis.set("tutor_be_betea_health", "ok", { ex: 10 });
     const result = await redis.get("tutor_be_betea_health");
