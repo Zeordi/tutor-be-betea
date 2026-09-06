@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
-import { setToken } from "@/lib/api";
+import { setSession } from "@/lib/auth";
 
 const LANGS = ["EN", "አማ", "ORO", "ትግ"] as const;
 
@@ -102,7 +102,9 @@ export default function RegisterPage() {
         throw new Error(err.message || "Registration failed");
       }
       const data = await registerRes.json();
-      if (data.accessToken) setToken(data.accessToken);
+      if (data.accessToken) {
+        setSession(data.accessToken, data.user?.role);
+      }
       router.push(role === "TEACHER" ? "/teacher" : "/parent");
     } catch (err: any) {
       setMessage(err.message || "Registration failed");
