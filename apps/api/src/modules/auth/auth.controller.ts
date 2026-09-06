@@ -43,10 +43,4 @@ export class AuthController {
   ) {
     return this.authService.verifyOtp(phoneNumber || email || "", code || "");
   }
-
-  @Post("demo-login")
-  @HttpCode(HttpStatus.OK)
-  demoLogin(@Body("role") role?: "PARENT" | "TEACHER") {
-    return this.authService.demoLogin(role || "PARENT");
-  }
 }
