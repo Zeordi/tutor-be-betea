@@ -6,7 +6,6 @@ export class BadgesService {
   async issueBadge(params: {
     teacherId: string;
     badgeType: string;
-    issuedBy?: string;
   }) {
     const existing = await prisma.trustBadge.findFirst({
       where: {
