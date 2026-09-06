@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
-import { setToken } from "@/lib/api";
+import { setSession } from "@/lib/auth";
 
 const LANGS = ["EN", "አማ", "ORO", "ትግ"] as const;
 
@@ -101,7 +101,9 @@ export default function LoginPage() {
         throw new Error(err.message || "Login failed");
       }
       const data = await loginRes.json();
-      if (data.accessToken) setToken(data.accessToken);
+      if (data.accessToken) {
+        setSession(data.accessToken, data.user?.role);
+      }
       redirectByRole(data.user?.role);
     } catch (err: any) {
       setMessage(err.message || "Login failed");
@@ -297,7 +299,9 @@ export default function LoginPage() {
                 ))}
               </div>
               <p className="text-center text-xs text-[var(--muted-foreground)]">
-                {countdown > 0 ? `Resend in ${countdown}s` : (
+                {countdown > 0 ? (
+                  `Resend in ${countdown}s`
+                ) : (
                   <button
                     type="button"
                     className="text-teal-600 font-semibold"
