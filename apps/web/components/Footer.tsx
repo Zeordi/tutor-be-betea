@@ -8,6 +8,7 @@ const COLS = [
       { href: "/for-tutors", label: "Become a Tutor" },
       { href: "/how-it-works", label: "How It Works" },
       { href: "/pricing", label: "Pricing" },
+      { href: "/referral", label: "Referral Program" },
     ],
   },
   {
@@ -44,15 +45,22 @@ export default function Footer() {
     <footer className="bg-[var(--primary)] text-white dark:bg-[#0A1628]">
       <div className="mx-auto max-w-6xl px-4 pb-8 pt-14 md:px-6">
         <div className="mb-12 grid gap-10 md:grid-cols-2 lg:grid-cols-5">
-          {/* Brand */}
+          {/* Brand — V5 content details, existing design */}
           <div className="lg:col-span-1">
-            <div className="mb-4 flex items-center gap-2.5">
+            <div className="mb-1 flex items-center gap-2.5">
               <div className="flex h-9 w-9 items-center justify-center rounded-[10px] bg-white/15 text-lg">
                 📚
               </div>
-              <span className="text-base font-extrabold">Tutor Be Betea</span>
+              <div>
+                <span className="block text-base font-extrabold leading-tight">
+                  Tutor Be Betea
+                </span>
+                <span className="block text-[10px] font-semibold text-white/55">
+                  ቱተር ቤ ቤቴ
+                </span>
+              </div>
             </div>
-            <p className="mb-5 max-w-[260px] text-[13px] leading-relaxed text-white/65">
+            <p className="mb-5 mt-4 max-w-[260px] text-[13px] leading-relaxed text-white/65">
               Ethiopia&apos;s trusted tutoring marketplace. Safe, verified, and
               built for Ethiopian families.
             </p>
@@ -99,20 +107,24 @@ export default function Footer() {
             © 2026 Tutor Be Betea · Addis Ababa, Ethiopia · All rights reserved
           </p>
           <div className="flex flex-wrap gap-5">
-            {["Privacy Policy", "Terms of Service", "Cookie Policy"].map((l) => (
+            {[
+              { href: "/about", label: "Privacy Policy" },
+              { href: "/about", label: "Terms of Service" },
+              { href: "/about", label: "Cookie Policy" },
+            ].map((l) => (
               <Link
-                key={l}
-                href="/about"
+                key={l.label}
+                href={l.href}
                 className="text-xs text-white/45 transition hover:text-white"
               >
-                {l}
+                {l.label}
               </Link>
             ))}
           </div>
         </div>
       </div>
 
-      {/* Ethiopian flag bar */}
+      {/* Ethiopian tri-stripe — content detail from V5; colors kept simple */}
       <div className="flex h-1.5">
         <div className="flex-1 bg-green-500" />
         <div className="flex-1 bg-yellow-400" />
