@@ -1,26 +1,15 @@
 import { Injectable } from "@nestjs/common";
+import { prisma } from "@tutor/database";
 
 @Injectable()
 export class VideoService {
-  /**
-   * Create a video room for a session
-   * Later integrate LiveKit / Daily.co / Agora
-   */
-  async createRoom(contractId: string, sessionId: string) {
-    // TODO: Integrate with LiveKit or Daily.co
-    return {
-      roomId: `room_\( {contractId}_ \){sessionId}`,
-      joinUrl: null,
-      provider: "LIVEKIT",
-      message: "Video provider not yet connected",
-    };
+  async createRoom(contractId: string, teacherId: string) {
+    // Daily.co / LiveKit integration placeholder
+    return { roomId: `room-\( {contractId}- \){Date.now()}` };
   }
 
-  async generateToken(roomId: string, userId: string, role: "teacher" | "student") {
-    // TODO: Generate real provider token
-    return {
-      token: null,
-      message: "Video provider not yet connected",
-    };
+  async joinRoom(roomId: string, userId: string) {
+    // WebRTC / LiveKit logic
+    return { success: true, roomId };
   }
 }
