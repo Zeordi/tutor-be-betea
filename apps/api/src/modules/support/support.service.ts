@@ -3,17 +3,11 @@ import { prisma } from "@tutor/database";
 
 @Injectable()
 export class SupportService {
-  async createTicket(data: {
-    contractId: string;
-    submittedBy: string;
-    reasonType: string;
-    explanation: string;
-    evidenceAttachmentUrls?: string[];
-  }) {
+  async createTicket(data: any) {
     return prisma.supportTicket.create({
       data: {
         contractId: data.contractId,
-        submittedBy: data.submittedBy,
+        submittedBy: data.userId,
         reasonType: data.reasonType,
         explanation: data.explanation,
         evidenceAttachmentUrls: data.evidenceAttachmentUrls || [],
@@ -22,9 +16,9 @@ export class SupportService {
     });
   }
 
-  async getTickets(status?: string) {
+  async getTicketsByContract(contractId: string) {
     return prisma.supportTicket.findMany({
-      where: status ? { status: status as any } : undefined,
+      where: { contractId },
       orderBy: { createdAt: "desc" },
     });
   }
