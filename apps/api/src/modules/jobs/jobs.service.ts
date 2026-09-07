@@ -3,14 +3,11 @@ import { prisma } from "@tutor/database";
 
 @Injectable()
 export class JobsService {
-  async create(parentId: string, data: {
-    studentId: string;
-    subjects: string[];
-    monthlyBudget: number;
-    isUrgentBoost?: boolean;
-  }) {
-    const expiresAt = new Date();
-    expiresAt.setDate(expiresAt.getDate() + 14);
+  async createJob(parentId: string, data: any) {
+    const student = await prisma.studentProfile.findUnique({
+      where: { id: data.studentId },
+    });
+    if (!student) throw new NotFoundException("Student not found");
 
     return prisma.parentJob.create({
       data: {
@@ -18,33 +15,45 @@ export class JobsService {
         studentId: data.studentId,
         subjects: data.subjects,
         monthlyBudget: data.monthlyBudget,
-        isUrgentBoost: data.isUrgentBoost || false,
         status: "OPEN",
-        expiresAt,
+        expiresAt: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000),
       },
-    });
-  }
-
-  async getOpenJobs() {
-    return prisma.parentJob.findMany({
-      where: {
-        status: "OPEN",
-        expiresAt: { gt: new Date() },
+      include: {
+        student: true,
+        parent: { select: { id: true, fullName: true } },
       },
-      orderBy: [{ isUrgentBoost: "desc" }, { createdAt: "desc" }],
-    });
-  }
-
-  async getMyJobs(parentId: string) {
-    return prisma.parentJob.findMany({
-      where: { parentId },
-      orderBy: { createdAt: "desc" },
     });
   }
 
   async getJobById(id: string) {
-    const job = await prisma.parentJob.findUnique({ where: { id } });
+    const job = await prisma.parentJob.findUnique({
+      where: { id },
+      include: {
+        student: true,
+        parent: true,
+        applications: { include: { teacher: true } },
+      },
+    });
     if (!job) throw new NotFoundException("Job not found");
     return job;
+  }
+
+  async applyToJob(teacherId: string, jobId: string) {
+    const job = await prisma.parentJob.findUnique({
+      where: { id: jobId },
+    });
+    if (!job) throw new NotFoundException("Job not found");
+
+    const application = await prisma.application.create({
+      data: {
+        teacherId,
+        jobId,
+        status: "PENDING",
+        connectsCost: 2,
+      },
+      include: { teacher: true, job: true },
+    });
+
+    return application;
   }
 }
