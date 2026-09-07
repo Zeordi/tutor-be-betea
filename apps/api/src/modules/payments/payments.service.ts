@@ -1,128 +1,64 @@
-import { Injectable } from "@nestjs/common";
+import { Injectable, NotFoundException } from "@nestjs/common";
 import { prisma } from "@tutor/database";
+import { stripe } from "../../lib/stripe";
 
 @Injectable()
 export class PaymentsService {
-  // -------- Wallet / Earnings --------
-  async getParentWallet(userId: string) {
+  async getParentWallet(parentId: string) {
     const contracts = await prisma.tutoringContract.findMany({
-      where: { parentId: userId },
-      select: {
-        id: true,
-        agreedAmount: true,
-        escrowHeldAmount: true,
-        status: true,
-        createdAt: true,
-      },
-      orderBy: { createdAt: "desc" },
+      where: { parentId, status: "ACTIVE" },
+      include: { teacher: true },
     });
 
-    const escrowBalance = contracts
-      .filter((c) => c.status === "ACTIVE" || c.status === "PENDING_ESCROW")
-      .reduce((sum, c) => sum + Number(c.escrowHeldAmount || 0), 0);
-
-    const totalSpent = contracts
-      .filter((c) => c.status === "COMPLETED")
-      .reduce((sum, c) => sum + Number(c.agreedAmount || 0), 0);
-
-    const transactions = contracts.map((c) => ({
-      id: c.id,
-      type:
-        c.status === "COMPLETED"
-          ? "SESSION_PAYMENT"
-          : c.status === "PENDING_ESCROW"
-            ? "ESCROW_HOLD"
-            : "CONTRACT",
-      amount: Number(c.agreedAmount || 0),
-      createdAt: c.createdAt,
-    }));
-
     return {
-      availableBalance: 0,
-      escrowBalance,
-      totalSpent,
-      transactions,
+      balance: 0, // placeholder - in real version sum from escrow
+      contracts,
     };
   }
 
-  async getTeacherEarnings(userId: string) {
+  async initiatePayment(parentId: string, contractId: string, amount: number) {
+    const contract = await prisma.tutoringContract.findUnique({
+      where: { id: contractId },
+    });
+    if (!contract) throw new NotFoundException("Contract not found");
+
+    // Hold escrow amount
+    await prisma.tutoringContract.update({
+      where: { id: contractId },
+      data: {
+        escrowHeldAmount: amount,
+        status: "PENDING_ESCROW",
+      },
+    });
+
+    // Telebirr / CBE Birr / M-Pesa / Stripe placeholder
+    return {
+      message: "Payment initiated",
+      redirectUrl: "/wallet",
+    };
+  }
+
+  async handleTelebirrWebhook(body: any) {
+    const txRef = body.tx_ref || body.reference;
+    if (!txRef) return { error: "Invalid webhook" };
+
+    await prisma.tutoringContract.updateMany({
+      where: { escrowHeldAmount: { gt: 0 } },
+      data: {
+        escrowHeldAmount: 0,
+        status: "ACTIVE",
+      },
+    });
+
+    return { success: true };
+  }
+
+  async getTeacherEarnings(teacherId: string) {
     const contracts = await prisma.tutoringContract.findMany({
-      where: { teacherId: userId },
-      select: {
-        id: true,
-        agreedAmount: true,
-        escrowHeldAmount: true,
-        platformFeePercent: true,
-        status: true,
-        createdAt: true,
-      },
-      orderBy: { createdAt: "desc" },
+      where: { teacherId, status: "COMPLETED" },
     });
 
-    const pendingEscrow = contracts
-      .filter((c) => c.status === "ACTIVE" || c.status === "PENDING_ESCROW")
-      .reduce((sum, c) => sum + Number(c.escrowHeldAmount || 0), 0);
-
-    const completed = contracts.filter((c) => c.status === "COMPLETED");
-
-    const totalEarned = completed.reduce((sum, c) => {
-      const amount = Number(c.agreedAmount || 0);
-      const feePercent = Number(c.platformFeePercent || 10);
-      const net = amount - (amount * feePercent) / 100;
-      return sum + net;
-    }, 0);
-
-    const payouts = completed.map((c) => {
-      const amount = Number(c.agreedAmount || 0);
-      const feePercent = Number(c.platformFeePercent || 10);
-      const net = amount - (amount * feePercent) / 100;
-
-      return {
-        id: c.id,
-        amount: net,
-        status: "RELEASED",
-        createdAt: c.createdAt,
-      };
-    });
-
-    return {
-      availableBalance: totalEarned,
-      pendingEscrow,
-      totalEarned,
-      payouts,
-    };
-  }
-
-  // -------- Methods required by controller --------
-  async initiatePayment(body: {
-    contractId: string;
-    amount?: number;
-    provider?: "TELEBIRR" | "CBE_BIRR" | string;
-    phoneNumber?: string;
-  }) {
-    return {
-      success: true,
-      provider: body.provider || "TELEBIRR",
-      contractId: body.contractId,
-      amount: body.amount || 0,
-      status: "PENDING",
-      checkoutUrl: null,
-      message:
-        "Payment initiation placeholder. Connect Telebirr/CBE credentials to go live.",
-    };
-  }
-
-  async handleWebhook(
-    provider: "TELEBIRR" | "CBE_BIRR" | string,
-    body: Record<string, any>,
-  ) {
-    return {
-      success: true,
-      provider,
-      received: true,
-      data: body,
-      message:
-        "Webhook received. Implement provider signature verification next.",
-    };
+    const total = contracts.reduce((sum, c) => sum + Number(c.agreedAmount), 0);
+    return { totalEarnings: total, contracts };
   }
 }
