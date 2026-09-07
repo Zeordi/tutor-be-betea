@@ -8,7 +8,7 @@ export class EscrowService {
       where: { id: contractId },
       data: {
         escrowHeldAmount: amount,
-        status: "ACTIVE",
+        status: "PENDING_ESCROW",
       },
     });
   }
@@ -19,6 +19,16 @@ export class EscrowService {
       data: {
         escrowHeldAmount: 0,
         status: "COMPLETED",
+      },
+    });
+  }
+
+  async handlePaymentWebhook(contractId: string, paymentProvider: string) {
+    await prisma.tutoringContract.update({
+      where: { id: contractId },
+      data: {
+        status: "ACTIVE",
+        escrowHeldAmount: 0,
       },
     });
   }
