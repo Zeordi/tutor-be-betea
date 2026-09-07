@@ -1,4 +1,4 @@
-import { Body, Controller, Get, Post, UseGuards } from "@nestjs/common";
+import { Controller, Post, Get, Param, Body, UseGuards } from "@nestjs/common";
 import { PaymentsService } from "./payments.service";
 import { JwtAuthGuard } from "../../common/guards/jwt-auth.guard";
 import { RolesGuard } from "../../common/guards/roles.guard";
@@ -26,17 +26,17 @@ export class PaymentsController {
   @Post("initiate")
   @UseGuards(JwtAuthGuard, RolesGuard)
   @Roles("PARENT")
-  initiatePayment(@Body() body: any) {
-    return this.paymentsService.initiatePayment(body);
+  initiatePayment(@CurrentUser() user: any, @Body() body: any) {
+    return this.paymentsService.initiatePayment(user.id, body.contractId, body.amount);
   }
 
   @Post("webhook/telebirr")
   handleTelebirrWebhook(@Body() body: any) {
-    return this.paymentsService.handleWebhook("TELEBIRR", body);
+    return this.paymentsService.handleTelebirrWebhook(body);
   }
 
   @Post("webhook/cbe")
   handleCbeWebhook(@Body() body: any) {
-    return this.paymentsService.handleWebhook("CBE_BIRR", body);
+    return this.paymentsService.handleTelebirrWebhook(body);
   }
 }
