@@ -1,4 +1,4 @@
-import { Controller, Get, Post, Body, Param, UseGuards } from "@nestjs/common";
+import { Controller, Post, Get, Body, Param, UseGuards } from "@nestjs/common";
 import { JobsService } from "./jobs.service";
 import { JwtAuthGuard } from "../../common/guards/jwt-auth.guard";
 import { RolesGuard } from "../../common/guards/roles.guard";
@@ -12,24 +12,19 @@ export class JobsController {
   @Post()
   @UseGuards(JwtAuthGuard, RolesGuard)
   @Roles("PARENT")
-  create(@CurrentUser() user: any, @Body() body: any) {
-    return this.jobsService.create(user.id, body);
+  createJob(@CurrentUser() user: any, @Body() body: any) {
+    return this.jobsService.createJob(user.id, body);
   }
 
-  @Get()
-  getOpenJobs() {
-    return this.jobsService.getOpenJobs();
-  }
-
-  @Get("my")
-  @UseGuards(JwtAuthGuard, RolesGuard)
-  @Roles("PARENT")
-  myJobs(@CurrentUser() user: any) {
-    return this.jobsService.getMyJobs(user.id);
-  }
-
-  @Get(":id")
-  getOne(@Param("id") id: string) {
+  @Get("/:id")
+  getJobById(@Param("id") id: string) {
     return this.jobsService.getJobById(id);
+  }
+
+  @Post("/:jobId/apply")
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles("TEACHER")
+  applyToJob(@CurrentUser() user: any, @Param("jobId") jobId: string) {
+    return this.jobsService.applyToJob(user.id, jobId);
   }
 }
