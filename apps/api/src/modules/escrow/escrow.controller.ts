@@ -22,4 +22,9 @@ export class EscrowController {
   releaseFunds(@Param("contractId") contractId: string) {
     return this.escrowService.releaseFunds(contractId);
   }
+
+  @Post("/webhook/telebirr")
+  handleTelebirrWebhook(@Body() body: any) {
+    return this.escrowService.handlePaymentWebhook(body.contractId, "telebirr");
+  }
 }
