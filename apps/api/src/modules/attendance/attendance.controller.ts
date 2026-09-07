@@ -1,4 +1,4 @@
-import { Body, Controller, Get, Param, Post, UseGuards } from "@nestjs/common";
+import { Controller, Post, Get, Param, Body, UseGuards } from "@nestjs/common";
 import { AttendanceService } from "./attendance.service";
 import { JwtAuthGuard } from "../../common/guards/jwt-auth.guard";
 import { RolesGuard } from "../../common/guards/roles.guard";
@@ -6,57 +6,25 @@ import { Roles } from "../../common/decorators/roles.decorator";
 import { CurrentUser } from "../../common/decorators/current-user.decorator";
 
 @Controller("attendance")
-@UseGuards(JwtAuthGuard, RolesGuard)
 export class AttendanceController {
   constructor(private readonly attendanceService: AttendanceService) {}
 
-  @Post("check-in")
+  @Post(":contractId/check-in")
+  @UseGuards(JwtAuthGuard, RolesGuard)
   @Roles("TEACHER")
-  checkIn(@CurrentUser() user: any, @Body() body: any) {
-    return this.attendanceService.checkIn({
-      teacherId: user.id,
-      contractId: body.contractId,
-      latitude: Number(body.latitude),
-      longitude: Number(body.longitude),
-      parentLat:
-        body.parentLat !== undefined ? Number(body.parentLat) : undefined,
-      parentLng:
-        body.parentLng !== undefined ? Number(body.parentLng) : undefined,
-      offlineId: body.offlineId,
-      clientCreatedAt: body.clientCreatedAt,
-      distanceMeters:
-        body.distanceMeters !== undefined
-          ? Number(body.distanceMeters)
-          : undefined,
-      isVerifiedGeofence:
-        body.isVerifiedGeofence !== undefined
-          ? Boolean(body.isVerifiedGeofence)
-          : undefined,
-    });
+  checkIn(@CurrentUser() user: any, @Param("contractId") contractId: string, @Body() body: any) {
+    return this.attendanceService.checkIn(contractId, user.id, body.latitude, body.longitude);
   }
 
-  @Post("check-out")
+  @Post(":contractId/check-out")
+  @UseGuards(JwtAuthGuard, RolesGuard)
   @Roles("TEACHER")
-  checkOut(@CurrentUser() user: any, @Body() body: any) {
-    return this.attendanceService.checkOut({
-      teacherId: user.id,
-      contractId: body.contractId,
-      latitude: Number(body.latitude),
-      longitude: Number(body.longitude),
-      offlineId: body.offlineId,
-      clientCreatedAt: body.clientCreatedAt,
-    });
+  checkOut(@CurrentUser() user: any, @Param("contractId") contractId: string) {
+    return this.attendanceService.checkOut(contractId, user.id);
   }
 
-  @Get("contract/:contractId")
-  @Roles("PARENT", "TEACHER")
-  getByContract(@Param("contractId") contractId: string) {
-    return this.attendanceService.getByContract(contractId);
-  }
-
-  @Post(":id/confirm")
-  @Roles("PARENT")
-  confirm(@Param("id") id: string, @CurrentUser() user: any) {
-    return this.attendanceService.confirmByParent(id, user.id);
+  @Get(":contractId")
+  getContractAttendance(@Param("contractId") contractId: string) {
+    return this.attendanceService.getContractAttendance(contractId);
   }
 }
