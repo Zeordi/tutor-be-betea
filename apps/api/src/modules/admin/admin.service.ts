@@ -63,11 +63,26 @@ export class AdminService {
     });
   }
 
-  // Multi-child support for admin
+  // Multi-child admin support
   async getChildProfiles(parentId: string) {
     return prisma.studentProfile.findMany({
       where: { parentId },
       include: { contracts: true },
+    });
+  }
+
+  // Promo & Payout
+  async updatePromoCode(code: string, usageLimit: number) {
+    await prisma.promoCode.update({
+      where: { code },
+      data: { usageLimit },
+    });
+  }
+
+  async getPayoutLedger() {
+    return prisma.tutoringContract.findMany({
+      where: { status: "COMPLETED" },
+      select: { teacherId: true, agreedAmount: true, status: true },
     });
   }
 }
