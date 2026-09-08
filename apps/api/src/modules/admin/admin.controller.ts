@@ -44,11 +44,24 @@ export class AdminController {
     return this.adminService.flagRisk(userId, body.reason, user.id);
   }
 
-  // Multi-child admin support
   @Get("children/:parentId")
   @UseGuards(JwtAuthGuard, RolesGuard)
   @Roles("SUPER_ADMIN")
   getChildProfiles(@Param("parentId") parentId: string) {
     return this.adminService.getChildProfiles(parentId);
+  }
+
+  @Post("promo/:code")
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles("SUPER_ADMIN")
+  updatePromo(@Param("code") code: string, @Body() body: any) {
+    return this.adminService.updatePromoCode(code, body.usageLimit);
+  }
+
+  @Get("payout-ledger")
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles("SUPER_ADMIN")
+  getPayoutLedger() {
+    return this.adminService.getPayoutLedger();
   }
 }
