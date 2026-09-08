@@ -38,7 +38,6 @@ export class AdminService {
       where: { id: userId },
       data: { status: "ACTIVE" },
     });
-
     await prisma.adminAuditLog.create({
       data: {
         adminId,
@@ -54,7 +53,6 @@ export class AdminService {
       where: { id: userId },
       data: { status: "SUSPENDED" },
     });
-
     await prisma.adminAuditLog.create({
       data: {
         adminId,
@@ -62,6 +60,14 @@ export class AdminService {
         actionType: "FLAG_RISK",
         reason,
       },
+    });
+  }
+
+  // Multi-child support for admin
+  async getChildProfiles(parentId: string) {
+    return prisma.studentProfile.findMany({
+      where: { parentId },
+      include: { contracts: true },
     });
   }
 }
