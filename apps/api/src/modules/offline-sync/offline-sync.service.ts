@@ -4,7 +4,6 @@ import { prisma } from "@tutor/database";
 @Injectable()
 export class OfflineSyncService {
   async syncAttendanceLog(payload: any, userId: string) {
-    // For offline GPS + signed payload
     return prisma.attendanceLog.create({
       data: {
         contractId: payload.contractId,
@@ -31,6 +30,19 @@ export class OfflineSyncService {
         quizScore: payload.quizScore,
         strengthsNotes: payload.strengthsNotes,
         improvementAreas: payload.improvementAreas,
+      },
+    });
+  }
+
+  async syncSupportTicket(contractId: string, userId: string, payload: any) {
+    return prisma.supportTicket.create({
+      data: {
+        contractId,
+        submittedBy: userId,
+        reasonType: payload.reasonType,
+        explanation: payload.explanation,
+        evidenceAttachmentUrls: payload.evidenceAttachmentUrls || [],
+        status: "OPEN",
       },
     });
   }
