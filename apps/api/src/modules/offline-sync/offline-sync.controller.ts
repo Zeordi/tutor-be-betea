@@ -22,4 +22,11 @@ export class OfflineSyncController {
   syncProgress(@CurrentUser() user: any, @Body() body: any) {
     return this.offlineSyncService.syncProgressReport(body.contractId, body);
   }
+
+  @Post("support")
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles("PARENT")
+  syncSupport(@CurrentUser() user: any, @Body() body: any) {
+    return this.offlineSyncService.syncSupportTicket(body.contractId, user.id, body);
+  }
 }
