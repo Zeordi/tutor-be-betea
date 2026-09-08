@@ -18,7 +18,7 @@ export class AdminController {
 
   @Get("audit-logs")
   @UseGuards(JwtAuthGuard, RolesGuard)
-  @Roles("SUPER_ADMIN", "SUPPORT_AGENT")
+  @Roles("SUPER_ADMIN")
   getAuditLogs(@Query("limit") limit = 100) {
     return this.adminService.getAuditLogs(parseInt(limit as any, 10));
   }
@@ -42,5 +42,13 @@ export class AdminController {
   @Roles("SUPER_ADMIN")
   flagRisk(@CurrentUser() user: any, @Param("userId") userId: string, @Body() body: any) {
     return this.adminService.flagRisk(userId, body.reason, user.id);
+  }
+
+  // Multi-child admin support
+  @Get("children/:parentId")
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles("SUPER_ADMIN")
+  getChildProfiles(@Param("parentId") parentId: string) {
+    return this.adminService.getChildProfiles(parentId);
   }
 }
