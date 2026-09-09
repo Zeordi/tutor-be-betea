@@ -9,10 +9,14 @@ datasource db {
   extensions = [postgis, pgcrypto]
 }
 
+// ─── Enums ───────────────────────────────────────────────
+
 enum UserRole {
   PARENT
   TEACHER
   SUPPORT_AGENT
+  VERIFICATION_OFFICER
+  FINANCE
   SUPER_ADMIN
 }
 
@@ -45,94 +49,214 @@ enum CurriculumType {
   INTERNATIONAL_BACCALAUREATE
 }
 
-model User {
-  id            String     @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
-  phoneNumber   String     @unique @map("phone_number")
-  email         String?    @unique
-  fullName      String     @map("full_name")
-  role          UserRole
-  status        UserStatus @default(PENDING_VERIFICATION)
-  avatarUrl     String?    @map("avatar_url")
-  pushToken     String?    @map("push_token")
+enum ApplicationStatus {
+  PENDING
+  SHORTLISTED
+  ACCEPTED
+  REJECTED
+  WITHDRAWN
+}
 
-  // Auth fields
-  passwordHash  String?    @map("password_hash")
-  googleId      String?    @unique @map("google_id")
-  emailVerified Boolean    @default(false) @map("email_verified")
-  phoneVerified Boolean    @default(false) @map("phone_verified")
+enum PaymentProvider {
+  TELEBIRR
+  CBE_BIRR
+  MPESA
+  STRIPE
+  MANUAL
+}
+
+enum PaymentStatus {
+  PENDING
+  SUCCESS
+  FAILED
+  REFUNDED
+}
+
+enum PayoutStatus {
+  PENDING
+  PROCESSING
+  PAID
+  FAILED
+}
+
+enum RiskSeverity {
+  LOW
+  MEDIUM
+  HIGH
+  CRITICAL
+}
+
+enum SubscriptionTier {
+  BASIC
+  PREMIUM
+  ELITE
+}
+
+enum JobStatus {
+  OPEN
+  REVIEWING
+  FILLED
+  CLOSED
+  EXPIRED
+}
+
+// ─── Core users ──────────────────────────────────────────
+
+model User {
+  id          String     @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  phoneNumber String     @unique @map("phone_number")
+  email       String?    @unique
+  fullName    String     @map("full_name")
+  role        UserRole
+  status      UserStatus @default(PENDING_VERIFICATION)
+  avatarUrl   String?    @map("avatar_url")
+  pushToken   String?    @map("push_token")
+
+  passwordHash  String? @map("password_hash")
+  googleId      String? @unique @map("google_id")
+  emailVerified Boolean @default(false) @map("email_verified")
+  phoneVerified Boolean @default(false) @map("phone_verified")
+
+  /// Optional prefs: language, push/sms toggles (settings screens)
+  notificationPrefs Json? @map("notification_prefs")
+  emergencyContact  String? @map("emergency_contact")
+  addressLine       String? @map("address_line")
+  subCity           String? @map("sub_city")
 
   createdAt DateTime @default(now()) @map("created_at")
   updatedAt DateTime @updatedAt @map("updated_at")
 
   teacherProfile     TeacherProfile?
-  studentProfiles    StudentProfile[]
+  children           StudentProfile[]
   parentJobs         ParentJob[]
+  jobApplications    JobApplication[]
   contractsAsParent  TutoringContract[] @relation("ParentContracts")
   contractsAsTeacher TutoringContract[] @relation("TeacherContracts")
+  favoriteTutors     FavoriteTutor[]    @relation("ParentFavorites")
+  favoritedBy        FavoriteTutor[]    @relation("TeacherFavorites")
+  referralsMade      Referral[]         @relation("Referrer")
+  referralsReceived  Referral[]         @relation("Referee")
+  subscriptions      Subscription[]
+  payments           Payment[]
+  payouts            Payout[]
+  riskFlags          RiskFlag[]         @relation("FlaggedUser")
+  riskFlagsCreated   RiskFlag[]         @relation("FlaggedByAdmin")
+  reviewsWritten     Review[]           @relation("ReviewAuthor")
+  reviewsReceived    Review[]           @relation("ReviewTeacher")
+  notifications      Notification[]
+  connectLedger      ConnectTransaction[]
+  supportTickets     SupportTicket[]    @relation("TicketSubmitter")
 
   @@index([pushToken])
+  @@index([role, status])
   @@map("users")
 }
 
 model TeacherProfile {
   userId           String  @id @map("user_id") @db.Uuid
   bio              String?
+  bioAm            String? @map("bio_am")
   hourlyRate       Decimal @map("hourly_rate") @db.Decimal(10, 2)
   monthlyRate      Decimal @map("monthly_rate") @db.Decimal(10, 2)
+  weekendRate      Decimal? @map("weekend_rate") @db.Decimal(10, 2)
   subjects         String[]
   grades           String[]
-  maxTravelKm      Decimal @default(5.0) @map("max_travel_km") @db.Decimal(4, 1)
-  connectsBalance  Int     @default(15) @map("connects_balance")
-  isIdVerified     Boolean @default(false) @map("is_id_verified")
-  isEduVerified    Boolean @default(false) @map("is_edu_verified")
-  rating           Decimal @default(5.00) @db.Decimal(3, 2)
-  totalReviews     Int     @default(0) @map("total_reviews")
-  totalHoursTaught Decimal @default(0) @map("total_hours_taught") @db.Decimal(8, 1)
-  badgeTier        String  @default("BRONZE") @map("badge_tier")
-  isAvailable      Boolean @default(true) @map("is_available")
+  maxTravelKm      Decimal  @default(5.0) @map("max_travel_km") @db.Decimal(4, 1)
+  connectsBalance  Int      @default(15) @map("connects_balance")
+  isIdVerified     Boolean  @default(false) @map("is_id_verified")
+  isEduVerified    Boolean  @default(false) @map("is_edu_verified")
+  rating           Decimal  @default(5.00) @db.Decimal(3, 2)
+  totalReviews     Int      @default(0) @map("total_reviews")
+  totalHoursTaught Decimal  @default(0) @map("total_hours_taught") @db.Decimal(8, 1)
+  badgeTier        String   @default("BRONZE") @map("badge_tier")
+  isAvailable      Boolean  @default(true) @map("is_available")
+  videoIntroUrl    String?  @map("video_intro_url")
+  teachingStyles   String[] @default([]) @map("teaching_styles")
+  payoutMethod     String?  @map("payout_method") // TELEBIRR | CBE_BIRR | MPESA
+  payoutAccount    String?  @map("payout_account")
+  onboardingStep   Int      @default(0) @map("onboarding_step")
   homeLocation     Unsupported("extensions.geography(Point,4326)")? @map("home_location")
 
-  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  user         User                  @relation(fields: [userId], references: [id], onDelete: Cascade)
+  availability TeacherAvailability[]
+  packages     TeacherPackage[]
 
   @@index([homeLocation], type: Gist)
   @@map("teacher_profiles")
 }
 
+/// UI: Child / multi-child. Keep Prisma name StudentProfile for stable API.
 model StudentProfile {
   id                   String         @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
   parentId             String         @map("parent_id") @db.Uuid
-  studentName          String         @map("student_name")
+  studentName          String         @map("student_name") // display as child name
   gradeLevel           String         @map("grade_level")
   curriculum           CurriculumType @default(NATIONAL_MINISTRY)
+  subjects             String[]       @default([])
   specialLearningNotes String?        @map("special_learning_notes")
   createdAt            DateTime       @default(now()) @map("created_at")
+  updatedAt            DateTime       @updatedAt @map("updated_at")
 
-  parent User @relation(fields: [parentId], references: [id], onDelete: Cascade)
+  parent    User               @relation(fields: [parentId], references: [id], onDelete: Cascade)
+  jobs      ParentJob[]
+  contracts TutoringContract[]
 
+  @@index([parentId])
   @@map("student_profiles")
 }
 
+// ─── Jobs & applications ─────────────────────────────────
+
 model ParentJob {
-  id            String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
-  parentId      String   @map("parent_id") @db.Uuid
-  studentId     String   @map("student_id") @db.Uuid
+  id            String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  parentId      String    @map("parent_id") @db.Uuid
+  studentId     String    @map("student_id") @db.Uuid
   subjects      String[]
-  monthlyBudget Decimal  @map("monthly_budget") @db.Decimal(10, 2)
-  isUrgentBoost Boolean  @default(false) @map("is_urgent_boost")
-  status        String   @default("OPEN")
-  expiresAt     DateTime @map("expires_at")
-  createdAt     DateTime @default(now()) @map("created_at")
+  monthlyBudget Decimal   @map("monthly_budget") @db.Decimal(10, 2)
+  isUrgentBoost Boolean   @default(false) @map("is_urgent_boost")
+  status        JobStatus @default(OPEN)
+  description   String?
+  preferredGender String? @map("preferred_gender")
+  subCity       String?   @map("sub_city")
+  expiresAt     DateTime  @map("expires_at")
+  createdAt     DateTime  @default(now()) @map("created_at")
 
-  parent User @relation(fields: [parentId], references: [id], onDelete: Cascade)
+  parent       User             @relation(fields: [parentId], references: [id], onDelete: Cascade)
+  student      StudentProfile   @relation(fields: [studentId], references: [id], onDelete: Cascade)
+  applications JobApplication[]
 
+  @@index([status, createdAt])
+  @@index([parentId])
   @@map("parent_jobs")
 }
+
+model JobApplication {
+  id            String            @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  jobId         String            @map("job_id") @db.Uuid
+  teacherId     String            @map("teacher_id") @db.Uuid
+  coverNote     String?           @map("cover_note")
+  proposedRate  Decimal?          @map("proposed_rate") @db.Decimal(10, 2)
+  connectsSpent Int               @default(2) @map("connects_spent")
+  status        ApplicationStatus @default(PENDING)
+  createdAt     DateTime          @default(now()) @map("created_at")
+  updatedAt     DateTime          @updatedAt @map("updated_at")
+
+  job     ParentJob @relation(fields: [jobId], references: [id], onDelete: Cascade)
+  teacher User      @relation(fields: [teacherId], references: [id], onDelete: Cascade)
+
+  @@unique([jobId, teacherId])
+  @@index([teacherId, status])
+  @@map("job_applications")
+}
+
+// ─── Contracts, sessions, progress ───────────────────────
 
 model TutoringContract {
   id                 String         @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
   parentId           String         @map("parent_id") @db.Uuid
   teacherId          String         @map("teacher_id") @db.Uuid
   studentId          String         @map("student_id") @db.Uuid
+  jobId              String?        @map("job_id") @db.Uuid
   agreedAmount       Decimal        @map("agreed_amount") @db.Decimal(10, 2)
   platformFeePercent Decimal        @default(10.00) @map("platform_fee_percent") @db.Decimal(4, 2)
   escrowHeldAmount   Decimal        @default(0) @map("escrow_held_amount") @db.Decimal(10, 2)
@@ -140,35 +264,44 @@ model TutoringContract {
   guaranteeExpiry    DateTime       @map("guarantee_expiry")
   startDate          DateTime       @map("start_date") @db.Date
   endDate            DateTime       @map("end_date") @db.Date
+  sessionLatitude    Decimal?       @map("session_latitude") @db.Decimal(10, 7)
+  sessionLongitude   Decimal?       @map("session_longitude") @db.Decimal(10, 7)
+  sessionRoomId      String?        @map("session_room_id")
+  createdAt          DateTime       @default(now()) @map("created_at")
+  updatedAt          DateTime       @updatedAt @map("updated_at")
 
-  sessionLatitude  Decimal? @map("session_latitude") @db.Decimal(10, 7)
-  sessionLongitude Decimal? @map("session_longitude") @db.Decimal(10, 7)
+  parent       User                 @relation("ParentContracts", fields: [parentId], references: [id])
+  teacher      User                 @relation("TeacherContracts", fields: [teacherId], references: [id])
+  student      StudentProfile       @relation(fields: [studentId], references: [id])
+  attendance   AttendanceLog[]
+  progress     ProgressReport[]
+  replacements ReplacementRequest[]
+  payments     Payment[]
 
-  createdAt DateTime @default(now()) @map("created_at")
-
-  parent  User @relation("ParentContracts", fields: [parentId], references: [id])
-  teacher User @relation("TeacherContracts", fields: [teacherId], references: [id])
-
+  @@index([parentId, status])
+  @@index([teacherId, status])
   @@map("tutoring_contracts")
 }
 
 model AttendanceLog {
   id                 String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
   contractId         String    @map("contract_id") @db.Uuid
+  teacherId          String?   @map("teacher_id") @db.Uuid
   checkInTime        DateTime  @map("check_in_time")
   checkOutTime       DateTime? @map("check_out_time")
   distanceMeters     Decimal   @map("distance_meters") @db.Decimal(8, 2)
   isVerifiedGeofence Boolean   @default(true) @map("is_verified_geofence")
   parentConfirmed    Boolean   @default(false) @map("parent_confirmed")
+  offlineId          String?   @unique @map("offline_id")
+  clientCreatedAt    DateTime? @map("client_created_at")
+  teacherLatitude    Decimal?  @map("teacher_latitude") @db.Decimal(10, 7)
+  teacherLongitude   Decimal?  @map("teacher_longitude") @db.Decimal(10, 7)
+  createdAt          DateTime  @default(now()) @map("created_at")
 
-  offlineId        String?   @unique @map("offline_id")
-  clientCreatedAt  DateTime? @map("client_created_at")
-  teacherLatitude  Decimal?  @map("teacher_latitude") @db.Decimal(10, 7)
-  teacherLongitude Decimal?  @map("teacher_longitude") @db.Decimal(10, 7)
-
-  createdAt DateTime @default(now()) @map("created_at")
+  contract TutoringContract @relation(fields: [contractId], references: [id], onDelete: Cascade)
 
   @@index([contractId, checkInTime])
+  @@index([teacherId])
   @@map("attendance_logs")
 }
 
@@ -180,28 +313,39 @@ model ProgressReport {
   quizScore        Decimal? @map("quiz_score") @db.Decimal(5, 2)
   strengthsNotes   String?  @map("strengths_notes")
   improvementAreas String?  @map("improvement_areas")
+  aiSummary        String?  @map("ai_summary")
+  nextSessionPlan  String?  @map("next_session_plan")
   createdAt        DateTime @default(now()) @map("created_at")
 
+  contract TutoringContract @relation(fields: [contractId], references: [id], onDelete: Cascade)
+
+  @@index([contractId, weekNumber])
   @@map("progress_reports")
 }
+
+// ─── Trust, vault, audit ─────────────────────────────────
 
 model VaultDocument {
   id            String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
   teacherId     String   @map("teacher_id") @db.Uuid
   documentType  String   @map("document_type")
   encryptedData String   @map("encrypted_data")
-  status        String   @default("PENDING")
+  status        String   @default("PENDING") // PENDING | APPROVED | REJECTED | NEEDS_MORE_INFO
+  adminNote     String?  @map("admin_note")
   createdAt     DateTime @default(now()) @map("created_at")
+  updatedAt     DateTime @updatedAt @map("updated_at")
 
+  @@index([teacherId, status])
   @@map("vault_documents")
 }
 
 model TrustBadge {
   id        String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
   teacherId String   @map("teacher_id") @db.Uuid
-  badgeType String   @map("badge_type")
+  badgeType String   @map("badge_type") // NATIONAL_ID | DEGREE | GOLD | ELITE
   issuedAt  DateTime @default(now()) @map("issued_at")
 
+  @@index([teacherId])
   @@map("trust_badges")
 }
 
@@ -216,31 +360,40 @@ model AdminAuditLog {
   currentHash  String   @map("current_hash")
   createdAt    DateTime @default(now()) @map("created_at")
 
+  @@index([createdAt])
+  @@index([adminId])
   @@map("admin_audit_logs")
 }
 
 model SupportTicket {
   id                     String       @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
-  contractId             String       @map("contract_id") @db.Uuid
+  contractId             String?      @map("contract_id") @db.Uuid
   submittedBy            String       @map("submitted_by") @db.Uuid
   reasonType             String       @map("reason_type")
   explanation            String
   evidenceAttachmentUrls String[]     @map("evidence_attachment_urls")
+  staffNotes             String?      @map("staff_notes")
   status                 TicketStatus @default(OPEN)
   createdAt              DateTime     @default(now()) @map("created_at")
+  updatedAt              DateTime     @updatedAt @map("updated_at")
 
+  submitter User @relation("TicketSubmitter", fields: [submittedBy], references: [id], onDelete: Cascade)
+
+  @@index([status, createdAt])
   @@map("support_tickets")
 }
 
 model Notification {
   id        String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
   userId    String   @map("user_id") @db.Uuid
-  type      String
+  type      String // SESSIONS | ESCROW | CHAT | SYSTEM | PAYMENT
   title     String
   body      String
   data      Json?
   read      Boolean  @default(false)
   createdAt DateTime @default(now()) @map("created_at")
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@index([userId, read])
   @@map("notifications")
@@ -256,4 +409,205 @@ model ChatMessage {
 
   @@index([roomId, createdAt])
   @@map("chat_messages")
+}
+
+// ─── Product features (mobile + web + admin) ─────────────
+
+model FavoriteTutor {
+  id        String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  parentId  String   @map("parent_id") @db.Uuid
+  teacherId String   @map("teacher_id") @db.Uuid
+  createdAt DateTime @default(now()) @map("created_at")
+
+  parent  User @relation("ParentFavorites", fields: [parentId], references: [id], onDelete: Cascade)
+  teacher User @relation("TeacherFavorites", fields: [teacherId], references: [id], onDelete: Cascade)
+
+  @@unique([parentId, teacherId])
+  @@map("favorite_tutors")
+}
+
+model Referral {
+  id         String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  referrerId String   @map("referrer_id") @db.Uuid
+  refereeId  String?  @map("referee_id") @db.Uuid
+  code       String   @unique
+  rewardEtb  Decimal  @default(0) @map("reward_etb") @db.Decimal(10, 2)
+  status     String   @default("PENDING") // PENDING | EARNED | PAID
+  createdAt  DateTime @default(now()) @map("created_at")
+
+  referrer User  @relation("Referrer", fields: [referrerId], references: [id], onDelete: Cascade)
+  referee  User? @relation("Referee", fields: [refereeId], references: [id])
+
+  @@index([code])
+  @@map("referrals")
+}
+
+model Subscription {
+  id        String           @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  userId    String           @map("user_id") @db.Uuid
+  tier      SubscriptionTier @default(BASIC)
+  active    Boolean          @default(true)
+  startsAt  DateTime         @default(now()) @map("starts_at")
+  endsAt    DateTime?        @map("ends_at")
+  createdAt DateTime         @default(now()) @map("created_at")
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, active])
+  @@map("subscriptions")
+}
+
+model PromoCode {
+  id          String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  code        String    @unique
+  description String?
+  discountPct Decimal   @default(0) @map("discount_pct") @db.Decimal(5, 2)
+  discountEtb Decimal   @default(0) @map("discount_etb") @db.Decimal(10, 2)
+  usageLimit  Int       @default(100) @map("usage_limit")
+  usedCount   Int       @default(0) @map("used_count")
+  active      Boolean   @default(true)
+  bannerText  String?   @map("banner_text")
+  expiresAt   DateTime? @map("expires_at")
+  createdAt   DateTime  @default(now()) @map("created_at")
+
+  @@map("promo_codes")
+}
+
+model Payment {
+  id          String          @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  userId      String          @map("user_id") @db.Uuid
+  contractId  String?         @map("contract_id") @db.Uuid
+  amount      Decimal         @db.Decimal(12, 2)
+  currency    String          @default("ETB")
+  provider    PaymentProvider @default(TELEBIRR)
+  status      PaymentStatus   @default(PENDING)
+  externalRef String?         @map("external_ref")
+  meta        Json?
+  createdAt   DateTime        @default(now()) @map("created_at")
+
+  user     User              @relation(fields: [userId], references: [id], onDelete: Cascade)
+  contract TutoringContract? @relation(fields: [contractId], references: [id])
+
+  @@index([userId, status])
+  @@map("payments")
+}
+
+model Payout {
+  id          String          @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  teacherId   String          @map("teacher_id") @db.Uuid
+  amount      Decimal         @db.Decimal(12, 2)
+  provider    PaymentProvider @default(TELEBIRR)
+  status      PayoutStatus    @default(PENDING)
+  externalRef String?         @map("external_ref")
+  createdAt   DateTime        @default(now()) @map("created_at")
+  paidAt      DateTime?       @map("paid_at")
+
+  teacher User @relation(fields: [teacherId], references: [id], onDelete: Cascade)
+
+  @@index([teacherId, status])
+  @@map("payouts")
+}
+
+model TeacherAvailability {
+  id        String  @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  teacherId String  @map("teacher_id") @db.Uuid
+  dayOfWeek Int     @map("day_of_week") // 0=Sun .. 6=Sat
+  startTime String  @map("start_time")
+  endTime   String  @map("end_time")
+  active    Boolean @default(true)
+  /// Block-out / vacation dates as ISO date strings in JSON array
+  blockedDates Json? @map("blocked_dates")
+
+  teacher TeacherProfile @relation(fields: [teacherId], references: [userId], onDelete: Cascade)
+
+  @@index([teacherId])
+  @@map("teacher_availability")
+}
+
+model TeacherPackage {
+  id          String  @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  teacherId   String  @map("teacher_id") @db.Uuid
+  name        String // Standard | Intensive | Weekend
+  sessions    Int
+  priceEtb    Decimal @map("price_etb") @db.Decimal(10, 2)
+  description String?
+  active      Boolean @default(true)
+
+  teacher TeacherProfile @relation(fields: [teacherId], references: [userId], onDelete: Cascade)
+
+  @@map("teacher_packages")
+}
+
+model RiskFlag {
+  id        String       @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  userId    String       @map("user_id") @db.Uuid
+  createdBy String       @map("created_by") @db.Uuid
+  severity  RiskSeverity @default(MEDIUM)
+  reason    String
+  resolved  Boolean      @default(false)
+  appealNote String?     @map("appeal_note")
+  createdAt DateTime     @default(now()) @map("created_at")
+
+  user  User @relation("FlaggedUser", fields: [userId], references: [id], onDelete: Cascade)
+  admin User @relation("FlaggedByAdmin", fields: [createdBy], references: [id])
+
+  @@index([userId, resolved])
+  @@map("risk_flags")
+}
+
+model ReplacementRequest {
+  id         String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  contractId String   @map("contract_id") @db.Uuid
+  reason     String
+  status     String   @default("OPEN") // OPEN | APPROVED | REJECTED
+  createdAt  DateTime @default(now()) @map("created_at")
+
+  contract TutoringContract @relation(fields: [contractId], references: [id], onDelete: Cascade)
+
+  @@map("replacement_requests")
+}
+
+model Review {
+  id         String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  authorId   String   @map("author_id") @db.Uuid
+  teacherId  String   @map("teacher_id") @db.Uuid
+  contractId String?  @map("contract_id") @db.Uuid
+  rating     Int
+  comment    String?
+  createdAt  DateTime @default(now()) @map("created_at")
+
+  author  User @relation("ReviewAuthor", fields: [authorId], references: [id], onDelete: Cascade)
+  teacher User @relation("ReviewTeacher", fields: [teacherId], references: [id], onDelete: Cascade)
+
+  @@index([teacherId])
+  @@map("reviews")
+}
+
+model ConnectTransaction {
+  id        String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  teacherId String   @map("teacher_id") @db.Uuid
+  delta     Int // +purchase or -spend on apply
+  reason    String // TOP_UP | APPLY_JOB | BONUS | REFUND
+  balanceAfter Int   @map("balance_after")
+  createdAt DateTime @default(now()) @map("created_at")
+
+  teacher User @relation(fields: [teacherId], references: [id], onDelete: Cascade)
+
+  @@index([teacherId, createdAt])
+  @@map("connect_transactions")
+}
+
+/// Marketing blog hub (public website)
+model BlogPost {
+  id          String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  slug        String   @unique
+  title       String
+  excerpt     String?
+  body        String
+  coverUrl    String?  @map("cover_url")
+  published   Boolean  @default(false)
+  publishedAt DateTime? @map("published_at")
+  createdAt   DateTime @default(now()) @map("created_at")
+
+  @@map("blog_posts")
 }
