@@ -1,4 +1,4 @@
-import { Controller, Get, Post, Param, Body, UseGuards } from "@nestjs/common";
+import { Controller, Get, Post, Param, Body, Query, UseGuards } from "@nestjs/common";
 import { AdminService } from "./admin.service";
 import { JwtAuthGuard } from "../../common/guards/jwt-auth.guard";
 import { RolesGuard } from "../../common/guards/roles.guard";
@@ -19,8 +19,8 @@ export class AdminController {
   @Get("audit-logs")
   @UseGuards(JwtAuthGuard, RolesGuard)
   @Roles("SUPER_ADMIN")
-  getAuditLogs(@Query("limit") limit = 100) {
-    return this.adminService.getAuditLogs(parseInt(limit as any, 10));
+  getAuditLogs(@Query("limit") limit = "100") {
+    return this.adminService.getAuditLogs(parseInt(limit as any, 10) || 100);
   }
 
   @Get("verification-queue")
@@ -40,22 +40,12 @@ export class AdminController {
   @Post("risk-flag/:userId")
   @UseGuards(JwtAuthGuard, RolesGuard)
   @Roles("SUPER_ADMIN")
-  flagRisk(@CurrentUser() user: any, @Param("userId") userId: string, @Body() body: any) {
-    return this.adminService.flagRisk(userId, body.reason, user.id);
-  }
-
-  @Get("children/:parentId")
-  @UseGuards(JwtAuthGuard, RolesGuard)
-  @Roles("SUPER_ADMIN")
-  getChildProfiles(@Param("parentId") parentId: string) {
-    return this.adminService.getChildProfiles(parentId);
-  }
-
-  @Post("promo/:code")
-  @UseGuards(JwtAuthGuard, RolesGuard)
-  @Roles("SUPER_ADMIN")
-  updatePromo(@Param("code") code: string, @Body() body: any) {
-    return this.adminService.updatePromoCode(code, body.usageLimit);
+  flagRisk(
+    @CurrentUser() user: any,
+    @Param("userId") userId: string,
+    @Body() body: { reason?: string },
+  ) {
+    return this.adminService.flagRisk(userId, body?.reason || "Risk flag", user.id);
   }
 
   @Get("payout-ledger")
