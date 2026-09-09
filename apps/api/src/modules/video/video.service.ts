@@ -1,27 +1,25 @@
-import { Injectable } from "@nestjs/common";
+import { Injectable, NotFoundException } from "@nestjs/common";
 import { prisma } from "@tutor/database";
-import { DailyService } from "../../lib/daily"; // or LiveKit / Agora
+import { DailyService } from "../../lib/daily";
 
 @Injectable()
 export class VideoService {
   async createRoom(contractId: string, teacherId: string) {
-    const contract = await prisma.tutoringContract.findUnique({
-      where: { id: contractId },
+    const contract = await prisma.tutoringContract.findFirst({
+      where: { id: contractId, teacherId },
     });
-    if (!contract) throw new Error("Contract not found");
+    if (!contract) throw new NotFoundException("Contract not found");
 
     const room = await DailyService.createRoom({
-      name: `session-${contractId}`,
+      name: "session-" + contractId,
       properties: {
         start_audio_off: true,
         start_video_off: true,
         enable_chat: true,
-        enable_knocking: false,
       },
     });
 
-    // Store room in DB for audit
-    await prisma.contract.update({
+    await prisma.tutoringContract.update({
       where: { id: contractId },
       data: { sessionRoomId: room.id },
     });
@@ -29,12 +27,21 @@ export class VideoService {
     return { roomId: room.id, joinUrl: room.join_url };
   }
 
-  async joinRoom(roomId: string, userId: string) {
+  async joinRoom(contractId: string, userId: string) {
+    const contract = await prisma.tutoringContract.findFirst({
+      where: {
+        id: contractId,
+        OR: [{ parentId: userId }, { teacherId: userId }],
+      },
+    });
+    if (!contract) throw new NotFoundException("Contract not found");
+
+    const roomId = contract.sessionRoomId || "session-" + contractId;
     const room = await DailyService.joinRoom(roomId);
-    return { roomId, joinUrl: room.join_url };
+    return { roomId: room.id, joinUrl: room.join_url };
   }
 
-  async endSession(contractId: string, userId: string) {
+  async endSession(contractId: string, _userId: string) {
     await prisma.attendanceLog.updateMany({
       where: { contractId, checkOutTime: null },
       data: { checkOutTime: new Date() },
