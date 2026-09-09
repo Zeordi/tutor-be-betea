@@ -1,0 +1,22 @@
+name: Deploy API
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - "apps/api/**"
+      - "packages/**"
+      - "pnpm-lock.yaml"
+      - ".github/workflows/deploy-api.yml"
+  workflow_dispatch:
+
+jobs:
+  deploy:
+    name: Deploy API
+    runs-on: ubuntu-latest
+    # Skip until you set a real host secret (Railway / Render / Fly / VPS)
+    if: ${{ secrets.API_DEPLOY_HOOK_URL != '' }}
+    steps:
+      - name: Trigger deploy hook
+        run: |
+          curl -fsS -X POST "${{ secrets.API_DEPLOY_HOOK_URL }}"
