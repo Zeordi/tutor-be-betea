@@ -1,10 +1,15 @@
-import { Injectable } from "@nestjs/common";
+import { Injectable, NotFoundException } from "@nestjs/common";
 import { prisma } from "@tutor/database";
 
 @Injectable()
 export class EscrowService {
   async holdFunds(contractId: string, amount: number) {
-    await prisma.tutoringContract.update({
+    const contract = await prisma.tutoringContract.findUnique({
+      where: { id: contractId },
+    });
+    if (!contract) throw new NotFoundException("Contract not found");
+
+    return prisma.tutoringContract.update({
       where: { id: contractId },
       data: {
         escrowHeldAmount: amount,
@@ -13,8 +18,14 @@ export class EscrowService {
     });
   }
 
+  /** Admin/finance release after verified sessions */
   async releaseFunds(contractId: string) {
-    await prisma.tutoringContract.update({
+    const contract = await prisma.tutoringContract.findUnique({
+      where: { id: contractId },
+    });
+    if (!contract) throw new NotFoundException("Contract not found");
+
+    return prisma.tutoringContract.update({
       where: { id: contractId },
       data: {
         escrowHeldAmount: 0,
@@ -23,13 +34,11 @@ export class EscrowService {
     });
   }
 
-  async handlePaymentWebhook(contractId: string, paymentProvider: string) {
-    await prisma.tutoringContract.update({
+  /** Payment success → ACTIVE but keep escrow until release */
+  async handlePaymentWebhook(contractId: string, _paymentProvider: string) {
+    return prisma.tutoringContract.update({
       where: { id: contractId },
-      data: {
-        status: "ACTIVE",
-        escrowHeldAmount: 0,
-      },
+      data: { status: "ACTIVE" },
     });
   }
 }
