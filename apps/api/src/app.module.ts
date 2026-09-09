@@ -31,6 +31,13 @@ import { SupportModule } from "./modules/support/support.module";
 import { AuditModule } from "./modules/audit/audit.module";
 import { AdminModule } from "./modules/admin/admin.module";
 import { JobsQueueModule } from "./modules/jobs-queue/jobs-queue.module";
+import { FavoritesModule } from "./modules/favorites/favorites.module";
+import { ReferralsModule } from "./modules/referrals/referrals.module";
+import { SubscriptionsModule } from "./modules/subscriptions/subscriptions.module";
+import { ConnectsModule } from "./modules/connects/connects.module";
+import { AvailabilityModule } from "./modules/availability/availability.module";
+import { ReviewsModule } from "./modules/reviews/reviews.module";
+import { ReplacementsModule } from "./modules/replacements/replacements.module";
 
 @Module({
   imports: [
