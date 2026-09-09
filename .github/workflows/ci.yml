@@ -1,0 +1,58 @@
+name: CI
+
+on:
+  push:
+    branches: [main, develop]
+  pull_request:
+    branches: [main, develop]
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  build-and-check:
+    name: Install · Typecheck · Build
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 9.12.0
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: pnpm
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Generate Prisma client
+        run: pnpm db:generate
+        env:
+          # Dummy URL only for client generate (no real DB required)
+          DATABASE_URL: postgresql://postgres:postgres@localhost:5432/postgres
+
+      - name: Typecheck
+        run: pnpm check-types
+        continue-on-error: false
+
+      - name: Lint
+        run: pnpm lint
+        continue-on-error: true
+
+      - name: Build packages + apps
+        run: pnpm build
+        env:
+          DATABASE_URL: postgresql://postgres:postgres@localhost:5432/postgres
+          NEXT_TELEMETRY_DISABLED: "1"
+          # Build-time placeholders (no secrets)
+          JWT_SECRET: ci-jwt-secret-at-least-32-characters-long
+          ENCRYPTION_KEY: "0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef"
