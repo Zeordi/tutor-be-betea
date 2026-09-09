@@ -60,7 +60,7 @@ export class ChatGateway implements OnGatewayConnection {
     const blocked = scan.blocked;
 
     // 2) Save message to database
-    const saved = await this.chatService.saveMessage({
+    const saved = await this.chatService.sendMessage({
       roomId,
       senderId,
       content: sanitizedContent,
