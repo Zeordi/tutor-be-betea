@@ -111,13 +111,10 @@ export class TeachersService {
       where: { userId: teacherId },
       include: {
         user: {
-          select: {
-            id: true,
-            fullName: true,
-            avatarUrl: true,
-            status: true,
-          },
-        },
+          select: { id: true, fullName: true, avatarUrl: true, subCity: true },
+         },      
+         packages: { where: { active: true } },
+         availability: { where: { active: true } },
       },
     });
 
