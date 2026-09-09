@@ -1,64 +1,109 @@
-import { Injectable, NotFoundException } from "@nestjs/common";
+import { Injectable } from "@nestjs/common";
 import { prisma } from "@tutor/database";
 import { stripe } from "../../lib/stripe";
 
 @Injectable()
 export class PaymentsService {
-  async getParentWallet(parentId: string) {
-    const contracts = await prisma.tutoringContract.findMany({
-      where: { parentId, status: "ACTIVE" },
-      include: { teacher: true },
+  async getParentWallet(userId: string) {
+    const payments = await prisma.payment.findMany({
+      where: { userId },
+      orderBy: { createdAt: "desc" },
+      take: 50,
     });
-
+    const held = await prisma.tutoringContract.aggregate({
+      where: {
+        parentId: userId,
+        status: { in: ["PENDING_ESCROW", "ACTIVE"] },
+      },
+      _sum: { escrowHeldAmount: true },
+    });
     return {
-      balance: 0, // placeholder - in real version sum from escrow
-      contracts,
+      escrowHeld: held._sum.escrowHeldAmount || 0,
+      transactions: payments,
     };
   }
 
-  async initiatePayment(parentId: string, contractId: string, amount: number) {
-    const contract = await prisma.tutoringContract.findUnique({
-      where: { id: contractId },
+  async getTeacherEarnings(teacherId: string) {
+    const payouts = await prisma.payout.findMany({
+      where: { teacherId },
+      orderBy: { createdAt: "desc" },
     });
-    if (!contract) throw new NotFoundException("Contract not found");
+    const completed = await prisma.tutoringContract.aggregate({
+      where: { teacherId, status: "COMPLETED" },
+      _sum: { agreedAmount: true },
+    });
+    return {
+      totalEarned: completed._sum.agreedAmount || 0,
+      payouts,
+    };
+  }
 
-    // Hold escrow amount
-    await prisma.tutoringContract.update({
-      where: { id: contractId },
+  async initiatePayment(body: {
+    userId: string;
+    contractId?: string;
+    amount: number;
+    provider?: string;
+  }) {
+    const provider = (body.provider || "TELEBIRR") as any;
+
+    if (provider === "STRIPE") {
+      const intent = await stripe.paymentIntents.create({
+        amount: Math.round(Number(body.amount) * 100),
+        currency: "etb",
+        metadata: {
+          userId: body.userId,
+          contractId: body.contractId || "",
+        },
+      });
+      const payment = await prisma.payment.create({
+        data: {
+          userId: body.userId,
+          contractId: body.contractId,
+          amount: body.amount,
+          provider: "STRIPE",
+          status: "PENDING",
+          externalRef: intent.id,
+          meta: { client_secret: intent.client_secret },
+        },
+      });
+      return { payment, clientSecret: intent.client_secret };
+    }
+
+    const payment = await prisma.payment.create({
       data: {
-        escrowHeldAmount: amount,
-        status: "PENDING_ESCROW",
+        userId: body.userId,
+        contractId: body.contractId,
+        amount: body.amount,
+        provider,
+        status: "PENDING",
       },
     });
 
-    // Telebirr / CBE Birr / M-Pesa / Stripe placeholder
     return {
-      message: "Payment initiated",
+      payment,
+      message: "Payment initiated — complete in " + provider,
       redirectUrl: "/wallet",
     };
   }
 
-  async handleTelebirrWebhook(body: any) {
-    const txRef = body.tx_ref || body.reference;
-    if (!txRef) return { error: "Invalid webhook" };
-
-    await prisma.tutoringContract.updateMany({
-      where: { escrowHeldAmount: { gt: 0 } },
-      data: {
-        escrowHeldAmount: 0,
-        status: "ACTIVE",
-      },
+  async handleWebhook(provider: string, body: any) {
+    const ref = body?.transactionId || body?.id || body?.trx_id;
+    if (!ref) return { ok: false };
+    await prisma.payment.updateMany({
+      where: { externalRef: String(ref) },
+      data: { status: "SUCCESS" },
     });
-
-    return { success: true };
+    return { ok: true };
   }
 
-  async getTeacherEarnings(teacherId: string) {
-    const contracts = await prisma.tutoringContract.findMany({
-      where: { teacherId, status: "COMPLETED" },
+  async requestPayout(teacherId: string, amount: number, provider?: string) {
+    return prisma.payout.create({
+      data: {
+        teacherId,
+        amount,
+        provider: (provider as any) || "TELEBIRR",
+        status: "PENDING",
+      },
     });
-
-    const total = contracts.reduce((sum, c) => sum + Number(c.agreedAmount), 0);
-    return { totalEarnings: total, contracts };
   }
 }
