@@ -65,6 +65,13 @@ import { ReplacementsModule } from "./modules/replacements/replacements.module";
     AuditModule,
     AdminModule,
     JobsQueueModule,
+    FavoritesModule,
+    ReferralsModule,
+    SubscriptionsModule,
+    ConnectsModule,
+    AvailabilityModule,
+    ReviewsModule,
+    ReplacementsModule,
   ],
 })
 export class AppModule implements NestModule {
