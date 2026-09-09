@@ -29,7 +29,6 @@ const PLANS = [
 
 export default function SubscriptionScreen() {
   const { isDark } = useTheme();
-  const router =
   const router = useRouter();
   const bg = isDark ? "#0A1628" : "#F8FAFC";
   const card = isDark ? "#112240" : "#FFFFFF";

@@ -30,16 +30,16 @@ export async function apiRequest<T = any>(
     ...(options.headers as Record<string, string>),
   };
 
-  if (token) headers.Authorization = `Bearer ${token}`;
+  if (token) headers.Authorization = "Bearer " + token;
 
-  const response = await fetch(
-    `\( {API_URL} \){endpoint.startsWith("/") ? endpoint : `/${endpoint}`}`,
-    { ...options, headers },
-  );
+  const url = API_URL + (endpoint.startsWith("/") ? endpoint : "/" + endpoint);
+  const response = await fetch(url, { ...options, headers });
 
   if (!response.ok) {
     const errorData = await response.json().catch(() => ({}));
-    throw new Error(errorData.message || `Request failed (${response.status})`);
+    throw new Error(
+      (errorData as any).message || "Request failed (" + response.status + ")",
+    );
   }
 
   return response.json();

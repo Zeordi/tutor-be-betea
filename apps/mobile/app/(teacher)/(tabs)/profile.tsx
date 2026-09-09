@@ -17,7 +17,7 @@ export default function TeacherProfileScreen() {
 
   const items = [
     ["🛡️", "Verification Status", "/(teacher)/verification"],
-    ["📊", "Analytics",", "/(teacher)/analytics"],
+    ["📊", "Analytics", "/(teacher)/analytics"],
     ["📅", "Calendar", "/(teacher)/calendar"],
     ["📋", "My Applications", "/(teacher)/applications"],
     ["💰", "Earnings", "/(teacher)/earnings"],
