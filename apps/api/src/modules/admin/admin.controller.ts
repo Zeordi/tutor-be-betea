@@ -1,4 +1,12 @@
-import { Controller, Get, Post, Param, Body, Query, UseGuards } from "@nestjs/common";
+import {
+  Controller,
+  Get,
+  Post,
+  Body,
+  Param,
+  Query,
+  UseGuards,
+} from "@nestjs/common";
 import { AdminService } from "./admin.service";
 import { JwtAuthGuard } from "../../common/guards/jwt-auth.guard";
 import { RolesGuard } from "../../common/guards/roles.guard";
@@ -11,8 +19,8 @@ export class AdminController {
 
   @Get("dashboard")
   @UseGuards(JwtAuthGuard, RolesGuard)
-  @Roles("SUPER_ADMIN", "SUPPORT_AGENT")
-  getDashboardStats(@CurrentUser() user: any) {
+  @Roles("SUPER_ADMIN", "SUPPORT_AGENT", "FINANCE", "VERIFICATION_OFFICER")
+  getDashboardStats() {
     return this.adminService.getDashboardStats();
   }
 
@@ -33,7 +41,10 @@ export class AdminController {
   @Post("verification/:userId/approve")
   @UseGuards(JwtAuthGuard, RolesGuard)
   @Roles("SUPER_ADMIN", "VERIFICATION_OFFICER")
-  approveVerification(@CurrentUser() user: any, @Param("userId") userId: string) {
+  approveVerification(
+    @CurrentUser() user: any,
+    @Param("userId") userId: string,
+  ) {
     return this.adminService.approveVerification(userId, user.id);
   }
 
@@ -45,13 +56,52 @@ export class AdminController {
     @Param("userId") userId: string,
     @Body() body: { reason?: string },
   ) {
-    return this.adminService.flagRisk(userId, body?.reason || "Risk flag", user.id);
+    return this.adminService.flagRisk(
+      userId,
+      body?.reason || "Risk flag",
+      user.id,
+    );
+  }
+
+  @Get("risk-flags")
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles("SUPER_ADMIN", "SUPPORT_AGENT")
+  listRiskFlags() {
+    return this.adminService.listRiskFlags();
+  }
+
+  @Post("risk-flags/:id/clear")
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles("SUPER_ADMIN")
+  clearRiskFlag(@CurrentUser() user: any, @Param("id") id: string) {
+    return this.adminService.clearRiskFlag(id, user.id);
+  }
+
+  @Get("promos")
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles("SUPER_ADMIN", "FINANCE")
+  listPromos() {
+    return this.adminService.listPromoCodes();
+  }
+
+  @Post("promos")
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles("SUPER_ADMIN", "FINANCE")
+  upsertPromo(@Body() body: any) {
+    return this.adminService.upsertPromoCode(body);
   }
 
   @Get("payout-ledger")
   @UseGuards(JwtAuthGuard, RolesGuard)
-  @Roles("SUPER_ADMIN")
+  @Roles("SUPER_ADMIN", "FINANCE")
   getPayoutLedger() {
     return this.adminService.getPayoutLedger();
+  }
+
+  @Get("children/:parentId")
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles("SUPER_ADMIN", "SUPPORT_AGENT")
+  getChildProfiles(@Param("parentId") parentId: string) {
+    return this.adminService.getChildProfiles(parentId);
   }
 }
