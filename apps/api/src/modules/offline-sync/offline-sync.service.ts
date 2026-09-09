@@ -29,6 +29,7 @@ export class OfflineSyncService {
       const created = await prisma.attendanceLog.create({
         data: {
           contractId: payload.contractId,
+          teacherId: payload.teacherId || userId,
           checkInTime: payload.checkInTime
             ? new Date(payload.checkInTime)
             : new Date(),
@@ -49,7 +50,6 @@ export class OfflineSyncService {
 
       return { ...created, replayed: false };
     } catch (err: any) {
-      // Unique offlineId race: treat as successful replay
       if (err?.code === "P2002" && payload.offlineId) {
         const existing = await prisma.attendanceLog.findUnique({
           where: { offlineId: payload.offlineId },
@@ -73,23 +73,10 @@ export class OfflineSyncService {
         weekNumber: Number(payload.weekNumber),
         topicsCovered: payload.topicsCovered || "",
         quizScore: payload.quizScore ?? null,
-        strengthsNotes: payload.strengthsNotes ?? null,
-        improvementAreas: payload.improvementAreas ?? null,
-      },
-    });
-  }
-
-  async syncSupportTicket(contractId: string, userId: string, payload: any) {
-    if (!contractId) throw new BadRequestException("contractId is required");
-
-    return prisma.supportTicket.create({
-      data: {
-        contractId,
-        submittedBy: userId,
-        reasonType: payload.reasonType || "OTHER",
-        explanation: payload.explanation || "",
-        evidenceAttachmentUrls: payload.evidenceAttachmentUrls || [],
-        status: "OPEN",
+        strengthsNotes: payload.strengthsNotes,
+        improvementAreas: payload.improvementAreas,
+        aiSummary: payload.aiSummary,
+        nextSessionPlan: payload.nextSessionPlan,
       },
     });
   }
