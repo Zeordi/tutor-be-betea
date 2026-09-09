@@ -1,24 +1,33 @@
-import { Controller, Get, Post, Param, Body, UseGuards } from "@nestjs/common";
+import {
+  Controller,
+  Get,
+  Post,
+  Param,
+  Query,
+  Body,
+  UseGuards,
+} from "@nestjs/common";
 import { NotificationsService } from "./notifications.service";
 import { JwtAuthGuard } from "../../common/guards/jwt-auth.guard";
-import { RolesGuard } from "../../common/guards/roles.guard";
-import { Roles } from "../../common/decorators/roles.decorator";
 import { CurrentUser } from "../../common/decorators/current-user.decorator";
 
 @Controller("notifications")
+@UseGuards(JwtAuthGuard)
 export class NotificationsController {
   constructor(private readonly notificationsService: NotificationsService) {}
 
   @Get()
-  @UseGuards(JwtAuthGuard, RolesGuard)
-  getUserNotifications(@CurrentUser() user: any) {
-    return this.notificationsService.getUserNotifications(user.id);
+  list(@CurrentUser() user: any, @Query("type") type?: string) {
+    return this.notificationsService.getUserNotifications(user.id, type);
   }
 
-  @Post()
-  @UseGuards(JwtAuthGuard, RolesGuard)
-  @Roles("TEACHER", "PARENT")
-  create(@CurrentUser() user: any, @Body() body: any) {
-    return this.notificationsService.createNotification(user.id, body);
+  @Post(":id/read")
+  markRead(@CurrentUser() user: any, @Param("id") id: string) {
+    return this.notificationsService.markRead(user.id, id);
+  }
+
+  @Post("read-all")
+  markAllRead(@CurrentUser() user: any) {
+    return this.notificationsService.markAllRead(user.id);
   }
 }
