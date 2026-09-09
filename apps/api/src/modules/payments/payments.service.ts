@@ -1,4 +1,4 @@
-import { Injectable } from "@nestjs/common";
+import { Injectable, BadRequestException } from "@nestjs/common";
 import { prisma } from "@tutor/database";
 import { stripe } from "../../lib/stripe";
 
@@ -13,7 +13,7 @@ export class PaymentsService {
     const held = await prisma.tutoringContract.aggregate({
       where: {
         parentId: userId,
-        status: { in: ["PENDING_ESCROW", "ACTIVE"] },
+        status: { in: ["PENDING_ESCROW", "ACTIVE", "DISPUTED"] },
       },
       _sum: { escrowHeldAmount: true },
     });
@@ -32,34 +32,42 @@ export class PaymentsService {
       where: { teacherId, status: "COMPLETED" },
       _sum: { agreedAmount: true },
     });
+    const pendingPayout = await prisma.payout.aggregate({
+      where: { teacherId, status: { in: ["PENDING", "PROCESSING"] } },
+      _sum: { amount: true },
+    });
     return {
       totalEarned: completed._sum.agreedAmount || 0,
+      pendingPayout: pendingPayout._sum.amount || 0,
       payouts,
     };
   }
 
-  async initiatePayment(body: {
+  async initiatePayment(input: {
     userId: string;
     contractId?: string;
     amount: number;
     provider?: string;
   }) {
-    const provider = (body.provider || "TELEBIRR") as any;
+    if (!input.amount || Number(input.amount) <= 0) {
+      throw new BadRequestException("Invalid amount");
+    }
+    const provider = (input.provider || "TELEBIRR") as any;
 
     if (provider === "STRIPE") {
       const intent = await stripe.paymentIntents.create({
-        amount: Math.round(Number(body.amount) * 100),
+        amount: Math.round(Number(input.amount) * 100),
         currency: "etb",
         metadata: {
-          userId: body.userId,
-          contractId: body.contractId || "",
+          userId: input.userId,
+          contractId: input.contractId || "",
         },
       });
       const payment = await prisma.payment.create({
         data: {
-          userId: body.userId,
-          contractId: body.contractId,
-          amount: body.amount,
+          userId: input.userId,
+          contractId: input.contractId,
+          amount: input.amount,
           provider: "STRIPE",
           status: "PENDING",
           externalRef: intent.id,
@@ -71,13 +79,23 @@ export class PaymentsService {
 
     const payment = await prisma.payment.create({
       data: {
-        userId: body.userId,
-        contractId: body.contractId,
-        amount: body.amount,
+        userId: input.userId,
+        contractId: input.contractId,
+        amount: input.amount,
         provider,
         status: "PENDING",
       },
     });
+
+    if (input.contractId) {
+      await prisma.tutoringContract.update({
+        where: { id: input.contractId },
+        data: {
+          escrowHeldAmount: input.amount,
+          status: "PENDING_ESCROW",
+        },
+      });
+    }
 
     return {
       payment,
@@ -87,16 +105,39 @@ export class PaymentsService {
   }
 
   async handleWebhook(provider: string, body: any) {
-    const ref = body?.transactionId || body?.id || body?.trx_id;
-    if (!ref) return { ok: false };
-    await prisma.payment.updateMany({
+    const ref =
+      body?.transactionId || body?.id || body?.trx_id || body?.externalRef;
+    if (!ref) return { ok: false, reason: "missing_ref" };
+
+    const updated = await prisma.payment.updateMany({
       where: { externalRef: String(ref) },
       data: { status: "SUCCESS" },
     });
-    return { ok: true };
+
+    const payment = await prisma.payment.findFirst({
+      where: { externalRef: String(ref) },
+    });
+    if (payment?.contractId) {
+      await prisma.tutoringContract.update({
+        where: { id: payment.contractId },
+        data: {
+          status: "ACTIVE",
+          // keep escrowHeldAmount until release
+        },
+      });
+    }
+
+    return { ok: true, updated: updated.count, provider };
   }
 
-  async requestPayout(teacherId: string, amount: number, provider?: string) {
+  async requestPayout(
+    teacherId: string,
+    amount: number,
+    provider?: string,
+  ) {
+    if (!amount || amount <= 0) {
+      throw new BadRequestException("Invalid amount");
+    }
     return prisma.payout.create({
       data: {
         teacherId,
