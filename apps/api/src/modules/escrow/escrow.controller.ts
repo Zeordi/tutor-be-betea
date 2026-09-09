@@ -9,22 +9,29 @@ import { CurrentUser } from "../../common/decorators/current-user.decorator";
 export class EscrowController {
   constructor(private readonly escrowService: EscrowService) {}
 
-  @Post("/:contractId/hold")
+  @Post(":contractId/hold")
   @UseGuards(JwtAuthGuard, RolesGuard)
   @Roles("PARENT")
-  holdFunds(@CurrentUser() user: any, @Param("contractId") contractId: string, @Body() body: any) {
+  holdFunds(
+    @CurrentUser() user: any,
+    @Param("contractId") contractId: string,
+    @Body() body: any,
+  ) {
     return this.escrowService.holdFunds(contractId, body.amount);
   }
 
-  @Post("/:contractId/release")
+  @Post(":contractId/release")
   @UseGuards(JwtAuthGuard, RolesGuard)
-  @Roles("TEACHER")
+  @Roles("SUPER_ADMIN", "FINANCE")
   releaseFunds(@Param("contractId") contractId: string) {
     return this.escrowService.releaseFunds(contractId);
   }
 
-  @Post("/webhook/telebirr")
+  @Post("webhook/telebirr")
   handleTelebirrWebhook(@Body() body: any) {
-    return this.escrowService.handlePaymentWebhook(body.contractId, "telebirr");
+    return this.escrowService.handlePaymentWebhook(
+      body.contractId,
+      "TELEBIRR",
+    );
   }
 }
