@@ -1,10 +1,18 @@
+/** Thin placeholder until Daily.co / LiveKit keys exist. */
 export const DailyService = {
-  createRoom: async (opts: { name: string; properties?: any }) => ({
-    id: opts.name,
-    join_url: "https://example.daily.co/" + opts.name,
-  }),
-  joinRoom: async (roomId: string) => ({
-    id: roomId,
-    join_url: "https://example.daily.co/" + roomId,
-  }),
+  async createRoom(opts: { name: string; properties?: Record<string, unknown> }) {
+    return {
+      id: opts.name,
+      name: opts.name,
+      join_url: "https://example.daily.co/" + opts.name,
+    };
+  },
+  async joinRoom(roomId: string) {
+    return {
+      id: roomId,
+      join_url: "https://example.daily.co/" + roomId,
+    };
+  },
 };
+
+export default DailyService;
