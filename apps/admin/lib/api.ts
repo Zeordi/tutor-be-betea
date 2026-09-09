@@ -22,20 +22,18 @@ export async function apiFetch<T = any>(
     "Content-Type": "application/json",
     ...(options.headers as Record<string, string>),
   };
-  if (token) headers.Authorization = `Bearer ${token}`;
+  if (token) headers.Authorization = "Bearer " + token;
 
-  const res = await fetch(
-    `\( {API_URL} \){path.startsWith("/") ? path : `/${path}`}`,
-    {
-      ...options,
-      headers,
-    },
-  );
+  const url = API_URL + (path.startsWith("/") ? path : "/" + path);
+  const res = await fetch(url, {
+    ...options,
+    headers,
+  });
 
   if (!res.ok) {
     const err = await res.json().catch(() => ({}));
     throw new Error(
-      (err as any).message || `Request failed (${res.status})`,
+      (err as any).message || "Request failed (" + res.status + ")",
     );
   }
 
