@@ -12,6 +12,8 @@ export class ProgressService {
         quizScore: data.quizScore,
         strengthsNotes: data.strengthsNotes,
         improvementAreas: data.improvementAreas,
+        aiSummary: data.aiSummary,
+        nextSessionPlan: data.nextSessionPlan,
       },
     });
   }
