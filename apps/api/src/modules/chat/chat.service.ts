@@ -10,26 +10,59 @@ export class ChatService {
     });
   }
 
-  async sendMessage(roomId: string, senderId: string, content: string) {
-    const sanitized = this.sanitizeContent(content);
+  /** Supports gateway object form and positional args */
+  async sendMessage(
+    input:
+      | string
+      | {
+          roomId: string;
+          senderId: string;
+          content: string;
+          originalBlocked?: boolean;
+        },
+    senderId?: string,
+    content?: string,
+  ) {
+    let roomId: string;
+    let sid: string;
+    let text: string;
+    let blocked = false;
+
+    if (typeof input === "string") {
+      roomId = input;
+      sid = senderId as string;
+      text = content as string;
+    } else {
+      roomId = input.roomId;
+      sid = input.senderId;
+      text = input.content;
+      blocked = !!input.originalBlocked;
+    }
+
+    const sanitized = this.sanitizeContent(text);
     return prisma.chatMessage.create({
       data: {
         roomId,
-        senderId,
+        senderId: sid,
         content: sanitized,
-        originalBlocked: content !== sanitized,
+        originalBlocked: blocked || text !== sanitized,
       },
     });
   }
 
   private sanitizeContent(content: string): string {
-    let sanitized = content
+    return content
       .replace(/\+251\s*\d{3}\s*\d{3}\s*\d{4}/g, "[RESTRICTED CONTACT INFO]")
       .replace(/09\d{8}/g, "[RESTRICTED CONTACT INFO]")
       .replace(/07\d{8}/g, "[RESTRICTED CONTACT INFO]")
       .replace(/@[a-zA-Z0-9_]+/g, "[RESTRICTED CONTACT INFO]")
-      .replace(/\b[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}\b/g, "[RESTRICTED CONTACT INFO]")
-      .replace(/\b\d{4}\s*\d{4}\s*\d{4}\s*\d{4}\b/g, "[RESTRICTED CONTACT INFO]");
-    return sanitized;
+      .replace(
+        /\b[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}\b/g,
+        "[RESTRICTED CONTACT INFO]",
+      )
+      .replace(
+        /\b\d{4}\s*\d{4}\s*\d{4}\s*\d{4}\b/g,
+        "[RESTRICTED CONTACT INFO]",
+      );
   }
 }
