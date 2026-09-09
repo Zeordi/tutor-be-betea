@@ -1,4 +1,4 @@
-import { Controller, Post, Get, Param, Body, UseGuards } from "@nestjs/common";
+import { Controller, Post, Get, Body, UseGuards } from "@nestjs/common";
 import { PaymentsService } from "./payments.service";
 import { JwtAuthGuard } from "../../common/guards/jwt-auth.guard";
 import { RolesGuard } from "../../common/guards/roles.guard";
@@ -27,16 +27,37 @@ export class PaymentsController {
   @UseGuards(JwtAuthGuard, RolesGuard)
   @Roles("PARENT")
   initiatePayment(@CurrentUser() user: any, @Body() body: any) {
-    return this.paymentsService.initiatePayment(user.id, body.contractId, body.amount);
+    return this.paymentsService.initiatePayment({
+      userId: user.id,
+      contractId: body.contractId,
+      amount: body.amount,
+      provider: body.provider,
+    });
+  }
+
+  @Post("payout")
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles("TEACHER")
+  requestPayout(@CurrentUser() user: any, @Body() body: any) {
+    return this.paymentsService.requestPayout(
+      user.id,
+      Number(body.amount),
+      body.provider,
+    );
   }
 
   @Post("webhook/telebirr")
   handleTelebirrWebhook(@Body() body: any) {
-    return this.paymentsService.handleTelebirrWebhook(body);
+    return this.paymentsService.handleWebhook("TELEBIRR", body);
   }
 
   @Post("webhook/cbe")
   handleCbeWebhook(@Body() body: any) {
-    return this.paymentsService.handleTelebirrWebhook(body);
+    return this.paymentsService.handleWebhook("CBE_BIRR", body);
+  }
+
+  @Post("webhook/mpesa")
+  handleMpesaWebhook(@Body() body: any) {
+    return this.paymentsService.handleWebhook("MPESA", body);
   }
 }
