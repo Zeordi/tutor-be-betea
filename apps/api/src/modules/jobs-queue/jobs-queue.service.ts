@@ -3,13 +3,15 @@ import { prisma } from "@tutor/database";
 
 @Injectable()
 export class JobsQueueService {
+  /** Expire open jobs past expiresAt. ApplicationStatus has no APPROVED. */
   async processApplications() {
-    await prisma.application.updateMany({
+    const expired = await prisma.parentJob.updateMany({
       where: {
-        status: "PENDING",
-        job: { status: "OPEN" },
+        status: "OPEN",
+        expiresAt: { lt: new Date() },
       },
-      data: { status: "APPROVED" },
+      data: { status: "EXPIRED" },
     });
+    return { expiredJobs: expired.count };
   }
 }
