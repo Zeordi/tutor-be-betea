@@ -1,8 +1,12 @@
-import { Module, NestModule, MiddlewareConsumer } from "@nestjs/common";
+import {
+  Module,
+  NestModule,
+  MiddlewareConsumer,
+  RequestMethod,
+} from "@nestjs/common";
 import { ConfigModule } from "@nestjs/config";
-// ... existing module imports ...
-import { SimpleRateLimitMiddleware } from "./common/middleware/simple-rate-limit.middleware";
 
+import { SimpleRateLimitMiddleware } from "./common/middleware/simple-rate-limit.middleware";
 import { DatabaseModule } from "./database/database.module";
 
 import { AuthModule } from "./modules/auth/auth.module";
@@ -61,12 +65,12 @@ export class AppModule implements NestModule {
     consumer
       .apply(SimpleRateLimitMiddleware)
       .forRoutes(
-        "auth/otp/send",
-        "auth/otp/verify",
-        "auth/login",
-        "auth/register",
-        "vault/upload",
-        "offline/attendance",
+        { path: "auth/otp/send", method: RequestMethod.POST },
+        { path: "auth/otp/verify", method: RequestMethod.POST },
+        { path: "auth/login", method: RequestMethod.POST },
+        { path: "auth/register", method: RequestMethod.POST },
+        { path: "vault/upload", method: RequestMethod.POST },
+        { path: "offline/attendance", method: RequestMethod.POST },
       );
   }
 }
