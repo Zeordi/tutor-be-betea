@@ -4,29 +4,47 @@ import {
   ArgumentsHost,
   HttpException,
   HttpStatus,
+  Logger,
 } from "@nestjs/common";
-import { Response } from "express";
+import type { Request, Response } from "express";
 
 @Catch()
 export class AllExceptionsFilter implements ExceptionFilter {
+  private readonly logger = new Logger("API");
+
   catch(exception: unknown, host: ArgumentsHost) {
     const ctx = host.switchToHttp();
-    const response = ctx.getResponse<Response>();
+    const res = ctx.getResponse<Response>();
+    const req = ctx.getRequest<Request>();
 
-    const status =
-      exception instanceof HttpException
-        ? exception.getStatus()
-        : HttpStatus.INTERNAL_SERVER_ERROR;
+    let status = HttpStatus.INTERNAL_SERVER_ERROR;
+    let message: string | string[] = "Internal server error";
+    let code = "INTERNAL_ERROR";
 
-    const message =
-      exception instanceof HttpException
-        ? exception.getResponse()
-        : "Internal server error";
+    if (exception instanceof HttpException) {
+      status = exception.getStatus();
+      const body = exception.getResponse();
+      if (typeof body === "string") {
+        message = body;
+      } else if (body && typeof body === "object") {
+        const o = body as any;
+        message = o.message || message;
+        code = o.error || o.code || HttpStatus[status] || code;
+      }
+    } else if (exception instanceof Error) {
+      this.logger.error(exception.message, exception.stack);
+      message =
+        process.env.NODE_ENV === "production"
+          ? "Internal server error"
+          : exception.message;
+    }
 
-    response.status(status).json({
+    res.status(status).json({
       success: false,
       statusCode: status,
+      code,
       message,
+      path: req.url,
       timestamp: new Date().toISOString(),
     });
   }
