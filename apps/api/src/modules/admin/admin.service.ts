@@ -1,4 +1,4 @@
-import { Injectable } from "@nestjs/common";
+import { Injectable, NotFoundException } from "@nestjs/common";
 import { prisma } from "@tutor/database";
 import { createHmac } from "crypto";
 
@@ -39,7 +39,6 @@ export class AdminService {
         targetUserId: params.targetUserId,
         actionType: params.actionType,
         reason: params.reason,
-       ,
         ipAddress: params.ipAddress || "127.0.0.1",
         previousHash,
         currentHash,
@@ -48,18 +47,21 @@ export class AdminService {
   }
 
   async getDashboardStats() {
-    const [tutors, parents, contracts, tickets] = await Promise.all([
-      prisma.teacherProfile.count(),
-      prisma.user.count({ where: { role: "PARENT" } }),
-      prisma.tutoringContract.count(),
-      prisma.supportTicket.count(),
-    ]);
+    const [tutors, parents, contracts, tickets, pendingVault] =
+      await Promise.all([
+        prisma.teacherProfile.count(),
+        prisma.user.count({ where: { role: "PARENT" } }),
+        prisma.tutoringContract.count({ where: { status: "ACTIVE" } }),
+        prisma.supportTicket.count({ where: { status: "OPEN" } }),
+        prisma.vaultDocument.count({ where: { status: "PENDING" } }),
+      ]);
 
     return {
       tutors,
       parents,
       activeContracts: contracts,
       openTickets: tickets,
+      pendingVerifications: pendingVault,
     };
   }
 
@@ -83,6 +85,10 @@ export class AdminService {
       where: { id: userId },
       data: { status: "ACTIVE" },
     });
+    await prisma.teacherProfile.updateMany({
+      where: { userId },
+      data: { isIdVerified: true, isEduVerified: true },
+    });
     await this.writeAudit({
       adminId,
       targetUserId: userId,
@@ -97,6 +103,14 @@ export class AdminService {
       where: { id: userId },
       data: { status: "SUSPENDED" },
     });
+    await prisma.riskFlag.create({
+      data: {
+        userId,
+        createdBy: adminId,
+        severity: "HIGH",
+        reason,
+      },
+    });
     await this.writeAudit({
       adminId,
       targetUserId: userId,
@@ -107,16 +121,83 @@ export class AdminService {
   }
 
   async getChildProfiles(parentId: string) {
-    // Schema has no contracts relation on StudentProfile
     return prisma.studentProfile.findMany({
       where: { parentId },
+      include: { contracts: true, jobs: true },
+      orderBy: { createdAt: "desc" },
+    });
+  }
+
+  async listPromoCodes() {
+    return prisma.promoCode.findMany({ orderBy: { createdAt: "desc" } });
+  }
+
+  async upsertPromoCode(data: {
+    code: string;
+    description?: string;
+    discountPct?: number;
+    discountEtb?: number;
+    usageLimit?: number;
+    bannerText?: string;
+    active?: boolean;
+  }) {
+    return prisma.promoCode.upsert({
+      where: { code: data.code },
+      create: {
+        code: data.code,
+        description: data.description,
+        discountPct: data.discountPct ?? 0,
+        discountEtb: data.discountEtb ?? 0,
+        usageLimit: data.usageLimit ?? 100,
+        bannerText: data.bannerText,
+        active: data.active ?? true,
+      },
+      update: {
+        description: data.description,
+        discountPct: data.discountPct,
+        discountEtb: data.discountEtb,
+        usageLimit: data.usageLimit,
+        bannerText: data.bannerText,
+        active: data.active,
+      },
     });
   }
 
   async getPayoutLedger() {
-    return prisma.tutoringContract.findMany({
-      where: { status: "COMPLETED" },
-      select: { teacherId: true, agreedAmount: true, status: true },
+    return prisma.payout.findMany({
+      orderBy: { createdAt: "desc" },
+      take: 200,
+      include: {
+        teacher: { select: { id: true, fullName: true, phoneNumber: true } },
+      },
     });
+  }
+
+  async listRiskFlags() {
+    return prisma.riskFlag.findMany({
+      where: { resolved: false },
+      orderBy: { createdAt: "desc" },
+      include: {
+        user: {
+          select: { id: true, fullName: true, role: true, status: true },
+        },
+      },
+    });
+  }
+
+  async clearRiskFlag(flagId: string, adminId: string) {
+    const flag = await prisma.riskFlag.findUnique({ where: { id: flagId } });
+    if (!flag) throw new NotFoundException("Risk flag not found");
+    await prisma.riskFlag.update({
+      where: { id: flagId },
+      data: { resolved: true },
+    });
+    await this.writeAudit({
+      adminId,
+      targetUserId: flag.userId,
+      actionType: "CLEAR_RISK_FLAG",
+      reason: "Flag cleared by admin",
+    });
+    return { success: true };
   }
 }
