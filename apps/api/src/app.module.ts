@@ -1,5 +1,7 @@
-import { Module } from "@nestjs/common";
+import { Module, NestModule, MiddlewareConsumer } from "@nestjs/common";
 import { ConfigModule } from "@nestjs/config";
+// ... existing module imports ...
+import { SimpleRateLimitMiddleware } from "./common/middleware/simple-rate-limit.middleware";
 
 import { DatabaseModule } from "./database/database.module";
 
@@ -54,4 +56,17 @@ import { JobsQueueModule } from "./modules/jobs-queue/jobs-queue.module";
     JobsQueueModule,
   ],
 })
-export class AppModule {}
+export class AppModule implements NestModule {
+  configure(consumer: MiddlewareConsumer) {
+    consumer
+      .apply(SimpleRateLimitMiddleware)
+      .forRoutes(
+        "auth/otp/send",
+        "auth/otp/verify",
+        "auth/login",
+        "auth/register",
+        "vault/upload",
+        "offline/attendance",
+      );
+  }
+}
