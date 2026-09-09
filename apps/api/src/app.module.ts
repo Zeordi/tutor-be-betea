@@ -38,6 +38,7 @@ import { ConnectsModule } from "./modules/connects/connects.module";
 import { AvailabilityModule } from "./modules/availability/availability.module";
 import { ReviewsModule } from "./modules/reviews/reviews.module";
 import { ReplacementsModule } from "./modules/replacements/replacements.module";
+import { BlogModule } from "./modules/blog/blog.module";
 
 @Module({
   imports: [
@@ -72,6 +73,7 @@ import { ReplacementsModule } from "./modules/replacements/replacements.module";
     AvailabilityModule,
     ReviewsModule,
     ReplacementsModule,
+    BlogModule,
   ],
 })
 export class AppModule implements NestModule {
