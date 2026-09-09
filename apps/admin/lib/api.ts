@@ -24,14 +24,19 @@ export async function apiFetch<T = any>(
   };
   if (token) headers.Authorization = `Bearer ${token}`;
 
-  const res = await fetch(`\( {API_URL} \){path.startsWith("/") ? path : `/${path}`}`, {
-    ...options,
-    headers,
-  });
+  const res = await fetch(
+    `\( {API_URL} \){path.startsWith("/") ? path : `/${path}`}`,
+    {
+      ...options,
+      headers,
+    },
+  );
 
   if (!res.ok) {
     const err = await res.json().catch(() => ({}));
-    throw new Error(err.message || `Request failed (${res.status})`);
+    throw new Error(
+      (err as any).message || `Request failed (${res.status})`,
+    );
   }
 
   return res.json();
