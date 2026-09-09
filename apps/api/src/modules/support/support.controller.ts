@@ -1,4 +1,11 @@
-import { Controller, Post, Get, Param, Body, UseGuards } from "@nestjs/common";
+import {
+  Controller,
+  Post,
+  Get,
+  Param,
+  Body,
+  UseGuards,
+} from "@nestjs/common";
 import { SupportService } from "./support.service";
 import { JwtAuthGuard } from "../../common/guards/jwt-auth.guard";
 import { RolesGuard } from "../../common/guards/roles.guard";
@@ -13,10 +20,29 @@ export class SupportController {
   @UseGuards(JwtAuthGuard, RolesGuard)
   @Roles("PARENT", "TEACHER")
   create(@CurrentUser() user: any, @Body() body: any) {
-    return this.supportService.createTicket({ ...body, userId: user.id });
+    return this.supportService.createTicket({
+      userId: user.id,
+      contractId: body.contractId ?? null,
+      reasonType: body.reasonType,
+      explanation: body.explanation,
+      evidenceAttachmentUrls: body.evidenceAttachmentUrls,
+    });
   }
 
-  @Get(":contractId")
+  @Get("mine")
+  @UseGuards(JwtAuthGuard)
+  listMine(@CurrentUser() user: any) {
+    return this.supportService.listMine(user.id);
+  }
+
+  @Get("ticket/:id")
+  @UseGuards(JwtAuthGuard)
+  getById(@CurrentUser() user: any, @Param("id") id: string) {
+    return this.supportService.getById(id, user.id);
+  }
+
+  @Get("contract/:contractId")
+  @UseGuards(JwtAuthGuard)
   getByContract(@Param("contractId") contractId: string) {
     return this.supportService.getTicketsByContract(contractId);
   }
