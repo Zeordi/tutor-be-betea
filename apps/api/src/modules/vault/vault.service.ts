@@ -3,17 +3,28 @@ import { prisma } from "@tutor/database";
 import { encryptBuffer, decryptToBuffer } from "@tutor/encryption";
 import { AuditService } from "../audit/audit.service";
 
+export type VaultDocumentType =
+  | "NATIONAL_ID"
+  | "PASSPORT"
+  | "DEGREE"
+  | "TRANSCRIPT"
+  | "LIVENESS_SELFIE";
+
 @Injectable()
 export class VaultService {
   constructor(private readonly auditService: AuditService) {}
 
   async uploadDocument(params: {
     teacherId: string;
-    documentType: "NATIONAL_ID" | "PASSPORT" | "DEGREE" | "TRANSCRIPT" | "LIVENESS_SELFIE";
+    documentType: VaultDocumentType;
     fileBuffer: Buffer;
     uploadedBy: string;
     mimeType?: string;
   }) {
+    if (!params.fileBuffer?.length) {
+      throw new NotFoundException("Empty file");
+    }
+
     const encrypted = encryptBuffer(params.fileBuffer);
 
     const doc = await prisma.vaultDocument.create({
@@ -22,12 +33,13 @@ export class VaultService {
         documentType: params.documentType,
         encryptedData: JSON.stringify({
           ...encrypted,
-          mimeType: params.mimeType || "image/jpeg",
+          mimeType: params.mimeType || "application/octet-stream",
         }),
         status: "PENDING",
       },
     });
 
+    // Teacher uploads are not admin actions; no audit decrypt log here.
     return {
       id: doc.id,
       documentType: doc.documentType,
@@ -36,7 +48,11 @@ export class VaultService {
     };
   }
 
-  async getDecryptedDocument(documentId: string, adminId: string, ipAddress: string) {
+  async getDecryptedDocument(
+    documentId: string,
+    adminId: string,
+    ipAddress: string,
+  ) {
     const doc = await prisma.vaultDocument.findUnique({
       where: { id: documentId },
     });
@@ -52,7 +68,6 @@ export class VaultService {
       tag: payload.tag,
     });
 
-    // Write immutable HMAC-chained audit log
     await this.auditService.createLog({
       adminId,
       actionType: "DECRYPT_VAULT_DOCUMENT",
@@ -70,7 +85,7 @@ export class VaultService {
       id: doc.id,
       documentType: doc.documentType,
       status: doc.status,
-      mimeType: payload.mimeType || "image/jpeg",
+      mimeType: payload.mimeType || "application/octet-stream",
       base64Data: decryptedBuffer.toString("base64"),
       teacherId: doc.teacherId,
       createdAt: doc.createdAt,
@@ -87,6 +102,20 @@ export class VaultService {
         createdAt: true,
       },
       orderBy: { createdAt: "desc" },
+    });
+  }
+
+  async listPending() {
+    return prisma.vaultDocument.findMany({
+      where: { status: "PENDING" },
+      select: {
+        id: true,
+        teacherId: true,
+        documentType: true,
+        status: true,
+        createdAt: true,
+      },
+      orderBy: { createdAt: "asc" },
     });
   }
 }
