@@ -53,12 +53,18 @@ export class TeachersService {
     userId: string,
     data: Partial<{
       bio: string;
+      bioAm: string;
       hourlyRate: number;
       monthlyRate: number;
       subjects: string[];
       grades: string[];
       maxTravelKm: number;
       isAvailable: boolean;
+      videoIntroUrl: string;
+      teachingStyles: string[];
+      payoutMethod: string;
+      payoutAccount: string;
+      onboardingStep: number;
     }>,
   ) {
     const existing = await prisma.teacherProfile.findUnique({
