@@ -1,10 +1,16 @@
 import { Injectable, NotFoundException } from "@nestjs/common";
 import { prisma } from "@tutor/database";
+import { randomUUID } from "crypto";
 
 @Injectable()
 export class AttendanceService {
-  async checkIn(contractId: string, teacherId: string, latitude: number, longitude: number) {
-    const contract = await prisma.tutoringContract.findUnique({
+  async checkIn(
+    contractId: string,
+    teacherId: string,
+    latitude: number,
+    longitude: number,
+  ) {
+    const contract = await prisma.tutoringContract.findFirst({
       where: { id: contractId, teacherId },
     });
     if (!contract) throw new NotFoundException("Contract not found");
@@ -12,17 +18,17 @@ export class AttendanceService {
     const log = await prisma.attendanceLog.create({
       data: {
         contractId,
-        teacherId,
         checkInTime: new Date(),
         checkOutTime: null,
-        distanceMeters: 0, // will be calculated client-side or via PostGIS
+        distanceMeters: 0,
         isVerifiedGeofence: true,
         parentConfirmed: false,
-        offlineId: crypto.randomUUID(), // for offline sync
+        offlineId: randomUUID(),
+        teacherLatitude: latitude,
+        teacherLongitude: longitude,
       },
     });
 
-    // Update contract status if needed
     await prisma.tutoringContract.update({
       where: { id: contractId },
       data: { status: "ACTIVE" },
@@ -32,19 +38,21 @@ export class AttendanceService {
   }
 
   async checkOut(contractId: string, teacherId: string) {
+    const contract = await prisma.tutoringContract.findFirst({
+      where: { id: contractId, teacherId },
+    });
+    if (!contract) throw new NotFoundException("Contract not found");
+
     const log = await prisma.attendanceLog.findFirst({
-      where: { contractId, teacherId, checkOutTime: null },
+      where: { contractId, checkOutTime: null },
       orderBy: { checkInTime: "desc" },
     });
     if (!log) throw new NotFoundException("Active check-in not found");
-
-    const distance = 0; // client calculates or PostGIS query
 
     await prisma.attendanceLog.update({
       where: { id: log.id },
       data: {
         checkOutTime: new Date(),
-        distanceMeters: distance,
         isVerifiedGeofence: true,
       },
     });
