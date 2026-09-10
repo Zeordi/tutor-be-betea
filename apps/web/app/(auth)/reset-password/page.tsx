@@ -1,8 +1,8 @@
 "use client";
 
-import { useState } from "react";
+import { Suspense, useState } from "react";
 import Link from "next/link";
-import { useRouter, useSearchParams } from "next/navigation";
+import { useSearchParams } from "next/navigation";
 
 function passwordStrength(pw: string) {
   let score = 0;
@@ -16,8 +16,7 @@ function passwordStrength(pw: string) {
   return { score, label: "Strong", bar: "bg-emerald-500" };
 }
 
-export default function ResetPasswordPage() {
-  const router = useRouter();
+function ResetPasswordForm() {
   const search = useSearchParams();
   const phone = search.get("phone") || "";
 
@@ -53,13 +52,15 @@ export default function ResetPasswordPage() {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
-            phoneNumber: phone.startsWith("+") ? phone : `+251${phone.replace(/^0/, "")}`,
+            phoneNumber: phone.startsWith("+")
+              ? phone
+              : `+251${phone.replace(/^0/, "")}`,
             code: otp,
             newPassword: password,
           }),
         });
       } catch {
-        /* UI completes */
+        /* UI still completes on network error in this flow */
       }
       setDone(true);
     } finally {
@@ -75,7 +76,9 @@ export default function ResetPasswordPage() {
           <h1 className="text-2xl font-extrabold text-slate-900 dark:text-white">
             Password updated
           </h1>
-          <p className="mt-2 text-sm text-slate-500">Sign in with your new password.</p>
+          <p className="mt-2 text-sm text-slate-500">
+            Sign in with your new password.
+          </p>
           <Link
             href="/login"
             className="mt-6 inline-block w-full rounded-xl bg-teal-600 py-3 text-sm font-bold text-white"
@@ -103,17 +106,21 @@ export default function ResetPasswordPage() {
         </div>
         <form onSubmit={submit} className="space-y-4">
           <div>
-            <label className="mb-1 block text-xs font-semibold text-slate-500">OTP</label>
+            <label className="mb-1 block text-xs font-semibold text-slate-500">
+              OTP
+            </label>
             <input
               value={otp}
               onChange={(e) => setOtp(e.target.value)}
               maxLength={6}
               inputMode="numeric"
-              className="w-full rounded-xl border border-slate-200 px-4 py-2.5 text-center tracking-[0.3em] text-lg font-extrabold outline-none dark:border-slate-700 dark:bg-[#0A1628] dark:text-white"
+              className="w-full rounded-xl border border-slate-200 px-4 py-2.5 text-center text-lg font-extrabold tracking-[0.3em] outline-none dark:border-slate-700 dark:bg-[#0A1628] dark:text-white"
             />
           </div>
           <div>
-            <label className="mb-1 block text-xs font-semibold text-slate-500">New password</label>
+            <label className="mb-1 block text-xs font-semibold text-slate-500">
+              New password
+            </label>
             <input
               type="password"
               value={password}
@@ -127,17 +134,23 @@ export default function ResetPasswordPage() {
                     <div
                       key={i}
                       className={`h-1 flex-1 rounded-full ${
-                        strength.score >= i ? strength.bar : "bg-slate-200 dark:bg-slate-700"
+                        strength.score >= i
+                          ? strength.bar
+                          : "bg-slate-200 dark:bg-slate-700"
                       }`}
                     />
                   ))}
                 </div>
-                <p className="text-[10px] font-bold text-slate-500">{strength.label}</p>
+                <p className="text-[10px] font-bold text-slate-500">
+                  {strength.label}
+                </p>
               </div>
             )}
           </div>
           <div>
-            <label className="mb-1 block text-xs font-semibold text-slate-500">Confirm</label>
+            <label className="mb-1 block text-xs font-semibold text-slate-500">
+              Confirm
+            </label>
             <input
               type="password"
               value={confirm}
@@ -145,7 +158,9 @@ export default function ResetPasswordPage() {
               className="w-full rounded-xl border border-slate-200 px-4 py-2.5 text-sm outline-none dark:border-slate-700 dark:bg-[#0A1628] dark:text-white"
             />
           </div>
-          {error && <p className="text-center text-xs text-red-500">{error}</p>}
+          {error && (
+            <p className="text-center text-xs text-red-500">{error}</p>
+          )}
           <button
             type="submit"
             disabled={loading}
@@ -161,5 +176,24 @@ export default function ResetPasswordPage() {
         </p>
       </div>
     </div>
+  );
+}
+
+function ResetPasswordFallback() {
+  return (
+    <div className="flex min-h-screen items-center justify-center bg-slate-50 px-4 dark:bg-[#0A1628]">
+      <div className="w-full max-w-md rounded-3xl border border-slate-100 bg-white p-8 text-center shadow-sm dark:border-slate-800 dark:bg-[#112240]">
+        <p className="text-sm text-slate-500">Loading…</p>
+      </div>
+    </div>
+  );
+}
+
+/** Default export must wrap useSearchParams in Suspense for Next.js static build */
+export default function ResetPasswordPage() {
+  return (
+    <Suspense fallback={<ResetPasswordFallback />}>
+      <ResetPasswordForm />
+    </Suspense>
   );
 }
