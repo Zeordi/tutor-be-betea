@@ -104,4 +104,19 @@ export class AdminController {
   getChildProfiles(@Param("parentId") parentId: string) {
     return this.adminService.getChildProfiles(parentId);
   }
+
+  @Post("impersonate/:userId")
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles("SUPER_ADMIN", "SUPPORT_AGENT")
+  startImpersonation(
+    @CurrentUser() user: any,
+    @Param("userId") userId: string,
+    @Body() body: { reason?: string },
+  ) {
+    return this.adminService.startImpersonation(
+      user.id,
+      userId,
+      body?.reason || "Support session",
+    );
+  }
 }
