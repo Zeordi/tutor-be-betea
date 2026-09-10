@@ -200,4 +200,41 @@ export class AdminService {
     });
     return { success: true };
   }
+/**
+   * Support impersonation session marker — does NOT issue a user JWT.
+   * Logs immutable audit entry; admin UI can open read-only context.
+   */
+  async startImpersonation(
+    adminId: string,
+    targetUserId: string,
+    reason: string,
+    ipAddress?: string,
+  ) {
+    const target = await prisma.user.findUnique({
+      where: { id: targetUserId },
+      select: {
+        id: true,
+        fullName: true,
+        role: true,
+        status: true,
+        phoneNumber: true,
+      },
+    });
+    if (!target) throw new NotFoundException("User not found");
+
+    await this.writeAudit({
+      adminId,
+      targetUserId,
+      actionType: "IMPERSONATION_START",
+      reason: reason || "Support session",
+      ipAddress,
+    });
+
+    return {
+      mode: "read_only_support",
+      target,
+      warning:
+        "Impersonation is logged permanently. Do not share credentials. No end-user JWT issued.",
+    };
+  }
 }
