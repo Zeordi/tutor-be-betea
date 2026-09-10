@@ -2,13 +2,25 @@
 
 import Link from "next/link";
 
-const STEPS = [
+type StepStatus = "done" | "issue" | "pending" | "locked";
+
+type OnboardingStep = {
+  id: number;
+  icon: string;
+  label: string;
+  desc: string;
+  status: StepStatus;
+  time: string;
+  href?: string;
+};
+
+const STEPS: OnboardingStep[] = [
   {
     id: 1,
     icon: "👤",
     label: "Complete Your Bio",
     desc: "Add headline, subjects, languages, and teaching style",
-    status: "done" as const,
+    status: "done",
     time: "Completed Oct 5",
   },
   {
@@ -16,7 +28,7 @@ const STEPS = [
     icon: "🪪",
     label: "Upload Identity Documents",
     desc: "Fayda National ID (front & back) + university degree",
-    status: "issue" as const,
+    status: "issue",
     time: "Action required · See notes",
     href: "/teacher/verification",
   },
@@ -25,7 +37,7 @@ const STEPS = [
     icon: "📅",
     label: "Set Availability",
     desc: "Add your weekly recurring schedule and preferred zones",
-    status: "done" as const,
+    status: "done",
     time: "Completed Oct 6",
   },
   {
@@ -33,7 +45,7 @@ const STEPS = [
     icon: "💰",
     label: "Payout Setup",
     desc: "Link Telebirr or CBE Birr account for earnings withdrawal",
-    status: "pending" as const,
+    status: "pending",
     time: "Not started",
     href: "/teacher/earnings",
   },
@@ -42,7 +54,7 @@ const STEPS = [
     icon: "📞",
     label: "Intro Call with Tutor Success",
     desc: "Optional 15-min orientation call with TBB team",
-    status: "pending" as const,
+    status: "pending",
     time: "Not started",
   },
   {
@@ -50,10 +62,14 @@ const STEPS = [
     icon: "🚀",
     label: "Profile Goes Live",
     desc: "After all required steps are complete, you'll be searchable",
-    status: "locked" as const,
+    status: "locked",
     time: "Waiting on steps 2 & 4",
   },
 ];
+
+function canStartStep(status: StepStatus): boolean {
+  return status === "issue" || status === "pending";
+}
 
 export default function TeacherOnboardingPage() {
   const doneCount = STEPS.filter((s) => s.status === "done").length;
@@ -62,8 +78,12 @@ export default function TeacherOnboardingPage() {
   return (
     <div className="mx-auto max-w-3xl space-y-5">
       <div>
-        <h1 className="text-2xl font-extrabold text-[var(--foreground)]">Getting Started</h1>
-        <p className="text-sm text-[var(--secondary)]">Complete setup to go live</p>
+        <h1 className="text-2xl font-extrabold text-[var(--foreground)]">
+          Getting Started
+        </h1>
+        <p className="text-sm text-[var(--secondary)]">
+          Complete setup to go live
+        </p>
       </div>
 
       <div className="rounded-2xl bg-[#0f766e] p-6 text-white">
@@ -77,17 +97,24 @@ export default function TeacherOnboardingPage() {
           <p className="text-3xl font-black">{progress}%</p>
         </div>
         <div className="mt-3 h-2 overflow-hidden rounded-full bg-white/20">
-          <div className="h-full rounded-full bg-white" style={{ width: `${progress}%` }} />
+          <div
+            className="h-full rounded-full bg-white"
+            style={{ width: `${progress}%` }}
+          />
         </div>
-        <p className="mt-2 text-xs text-white/60">ፕሮፋይልዎን ለማጠናቀቅ 2 ደረጃዎች ይቀሩዎታል</p>
+        <p className="mt-2 text-xs text-white/60">
+          ፕሮፋይልዎን ለማጠናቀቅ 2 ደረጃዎች ይቀሩዎታል
+        </p>
       </div>
 
-      <div className="overflow-hidden rounded-2xl border border-[var(--border)] bg-[var(--card)]">
+      <div className="space-y-3">
         {STEPS.map((step) => (
           <div
             key={step.id}
-            className={`flex items-center gap-3 border-b border-[var(--border)] p-4 last:border-0 ${
-              step.status === "locked" ? "opacity-50" : ""
+            className={`flex items-start gap-3 rounded-2xl border p-4 ${
+              step.status === "locked"
+                ? "border-[var(--border)] opacity-60"
+                : "border-[var(--border)] bg-[var(--card)]"
             }`}
           >
             <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-[var(--muted)] text-xl">
@@ -95,7 +122,9 @@ export default function TeacherOnboardingPage() {
             </div>
             <div className="min-w-0 flex-1">
               <div className="flex flex-wrap items-center gap-2">
-                <p className="text-sm font-extrabold text-[var(--foreground)]">{step.label}</p>
+                <p className="text-sm font-extrabold text-[var(--foreground)]">
+                  {step.label}
+                </p>
                 {step.status === "done" && (
                   <span className="rounded-full bg-emerald-100 px-2 py-0.5 text-[10px] font-bold text-emerald-700">
                     Done
@@ -104,6 +133,11 @@ export default function TeacherOnboardingPage() {
                 {step.status === "issue" && (
                   <span className="rounded-full bg-red-100 px-2 py-0.5 text-[10px] font-bold text-red-700">
                     Action
+                  </span>
+                )}
+                {step.status === "locked" && (
+                  <span className="rounded-full bg-slate-100 px-2 py-0.5 text-[10px] font-bold text-slate-600">
+                    Locked
                   </span>
                 )}
               </div>
@@ -120,8 +154,11 @@ export default function TeacherOnboardingPage() {
                 {step.time}
               </p>
             </div>
-            {step.href && step.status !== "done" && step.status !== "locked" && (
-              <Link href={step.href} className="text-sm font-bold text-[var(--primary)]">
+            {step.href && canStartStep(step.status) && (
+              <Link
+                href={step.href}
+                className="text-sm font-bold text-[var(--primary)]"
+              >
                 {step.status === "issue" ? "Fix →" : "Start →"}
               </Link>
             )}
@@ -130,9 +167,12 @@ export default function TeacherOnboardingPage() {
       </div>
 
       <div className="rounded-2xl border border-amber-200 bg-amber-50 p-5 dark:border-amber-800 dark:bg-amber-950/30">
-        <p className="font-bold text-amber-800 dark:text-amber-300">⚡ Quick action needed</p>
+        <p className="font-bold text-amber-800 dark:text-amber-300">
+          ⚡ Quick action needed
+        </p>
         <p className="my-2 text-sm text-amber-700 dark:text-amber-400">
-          Add your Telebirr or CBE Birr number to complete payout setup and unlock profile publishing.
+          Add your Telebirr or CBE Birr number to complete payout setup and unlock
+          profile publishing.
         </p>
         <Link
           href="/teacher/earnings"
