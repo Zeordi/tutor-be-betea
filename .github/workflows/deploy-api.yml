@@ -1,19 +1,31 @@
 name: Deploy API
 
 on:
+  push:
+    branches: [main]
+    paths:
+      - "apps/api/**"
+      - "packages/database/**"
+      - "packages/validators/**"
+      - "packages/encryption/**"
+      - "packages/audit/**"
+      - "packages/geo/**"
+      - "pnpm-lock.yaml"
+      - ".github/workflows/deploy-api.yml"
   workflow_dispatch:
 
 jobs:
   deploy:
-    name: Deploy API
+    name: Deploy API (Vercel)
     runs-on: ubuntu-latest
     steps:
-      - name: Require deploy hook
-        run: |
-          if [ -z "${{ secrets.API_DEPLOY_HOOK_URL }}" ]; then
-            echo "API_DEPLOY_HOOK_URL not set — configure Railway/Render/Fly hook first."
-            exit 1
-          fi
+      - uses: actions/checkout@v4
 
-      - name: Trigger deploy hook
-        run: curl -fsS -X POST "${{ secrets.API_DEPLOY_HOOK_URL }}"
+      - name: Deploy API to Vercel
+        uses: amondnet/vercel-action@v25
+        with:
+          vercel-token: ${{ secrets.VERCEL_TOKEN }}
+          vercel-org-id: ${{ secrets.VERCEL_ORG_ID }}
+          vercel-project-id: ${{ secrets.VERCEL_PROJECT_ID_API }}
+          vercel-args: "--prod"
+          working-directory: ./
