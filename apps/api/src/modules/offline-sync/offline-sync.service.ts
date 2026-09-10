@@ -80,4 +80,31 @@ export class OfflineSyncService {
       },
     });
   }
+
+  /**
+   * Offline / delayed support ticket (Report a Problem).
+   * contractId optional — matches SupportTicket.contractId String?
+   */
+  async syncSupportTicket(
+    contractId: string | null | undefined,
+    userId: string,
+    body: any,
+  ) {
+    if (!body?.reasonType || !body?.explanation) {
+      throw new BadRequestException("reasonType and explanation are required");
+    }
+
+    const created = await prisma.supportTicket.create({
+      data: {
+        contractId: contractId || null,
+        submittedBy: userId,
+        reasonType: body.reasonType,
+        explanation: body.explanation,
+        evidenceAttachmentUrls: body.evidenceAttachmentUrls || [],
+        status: "OPEN",
+      },
+    });
+
+    return { ...created, replayed: false };
+  }
 }
