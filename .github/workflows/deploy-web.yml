@@ -1,6 +1,15 @@
 name: Deploy Web
 
 on:
+  push:
+    branches: [main]
+    paths:
+      - "apps/web/**"
+      - "packages/ui/**"
+      - "packages/types/**"
+      - "packages/utils/**"
+      - "pnpm-lock.yaml"
+      - ".github/workflows/deploy-web.yml"
   workflow_dispatch:
 
 jobs:
@@ -10,29 +19,12 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - uses: pnpm/action-setup@v4
-        with:
-          version: 9.12.0
-
-      - uses: actions/setup-node@v4
-        with:
-          node-version: 20
-          cache: pnpm
-
-      - run: pnpm install --frozen-lockfile
-
-      - name: Require Vercel secrets
-        run: |
-          if [ -z "\( {{ secrets.VERCEL_TOKEN }}" ] || [ -z " \){{ secrets.VERCEL_ORG_ID }}" ] || [ -z "${{ secrets.VERCEL_PROJECT_ID_WEB }}" ]; then
-            echo "Missing VERCEL_TOKEN / VERCEL_ORG_ID / VERCEL_PROJECT_ID_WEB — skip deploy."
-            exit 1
-          fi
-
       - name: Deploy to Vercel
         uses: amondnet/vercel-action@v25
         with:
           vercel-token: ${{ secrets.VERCEL_TOKEN }}
           vercel-org-id: ${{ secrets.VERCEL_ORG_ID }}
           vercel-project-id: ${{ secrets.VERCEL_PROJECT_ID_WEB }}
-          working-directory: ./
+          vercel-args: "--prod"
+          working-directory: ./          working-directory: ./
           vercel-args: "--prod"
