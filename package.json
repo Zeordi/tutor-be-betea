@@ -27,7 +27,7 @@
     "db:generate": "pnpm --filter @tutor/database generate",
     "db:push": "pnpm --filter @tutor/database push",
     "db:studio": "pnpm --filter @tutor/database studio",
-    "prepare": "husky"
+    "prepare": "husky || true"
   },
   "devDependencies": {
     "turbo": "^2.3.0",
