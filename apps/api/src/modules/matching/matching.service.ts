@@ -12,19 +12,36 @@ export type MatchParams = {
   maxHourlyRate?: number;
 };
 
+type MatchResult = {
+  id: string;
+  fullName: string;
+  avatarUrl: string | null;
+  subCity: string | null;
+  bio: string | null;
+  subjects: string[];
+  grades: string[];
+  hourlyRate: number;
+  monthlyRate: number;
+  rating: number;
+  totalReviews: number;
+  badgeTier: string | null;
+  isIdVerified: boolean;
+  isEduVerified: boolean;
+  latitude?: number;
+  longitude?: number;
+  distanceMeters: number | null;
+  distanceText: string;
+};
+
 @Injectable()
 export class MatchingService {
-  /**
-   * Spatial match via PostGIS + badge/rating ranking.
-   * Falls back to non-geo list if PostGIS query fails (e.g. local without extension).
-   */
-  async findTutors(params: MatchParams) {
+  async findTutors(params: MatchParams): Promise<MatchResult[]> {
     const maxM = Math.round((params.maxDistanceKm ?? 15) * 1000);
     const limit = params.limit ?? 50;
     const verified = params.verifiedOnly !== false;
 
     try {
-      const rows: any[] = await prisma.$queryRaw`
+      const rows = (await prisma.$queryRaw`
         SELECT
           tp.user_id,
           u.full_name,
@@ -71,23 +88,23 @@ export class MatchingService {
           tp.rating DESC,
           distance_meters ASC
         LIMIT ${limit}
-      `;
+      `) as Array<Record<string, unknown>>;
 
-      let results = rows.map((t) => ({
-        id: t.user_id,
-        fullName: t.full_name,
-        avatarUrl: t.avatar_url,
-        subCity: t.sub_city,
-        bio: t.bio,
-        subjects: t.subjects || [],
-        grades: t.grades || [],
+      let results: MatchResult[] = rows.map((t: Record<string, unknown>) => ({
+        id: String(t.user_id),
+        fullName: String(t.full_name),
+        avatarUrl: (t.avatar_url as string) ?? null,
+        subCity: (t.sub_city as string) ?? null,
+        bio: (t.bio as string) ?? null,
+        subjects: (t.subjects as string[]) || [],
+        grades: (t.grades as string[]) || [],
         hourlyRate: Number(t.hourly_rate),
         monthlyRate: Number(t.monthly_rate),
         rating: Number(t.rating),
-        totalReviews: t.total_reviews,
-        badgeTier: t.badge_tier,
-        isIdVerified: t.is_id_verified,
-        isEduVerified: t.is_edu_verified,
+        totalReviews: Number(t.total_reviews),
+        badgeTier: (t.badge_tier as string) ?? null,
+        isIdVerified: Boolean(t.is_id_verified),
+        isEduVerified: Boolean(t.is_edu_verified),
         latitude: Number(t.latitude),
         longitude: Number(t.longitude),
         distanceMeters: Math.round(Number(t.distance_meters)),
@@ -95,28 +112,25 @@ export class MatchingService {
       }));
 
       if (params.subjects?.length) {
-        const set = new Set(params.subjects.map((s) => s.toLowerCase()));
-        results = results.filter((t) =>
-          (t.subjects as string[]).some((s) =>
-            set.has(String(s).toLowerCase()),
-          ),
+        const set = new Set(params.subjects.map((s: string) => s.toLowerCase()));
+        results = results.filter((t: MatchResult) =>
+          t.subjects.some((s: string) => set.has(String(s).toLowerCase())),
         );
       }
       if (params.grades?.length) {
-        const set = new Set(params.grades.map((g) => g.toLowerCase()));
-        results = results.filter((t) =>
-          (t.grades as string[]).some((g) => set.has(String(g).toLowerCase())),
+        const set = new Set(params.grades.map((g: string) => g.toLowerCase()));
+        results = results.filter((t: MatchResult) =>
+          t.grades.some((g: string) => set.has(String(g).toLowerCase())),
         );
       }
       if (params.maxHourlyRate != null) {
         results = results.filter(
-          (t) => t.hourlyRate <= Number(params.maxHourlyRate),
+          (t: MatchResult) => t.hourlyRate <= Number(params.maxHourlyRate),
         );
       }
 
       return results;
     } catch {
-      // Fallback without PostGIS
       const profiles = await prisma.teacherProfile.findMany({
         where: {
           isAvailable: true,
@@ -137,24 +151,43 @@ export class MatchingService {
         },
       });
 
-      return profiles.map((p) => ({
-        id: p.userId,
-        fullName: p.user.fullName,
-        avatarUrl: p.user.avatarUrl,
-        subCity: p.user.subCity,
-        bio: p.bio,
-        subjects: p.subjects,
-        grades: p.grades,
-        hourlyRate: Number(p.hourlyRate),
-        monthlyRate: Number(p.monthlyRate),
-        rating: Number(p.rating),
-        totalReviews: p.totalReviews,
-        badgeTier: p.badgeTier,
-        isIdVerified: p.isIdVerified,
-        isEduVerified: p.isEduVerified,
-        distanceMeters: null as number | null,
-        distanceText: "—",
-      }));
+      return profiles.map(
+        (p: {
+          userId: string;
+          bio: string | null;
+          subjects: string[];
+          grades: string[];
+          hourlyRate: unknown;
+          monthlyRate: unknown;
+          rating: unknown;
+          totalReviews: number;
+          badgeTier: string | null;
+          isIdVerified: boolean;
+          isEduVerified: boolean;
+          user: {
+            fullName: string;
+            avatarUrl: string | null;
+            subCity: string | null;
+          };
+        }) => ({
+          id: p.userId,
+          fullName: p.user.fullName,
+          avatarUrl: p.user.avatarUrl,
+          subCity: p.user.subCity,
+          bio: p.bio,
+          subjects: p.subjects,
+          grades: p.grades,
+          hourlyRate: Number(p.hourlyRate),
+          monthlyRate: Number(p.monthlyRate),
+          rating: Number(p.rating),
+          totalReviews: p.totalReviews,
+          badgeTier: p.badgeTier,
+          isIdVerified: p.isIdVerified,
+          isEduVerified: p.isEduVerified,
+          distanceMeters: null,
+          distanceText: "—",
+        }),
+      );
     }
   }
 }
