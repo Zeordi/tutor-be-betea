@@ -229,7 +229,6 @@ export class AuthService {
   // ─────────────────────────────────────────────
   // GOOGLE
   // ─────────────────────────────────────────────
-
   async googleAuth(dto: GoogleAuthDto) {
     const googleUser = await this.verifyGoogleIdToken(dto.idToken);
     const email = googleUser.email?.toLowerCase();
@@ -244,11 +243,13 @@ export class AuthService {
       user = await this.usersService.findByEmail(email);
 
       if (user) {
-        user = await this.usersService.updateProfile(user.id, {
+        // updateProfile may return a partial select — always re-fetch full user
+        await this.usersService.updateProfile(user.id, {
           googleId: googleUser.sub,
           emailVerified: true,
           avatarUrl: googleUser.picture,
         });
+        user = await this.usersService.findById(user.id);
       } else {
         if (!dto.role) {
           throw new BadRequestException(
@@ -256,7 +257,6 @@ export class AuthService {
           );
         }
 
-        // Unique placeholder phone until real phone is linked via OTP
         const placeholderPhone = `+google-${googleUser.sub.slice(0, 18)}`;
 
         user = await this.usersService.create({
@@ -272,7 +272,8 @@ export class AuthService {
     }
 
     return this.authResponse(user);
-  }
+  } 
+              
 
   private async verifyGoogleIdToken(idToken: string) {
     const res = await fetch(
