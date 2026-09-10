@@ -1,6 +1,17 @@
 {
   "$schema": "https://turbo.build/schema.json",
   "ui": "tui",
+  "globalEnv": [
+    "DATABASE_URL",
+    "JWT_SECRET",
+    "ENCRYPTION_KEY",
+    "VAULT_MASTER_KEY",
+    "AUDIT_CHAIN_SECRET",
+    "NODE_ENV",
+    "UPSTASH_REDIS_REST_URL",
+    "UPSTASH_REDIS_REST_TOKEN",
+    "AFROMESSAGE_TOKEN"
+  ],
   "tasks": {
     "build": {
       "dependsOn": ["^build"],
