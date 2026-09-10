@@ -1,20 +1,12 @@
 name: Deploy Mobile
 
 on:
-  push:
-    branches: [main]
-    paths:
-      - "apps/mobile/**"
-      - "packages/**"
-      - "pnpm-lock.yaml"
-      - ".github/workflows/deploy-mobile.yml"
   workflow_dispatch:
 
 jobs:
   eas-build:
     name: EAS Build (optional)
     runs-on: ubuntu-latest
-    if: ${{ secrets.EXPO_TOKEN != '' }}
     defaults:
       run:
         working-directory: apps/mobile
@@ -32,6 +24,13 @@ jobs:
 
       - run: pnpm install --frozen-lockfile
         working-directory: .
+
+      - name: Require Expo token
+        run: |
+          if [ -z "${{ secrets.EXPO_TOKEN }}" ]; then
+            echo "EXPO_TOKEN not set — skip EAS until Expo is connected."
+            exit 1
+          fi
 
       - uses: expo/expo-github-action@v8
         with:
