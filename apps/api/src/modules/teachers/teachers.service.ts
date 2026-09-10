@@ -128,10 +128,6 @@ export class TeachersService {
     return { success: true, latitude, longitude };
   }
 
-  /**
-   * Public tutor card / profile for parents & marketing.
-   * Trust badges + reviews only — never vault documents.
-   */
   async getPublicProfile(teacherId: string) {
     const profile = await prisma.teacherProfile.findUnique({
       where: { userId: teacherId },
@@ -197,17 +193,31 @@ export class TeachersService {
       maxTravelKm: Number(profile.maxTravelKm),
       packages: profile.packages,
       availability: profile.availability,
-      trustBadges: badges.map((b) => ({
-        type: b.badgeType,
-        issuedAt: b.issuedAt,
-      })),
-      reviews: reviews.map((r) => ({
-        id: r.id,
-        rating: r.rating,
-        comment: r.comment,
-        createdAt: r.createdAt,
-        author: r.author,
-      })),
+      trustBadges: badges.map(
+        (b: { badgeType: string; issuedAt: Date }) => ({
+          type: b.badgeType,
+          issuedAt: b.issuedAt,
+        }),
+      ),
+      reviews: reviews.map(
+        (r: {
+          id: string;
+          rating: number;
+          comment: string | null;
+          createdAt: Date;
+          author: {
+            id: string;
+            fullName: string;
+            avatarUrl: string | null;
+          };
+        }) => ({
+          id: r.id,
+          rating: r.rating,
+          comment: r.comment,
+          createdAt: r.createdAt,
+          author: r.author,
+        }),
+      ),
     };
   }
 
@@ -243,7 +253,6 @@ export class TeachersService {
     return { ...profile, trustBadges: badges };
   }
 
-  /** Non-geo list for admin / fallback browse */
   async listTeachers(params?: {
     subject?: string;
     verifiedOnly?: boolean;
@@ -275,33 +284,54 @@ export class TeachersService {
       },
     });
 
-    const ids = profiles.map((p) => p.userId);
+    const ids = profiles.map(
+      (p: { userId: string }) => p.userId,
+    );
     const badges = await prisma.trustBadge.findMany({
       where: { teacherId: { in: ids } },
     });
     const badgeMap = new Map<string, string[]>();
-    for (const b of badges) {
+    for (const b of badges as Array<{ teacherId: string; badgeType: string }>) {
       const list = badgeMap.get(b.teacherId) || [];
       list.push(b.badgeType);
       badgeMap.set(b.teacherId, list);
     }
 
-    return profiles.map((p) => ({
-      id: p.userId,
-      fullName: p.user.fullName,
-      avatarUrl: p.user.avatarUrl,
-      subCity: p.user.subCity,
-      bio: p.bio,
-      subjects: p.subjects,
-      grades: p.grades,
-      hourlyRate: Number(p.hourlyRate),
-      monthlyRate: Number(p.monthlyRate),
-      rating: Number(p.rating),
-      totalReviews: p.totalReviews,
-      badgeTier: p.badgeTier,
-      isIdVerified: p.isIdVerified,
-      isEduVerified: p.isEduVerified,
-      trustBadges: badgeMap.get(p.userId) || [],
-    }));
+    return profiles.map(
+      (p: {
+        userId: string;
+        bio: string | null;
+        subjects: string[];
+        grades: string[];
+        hourlyRate: unknown;
+        monthlyRate: unknown;
+        rating: unknown;
+        totalReviews: number;
+        badgeTier: string | null;
+        isIdVerified: boolean;
+        isEduVerified: boolean;
+        user: {
+          fullName: string;
+          avatarUrl: string | null;
+          subCity: string | null;
+        };
+      }) => ({
+        id: p.userId,
+        fullName: p.user.fullName,
+        avatarUrl: p.user.avatarUrl,
+        subCity: p.user.subCity,
+        bio: p.bio,
+        subjects: p.subjects,
+        grades: p.grades,
+        hourlyRate: Number(p.hourlyRate),
+        monthlyRate: Number(p.monthlyRate),
+        rating: Number(p.rating),
+        totalReviews: p.totalReviews,
+        badgeTier: p.badgeTier,
+        isIdVerified: p.isIdVerified,
+        isEduVerified: p.isEduVerified,
+        trustBadges: badgeMap.get(p.userId) || [],
+      }),
+    );
   }
 }
