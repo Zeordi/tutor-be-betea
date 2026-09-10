@@ -5,19 +5,26 @@ import {
 } from "@nestjs/common";
 import { prisma } from "@tutor/database";
 
+type ProfileInput = {
+  bio?: string;
+  bioAm?: string;
+  hourlyRate: number;
+  monthlyRate: number;
+  weekendRate?: number;
+  subjects?: string[];
+  grades?: string[];
+  maxTravelKm?: number;
+  videoIntroUrl?: string;
+  teachingStyles?: string[];
+  isAvailable?: boolean;
+  payoutMethod?: string;
+  payoutAccount?: string;
+  onboardingStep?: number;
+};
+
 @Injectable()
 export class TeachersService {
-  async createProfile(
-    userId: string,
-    data: {
-      bio?: string;
-      hourlyRate: number;
-      monthlyRate: number;
-      subjects: string[];
-      grades: string[];
-      maxTravelKm?: number;
-    },
-  ) {
+  async createProfile(userId: string, data: ProfileInput) {
     const existing = await prisma.teacherProfile.findUnique({
       where: { userId },
     });
@@ -29,11 +36,19 @@ export class TeachersService {
       data: {
         userId,
         bio: data.bio,
+        bioAm: data.bioAm,
         hourlyRate: data.hourlyRate,
         monthlyRate: data.monthlyRate,
+        weekendRate: data.weekendRate,
         subjects: data.subjects ?? [],
         grades: data.grades ?? [],
         maxTravelKm: data.maxTravelKm ?? 5,
+        videoIntroUrl: data.videoIntroUrl,
+        teachingStyles: data.teachingStyles ?? [],
+        isAvailable: data.isAvailable ?? true,
+        payoutMethod: data.payoutMethod,
+        payoutAccount: data.payoutAccount,
+        onboardingStep: data.onboardingStep ?? 0,
       },
       include: {
         user: {
@@ -43,8 +58,11 @@ export class TeachersService {
             avatarUrl: true,
             phoneNumber: true,
             status: true,
+            subCity: true,
           },
         },
+        packages: true,
+        availability: true,
       },
     });
   }
@@ -56,6 +74,7 @@ export class TeachersService {
       bioAm: string;
       hourlyRate: number;
       monthlyRate: number;
+      weekendRate: number;
       subjects: string[];
       grades: string[];
       maxTravelKm: number;
@@ -83,8 +102,11 @@ export class TeachersService {
             id: true,
             fullName: true,
             avatarUrl: true,
+            subCity: true,
           },
         },
+        packages: true,
+        availability: true,
       },
     });
   }
@@ -106,15 +128,25 @@ export class TeachersService {
     return { success: true, latitude, longitude };
   }
 
+  /**
+   * Public tutor card / profile for parents & marketing.
+   * Trust badges + reviews only — never vault documents.
+   */
   async getPublicProfile(teacherId: string) {
     const profile = await prisma.teacherProfile.findUnique({
       where: { userId: teacherId },
       include: {
         user: {
-          select: { id: true, fullName: true, avatarUrl: true, subCity: true },
-         },      
-         packages: { where: { active: true } },
-         availability: { where: { active: true } },
+          select: {
+            id: true,
+            fullName: true,
+            avatarUrl: true,
+            status: true,
+            subCity: true,
+          },
+        },
+        packages: { where: { active: true } },
+        availability: { where: { active: true } },
       },
     });
 
@@ -122,26 +154,37 @@ export class TeachersService {
       throw new NotFoundException("Teacher not found");
     }
 
-    // Allow ACTIVE; for local testing also allow PENDING_VERIFICATION
-    if (
-      profile.user.status !== "ACTIVE" &&
-      profile.user.status !== "PENDING_VERIFICATION"
-    ) {
-      throw new NotFoundException("Teacher not found");
-    }
-
-    const badges = await prisma.trustBadge.findMany({
-      where: { teacherId },
-      orderBy: { issuedAt: "desc" },
-    });
+    const [badges, reviews] = await Promise.all([
+      prisma.trustBadge.findMany({
+        where: { teacherId },
+        orderBy: { issuedAt: "desc" },
+      }),
+      prisma.review.findMany({
+        where: { teacherId },
+        orderBy: { createdAt: "desc" },
+        take: 20,
+        include: {
+          author: {
+            select: { id: true, fullName: true, avatarUrl: true },
+          },
+        },
+      }),
+    ]);
 
     return {
       id: profile.userId,
       fullName: profile.user.fullName,
       avatarUrl: profile.user.avatarUrl,
+      subCity: profile.user.subCity,
+      status: profile.user.status,
       bio: profile.bio,
+      bioAm: profile.bioAm,
+      videoIntroUrl: profile.videoIntroUrl,
+      teachingStyles: profile.teachingStyles,
       hourlyRate: Number(profile.hourlyRate),
       monthlyRate: Number(profile.monthlyRate),
+      weekendRate:
+        profile.weekendRate != null ? Number(profile.weekendRate) : null,
       subjects: profile.subjects,
       grades: profile.grades,
       rating: Number(profile.rating),
@@ -152,9 +195,18 @@ export class TeachersService {
       isEduVerified: profile.isEduVerified,
       isAvailable: profile.isAvailable,
       maxTravelKm: Number(profile.maxTravelKm),
+      packages: profile.packages,
+      availability: profile.availability,
       trustBadges: badges.map((b) => ({
         type: b.badgeType,
         issuedAt: b.issuedAt,
+      })),
+      reviews: reviews.map((r) => ({
+        id: r.id,
+        rating: r.rating,
+        comment: r.comment,
+        createdAt: r.createdAt,
+        author: r.author,
       })),
     };
   }
@@ -162,7 +214,21 @@ export class TeachersService {
   async getMyProfile(userId: string) {
     const profile = await prisma.teacherProfile.findUnique({
       where: { userId },
-      include: { user: true },
+      include: {
+        user: {
+          select: {
+            id: true,
+            fullName: true,
+            avatarUrl: true,
+            phoneNumber: true,
+            email: true,
+            status: true,
+            subCity: true,
+          },
+        },
+        packages: true,
+        availability: true,
+      },
     });
 
     if (!profile) {
@@ -189,9 +255,7 @@ export class TeachersService {
       where: {
         isAvailable: true,
         ...(params?.verifiedOnly ? { isIdVerified: true } : {}),
-        ...(params?.subject
-          ? { subjects: { has: params.subject } }
-          : {}),
+        ...(params?.subject ? { subjects: { has: params.subject } } : {}),
         user: {
           status: { in: ["ACTIVE", "PENDING_VERIFICATION"] },
         },
@@ -205,15 +269,28 @@ export class TeachersService {
             fullName: true,
             avatarUrl: true,
             status: true,
+            subCity: true,
           },
         },
       },
     });
 
+    const ids = profiles.map((p) => p.userId);
+    const badges = await prisma.trustBadge.findMany({
+      where: { teacherId: { in: ids } },
+    });
+    const badgeMap = new Map<string, string[]>();
+    for (const b of badges) {
+      const list = badgeMap.get(b.teacherId) || [];
+      list.push(b.badgeType);
+      badgeMap.set(b.teacherId, list);
+    }
+
     return profiles.map((p) => ({
       id: p.userId,
       fullName: p.user.fullName,
       avatarUrl: p.user.avatarUrl,
+      subCity: p.user.subCity,
       bio: p.bio,
       subjects: p.subjects,
       grades: p.grades,
@@ -224,6 +301,7 @@ export class TeachersService {
       badgeTier: p.badgeTier,
       isIdVerified: p.isIdVerified,
       isEduVerified: p.isEduVerified,
+      trustBadges: badgeMap.get(p.userId) || [],
     }));
   }
 }
