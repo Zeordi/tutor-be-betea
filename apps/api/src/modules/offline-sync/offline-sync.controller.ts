@@ -25,8 +25,12 @@ export class OfflineSyncController {
 
   @Post("support")
   @UseGuards(JwtAuthGuard, RolesGuard)
-  @Roles("PARENT")
+  @Roles("PARENT", "TEACHER")
   syncSupport(@CurrentUser() user: any, @Body() body: any) {
-    return this.offlineSyncService.syncSupportTicket(body.contractId, user.id, body);
+    return this.offlineSyncService.syncSupportTicket(
+      body.contractId ?? null,
+      user.id,
+      body,
+    );
   }
 }
