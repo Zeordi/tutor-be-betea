@@ -5,11 +5,9 @@ on:
 
 jobs:
   eas-build:
-    name: EAS Build (optional)
+    name: EAS Build (preview)
     runs-on: ubuntu-latest
-    defaults:
-      run:
-        working-directory: apps/mobile
+    if: ${{ secrets.EXPO_TOKEN != '' }}
     steps:
       - uses: actions/checkout@v4
 
@@ -23,20 +21,12 @@ jobs:
           cache: pnpm
 
       - run: pnpm install --frozen-lockfile
-        working-directory: .
-
-      - name: Require Expo token
-        run: |
-          if [ -z "${{ secrets.EXPO_TOKEN }}" ]; then
-            echo "EXPO_TOKEN not set — skip EAS until Expo is connected."
-            exit 1
-          fi
 
       - uses: expo/expo-github-action@v8
         with:
-          expo-version: latest
           eas-version: latest
           token: ${{ secrets.EXPO_TOKEN }}
 
-      - name: EAS build (preview)
-        run: eas build --platform all --profile preview --non-interactive
+      - name: EAS build preview
+        working-directory: apps/mobile
+        run: eas build --platform android --profile preview --non-interactive
