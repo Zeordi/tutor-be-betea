@@ -2,15 +2,15 @@
   "name": "@tutor/database",
   "version": "4.0.0",
   "private": true,
-  "main": "./src/client.ts",
-  "types": "./src/client.ts",
+  "main": "./dist/client.js",
+  "types": "./dist/client.d.ts",
   "scripts": {
-    "postinstall": "prisma generate",
+    "postinstall": "prisma generate && tsc",
     "generate": "prisma generate",
+    "build": "prisma generate && tsc",
     "push": "prisma db push",
     "studio": "prisma studio",
-    "check-types": "tsc --noEmit",
-    "build": "prisma generate"
+    "check-types": "tsc --noEmit"
   },
   "dependencies": {
     "@prisma/client": "^5.20.0"
