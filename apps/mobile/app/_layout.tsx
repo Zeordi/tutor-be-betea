@@ -8,8 +8,8 @@ import * as Sentry from "@sentry/react-native";
 if (process.env.EXPO_PUBLIC_SENTRY_DSN) {
   Sentry.init({
     dsn: process.env.EXPO_PUBLIC_SENTRY_DSN,
-    enableInExpoDevelopment: false,
     debug: false,
+    // Do not use enableInExpoDevelopment — not in ReactNativeOptions
   });
 }
 
