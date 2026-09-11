@@ -28,27 +28,32 @@ const fallbackColors = {
   infoLight: "#E0F2FE",
   accent: "#F59E0B",
   ring: "#0D9488",
-  // Aliases used by older screens / habits
   text: "#0D2B2A",
   subtext: "#64748B",
+  // Legacy aliases used across many screens
+  bg: "#F0F9F8",
+  sub: "#64748B",
+  textSecondary: "#64748B",
 };
 
 function withAliases(base: Record<string, string>) {
+  const foreground =
+    base.foreground ?? base.text ?? fallbackColors.foreground;
+  const mutedForeground =
+    base.mutedForeground ?? base.subtext ?? fallbackColors.mutedForeground;
+  const background = base.background ?? fallbackColors.background;
+
   return {
     ...fallbackColors,
     ...base,
-    // Stable aliases so both patterns work
-    text: (base as any).foreground ?? (base as any).text ?? fallbackColors.text,
-    subtext:
-      (base as any).mutedForeground ??
-      (base as any).subtext ??
-      fallbackColors.subtext,
-    foreground:
-      (base as any).foreground ?? (base as any).text ?? fallbackColors.foreground,
-    mutedForeground:
-      (base as any).mutedForeground ??
-      (base as any).subtext ??
-      fallbackColors.mutedForeground,
+    text: foreground,
+    foreground,
+    subtext: mutedForeground,
+    mutedForeground,
+    // Aliases screens already use (fixes CI)
+    bg: background,
+    sub: mutedForeground,
+    textSecondary: mutedForeground,
   };
 }
 
