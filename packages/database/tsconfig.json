@@ -5,9 +5,10 @@
     "strict": true,
     "declaration": true,
     "outDir": "dist",
+    "rootDir": "src",
     "moduleResolution": "node",
     "skipLibCheck": true,
     "esModuleInterop": true
   },
-  "include": ["src/**/*", "prisma/**/*"]
+  "include": ["src/**/*"]
 }
