@@ -75,6 +75,7 @@ import { BlogModule } from "./modules/blog/blog.module";
     ReplacementsModule,
     BlogModule,
   ],
+  providers: [SimpleRateLimitMiddleware],
 })
 export class AppModule implements NestModule {
   configure(consumer: MiddlewareConsumer) {
