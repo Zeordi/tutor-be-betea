@@ -4,7 +4,7 @@
   "private": true,
   "scripts": {
     "dev": "nest start --watch",
-    "prebuild": "pnpm --filter @tutor/database build && pnpm --filter @tutor/encryption build && pnpm --filter @tutor/validators build",
+    "prebuild": "pnpm --filter @tutor/database build && pnpm --filter @tutor/encryption build && pnpm --filter @tutor/validators build && pnpm --filter @tutor/geo build && pnpm --filter @tutor/audit build && pnpm --filter @tutor/types build",
     "build": "nest build",
     "start": "node dist/main",
     "start:prod": "node dist/main",
