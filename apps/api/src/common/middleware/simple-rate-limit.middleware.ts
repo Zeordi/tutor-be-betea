@@ -1,4 +1,9 @@
-import { Injectable, NestMiddleware, HttpException, HttpStatus } from "@nestjs/common";
+import {
+  Injectable,
+  NestMiddleware,
+  HttpException,
+  HttpStatus,
+} from "@nestjs/common";
 import type { Request, Response, NextFunction } from "express";
 
 type Bucket = { count: number; resetAt: number };
@@ -10,11 +15,9 @@ type Bucket = { count: number; resetAt: number };
 @Injectable()
 export class SimpleRateLimitMiddleware implements NestMiddleware {
   private buckets = new Map<string, Bucket>();
-
-  constructor(
-    private readonly max = 30,
-    private readonly windowMs = 60_000,
-  ) {}
+  /** No constructor args — Nest must not try to inject these */
+  private readonly max = 30;
+  private readonly windowMs = 60_000;
 
   use(req: Request, _res: Response, next: NextFunction) {
     const ip =
