@@ -227,6 +227,47 @@ export class AuthService {
   }
 
   // ─────────────────────────────────────────────
+  // PASSWORD RESET (OTP + verificationToken)
+  // ─────────────────────────────────────────────
+
+  async passwordForgot(phoneRaw: string) {
+    if (!phoneRaw) {
+      throw new BadRequestException("phoneNumber is required");
+    }
+    const phone = this.normalizePhone(phoneRaw);
+    const user = await this.usersService.findByPhone(phone);
+    if (!user) {
+      // Do not reveal whether phone exists
+      return { message: "If an account exists, a code was sent" };
+    }
+    return this.sendOtp(phone);
+  }
+
+  async passwordReset(dto: {
+    phoneNumber: string;
+    verificationToken: string;
+    newPassword: string;
+  }) {
+    const phone = this.normalizePhone(dto.phoneNumber);
+    if (!dto.newPassword || dto.newPassword.length < 6) {
+      throw new BadRequestException("Password must be at least 6 characters");
+    }
+
+    await this.consumeVerificationToken(dto.verificationToken, phone);
+
+    const user = await this.usersService.findByPhone(phone);
+    if (!user) {
+      throw new UnauthorizedException("Account not found");
+    }
+
+    const passwordHash = await bcrypt.hash(dto.newPassword, 10);
+    await this.usersService.updateProfile(user.id, { passwordHash });
+
+    return { message: "Password updated successfully" };
+  }
+
+
+  // ─────────────────────────────────────────────
   // GOOGLE
   // ─────────────────────────────────────────────
   async googleAuth(dto: GoogleAuthDto) {
