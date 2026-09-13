@@ -1,6 +1,6 @@
 import * as SecureStore from "expo-secure-store";
 
-const API_URL = process.env.EXPO_PUBLIC_API_URL || "http://localhost:4000";
+const API_URL = process.env.EXPO_PUBLIC_API_URL || "https://tutor-be-betea.onrender.com";
 
 export async function getToken(): Promise<string | null> {
   try {
