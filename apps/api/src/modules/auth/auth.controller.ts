@@ -3,6 +3,10 @@ import { AuthService } from "./auth.service";
 import { LoginDto } from "./dto/login.dto";
 import { RegisterDto } from "./dto/register.dto";
 import { GoogleAuthDto } from "./dto/google-auth.dto";
+import {
+  PasswordForgotDto,
+  PasswordResetDto,
+} from "./dto/password-reset.dto";
 
 @Controller("auth")
 export class AuthController {
@@ -42,5 +46,19 @@ export class AuthController {
     @Body("code") code?: string,
   ) {
     return this.authService.verifyOtp(phoneNumber || email || "", code || "");
+  }
+
+  /** Step 1 forgot: sends OTP via AfroMessage (same as otp/send) */
+  @Post("password/forgot")
+  @HttpCode(HttpStatus.OK)
+  passwordForgot(@Body() dto: PasswordForgotDto) {
+    return this.authService.passwordForgot(dto.phoneNumber);
+  }
+
+  /** Step 2: after otp/verify → verificationToken + new password */
+  @Post("password/reset")
+  @HttpCode(HttpStatus.OK)
+  passwordReset(@Body() dto: PasswordResetDto) {
+    return this.authService.passwordReset(dto);
   }
 }
