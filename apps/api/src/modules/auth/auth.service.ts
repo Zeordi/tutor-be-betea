@@ -91,8 +91,16 @@ export class AuthService {
       const stored = redis ? await redis.get<string>(key) : null;
       if (stored && stored === code) {
         valid = true;
-        await redis.del(key);
+        if (redis) await redis.del(key);
       }
+    }
+
+    // Dev without Redis: accept any 6-digit after logging
+    if (!valid && !redis && !this.isProd() && /^\d{6}$/.test(code)) {
+      valid = true;
+      console.log(
+        `[DEV] OTP accepted without Redis for \( {identifier} (code= \){code})`,
+      );
     }
 
     if (!valid) {
@@ -109,9 +117,17 @@ export class AuthService {
     return {
       verified: true,
       verificationToken,
+      // Dev helper when Redis is down so clients can still complete flows
+      ...(!redis && !this.isProd()
+        ? { verificationToken: "dev-verify", devNote: "Redis off — use dev-verify" }
+        : {}),
     };
   }
 
+  /**
+   * Hardened: works with Redis in prod; clear errors if store is down;
+   * allows "dev-verify" only when not in production and Redis is unavailable.
+   */
   private async consumeVerificationToken(
     token: string,
     expectedIdentifier: string,
@@ -120,8 +136,17 @@ export class AuthService {
       throw new UnauthorizedException("verificationToken is required");
     }
 
+    if (!redis) {
+      if (!this.isProd() && token === "dev-verify") {
+        return;
+      }
+      throw new UnauthorizedException(
+        "Verification store unavailable. Check Redis (UPSTASH) configuration.",
+      );
+    }
+
     const tokenKey = `verify:${token}`;
-    const bound = redis ? await redis.get<string>(tokenKey) : null;
+    const bound = await redis.get<string>(tokenKey);
 
     if (!bound || bound !== expectedIdentifier) {
       throw new UnauthorizedException("Invalid or expired verification token");
@@ -135,7 +160,7 @@ export class AuthService {
   // ─────────────────────────────────────────────
 
   async login(dto: LoginDto) {
-    // Path A: email + password
+    // Path A: email + password (admin / email accounts)
     if (dto.email && dto.password) {
       const email = dto.email.trim().toLowerCase();
       const user = await this.usersService.findByEmail(email);
@@ -266,10 +291,10 @@ export class AuthService {
     return { message: "Password updated successfully" };
   }
 
-
   // ─────────────────────────────────────────────
   // GOOGLE
   // ─────────────────────────────────────────────
+
   async googleAuth(dto: GoogleAuthDto) {
     const googleUser = await this.verifyGoogleIdToken(dto.idToken);
     const email = googleUser.email?.toLowerCase();
@@ -284,7 +309,6 @@ export class AuthService {
       user = await this.usersService.findByEmail(email);
 
       if (user) {
-        // updateProfile may return a partial select — always re-fetch full user
         await this.usersService.updateProfile(user.id, {
           googleId: googleUser.sub,
           emailVerified: true,
@@ -313,8 +337,7 @@ export class AuthService {
     }
 
     return this.authResponse(user);
-  } 
-              
+  }
 
   private async verifyGoogleIdToken(idToken: string) {
     const res = await fetch(
