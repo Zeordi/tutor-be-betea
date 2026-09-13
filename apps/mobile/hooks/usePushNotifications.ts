@@ -64,7 +64,7 @@ async function sendTokenToBackend(pushToken: string) {
     const token = await getToken();
     if (!token) return;
 
-    await fetch(`${process.env.EXPO_PUBLIC_API_URL || "http://localhost:4000"}/notifications/push-token`, {
+    await fetch(`${process.env.EXPO_PUBLIC_API_URL || "https://tutor-be-betea.onrender.com"}/notifications/push-token`, {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
