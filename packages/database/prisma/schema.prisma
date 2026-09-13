@@ -130,6 +130,7 @@ model User {
   children           StudentProfile[]
   parentJobs         ParentJob[]
   jobApplications    JobApplication[]
+  passwordResetTokens PasswordResetToken[]
   contractsAsParent  TutoringContract[] @relation("ParentContracts")
   contractsAsTeacher TutoringContract[] @relation("TeacherContracts")
   favoriteTutors     FavoriteTutor[]    @relation("ParentFavorites")
