@@ -10,15 +10,15 @@ const LANGS = ["EN", "አማ", "ORO", "ትግ"] as const;
 export default function LoginPage() {
   const router = useRouter();
   const [step, setStep] = useState<"credentials" | "otp">("credentials");
-  const [tab, setTab] = useState<"phone" | "email">("phone");
+  const [tab, setTab] = useState<"phone" | "google">("phone");
   const [phoneNumber, setPhoneNumber] = useState("");
-  const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [otpDigits, setOtpDigits] = useState(["", "", "", "", "", ""]);
   const [loading, setLoading] = useState(false);
   const [message, setMessage] = useState("");
   const [lang, setLang] = useState<(typeof LANGS)[number]>("EN");
   const [countdown, setCountdown] = useState(0);
+  const [googleIdToken, setGoogleIdToken] = useState("");
 
   const api = process.env.NEXT_PUBLIC_API_URL || "http://localhost:4000";
 
@@ -29,7 +29,15 @@ export default function LoginPage() {
   }, [countdown]);
 
   const redirectByRole = (role?: string) => {
-    router.push(role === "TEACHER" ? "/teacher" : "/parent");
+    if (role === "TEACHER") router.push("/teacher");
+    else if (
+      role === "SUPER_ADMIN" ||
+      role === "SUPPORT_AGENT" ||
+      role === "FINANCE" ||
+      role === "VERIFICATION_OFFICER"
+    ) {
+      router.push("/login");
+    } else router.push("/parent");
   };
 
   const sendOtp = async () => {
@@ -40,7 +48,7 @@ export default function LoginPage() {
     });
     if (!res.ok) {
       const err = await res.json().catch(() => ({}));
-      throw new Error(err.message || "Failed to send OTP");
+      throw new Error((err as any).message || "Failed to send OTP");
     }
   };
 
@@ -49,8 +57,8 @@ export default function LoginPage() {
     setLoading(true);
     setMessage("");
     try {
-      if (tab !== "phone") {
-        setMessage("Use phone number + OTP for secure sign-in.");
+      if (tab === "google") {
+        setMessage("Paste a Google ID token below, or wire Google GIS button.");
         return;
       }
       if (!phoneNumber.trim() || password.length < 6) {
@@ -60,7 +68,7 @@ export default function LoginPage() {
       await sendOtp();
       setStep("otp");
       setCountdown(60);
-      setMessage("OTP sent to your phone");
+      setMessage("OTP sent to your phone (Safaricom & other ET numbers supported).");
     } catch (err: any) {
       setMessage(err.message || "Could not send OTP");
     } finally {
@@ -74,18 +82,20 @@ export default function LoginPage() {
     setMessage("");
     try {
       const code = otpDigits.join("");
-      if (code.length < 6) throw new Error("Enter the full 6-digit OTP");
+      if (code.length !== 6) {
+        setMessage("Enter the 6-digit code");
+        return;
+      }
 
       const verifyRes = await fetch(`${api}/auth/otp/verify`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ phoneNumber: phoneNumber.trim(), code }),
       });
+      const verifyData = await verifyRes.json().catch(() => ({}));
       if (!verifyRes.ok) {
-        const err = await verifyRes.json().catch(() => ({}));
-        throw new Error(err.message || "Invalid OTP");
+        throw new Error((verifyData as any).message || "Invalid OTP");
       }
-      const verifyData = await verifyRes.json();
 
       const loginRes = await fetch(`${api}/auth/login`, {
         method: "POST",
@@ -93,18 +103,18 @@ export default function LoginPage() {
         body: JSON.stringify({
           phoneNumber: phoneNumber.trim(),
           password,
-          verificationToken: verifyData.verificationToken,
+          verificationToken: (verifyData as any).verificationToken,
         }),
       });
+      const data = await loginRes.json().catch(() => ({}));
       if (!loginRes.ok) {
-        const err = await loginRes.json().catch(() => ({}));
-        throw new Error(err.message || "Login failed");
+        throw new Error((data as any).message || "Login failed");
       }
-      const data = await loginRes.json();
-      if (data.accessToken) {
-        setSession(data.accessToken, data.user?.role);
+
+      if ((data as any).accessToken) {
+        setSession((data as any).accessToken, (data as any).user?.role);
+        redirectByRole((data as any).user?.role);
       }
-      redirectByRole(data.user?.role);
     } catch (err: any) {
       setMessage(err.message || "Login failed");
     } finally {
@@ -112,236 +122,228 @@ export default function LoginPage() {
     }
   };
 
-  const setDigit = (i: number, v: string) => {
-    const d = v.replace(/\D/g, "").slice(-1);
+  const handleGoogleLogin = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setLoading(true);
+    setMessage("");
+    try {
+      if (!googleIdToken.trim()) {
+        setMessage("Google ID token is required (connect Google Client ID on API).");
+        return;
+      }
+      const res = await fetch(`${api}/auth/google`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ idToken: googleIdToken.trim() }),
+      });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) {
+        throw new Error(
+          (data as any).message ||
+            "Google sign-in failed. Set GOOGLE_CLIENT_ID on the API.",
+        );
+      }
+      if ((data as any).accessToken) {
+        setSession((data as any).accessToken, (data as any).user?.role);
+        redirectByRole((data as any).user?.role);
+      }
+    } catch (err: any) {
+      setMessage(err.message || "Google sign-in failed");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const setDigit = (index: number, value: string) => {
+    const v = value.replace(/\D/g, "").slice(-1);
     const next = [...otpDigits];
-    next[i] = d;
+    next[index] = v;
     setOtpDigits(next);
   };
 
   return (
-    <main className="min-h-screen flex bg-[var(--background)]">
-      <aside className="hidden md:flex flex-col justify-between w-[420px] flex-shrink-0 bg-gradient-to-br from-teal-800 via-teal-900 to-blue-950 p-10 text-white relative overflow-hidden">
-        <div className="absolute top-0 right-0 w-48 h-48 bg-teal-600/20 rounded-full blur-3xl -translate-y-1/2 translate-x-1/2" />
-        <div className="relative">
-          <div className="flex items-center gap-3 mb-12">
-            <div className="w-11 h-11 bg-white/15 rounded-2xl flex items-center justify-center text-2xl border border-white/20">
-              🎓
-            </div>
-            <div>
-              <p className="text-[10px] text-teal-300 font-extrabold tracking-[0.2em] uppercase">
-                Tutor Be
-              </p>
-              <p className="text-xl font-extrabold -mt-0.5">BETEA</p>
-            </div>
+    <main className="min-h-screen bg-[var(--background)] px-4 py-10">
+      <div className="mx-auto w-full max-w-md">
+        <div className="mb-8 text-center">
+          <div className="text-3xl font-extrabold text-[var(--primary)]">
+            Tutor Be Betea
           </div>
-          <h2 className="text-3xl font-extrabold leading-tight mb-3">
-            Ethiopia&apos;s Premier
-            <br />
-            <span className="text-teal-300">Verified Tutoring</span>
-            <br />
-            Platform
-          </h2>
-          <p className="text-teal-200/80 text-sm leading-relaxed mb-10">
-            Connect with Fayda-verified, degree-certified tutors across Addis Ababa and beyond.
+          <p className="mt-2 text-sm text-[var(--muted-foreground)]">
+            Sign in with phone + OTP or Google
           </p>
-          <div className="space-y-5">
-            {[
-              { icon: "🛡️", title: "Fayda-Verified Tutors", sub: "National ID + biometric confirmation" },
-              { icon: "🔒", title: "Milestone Escrow Payments", sub: "Telebirr, CBE Birr, M-Pesa" },
-              { icon: "📊", title: "AI Progress Reports", sub: "Weekly insights per child" },
-              { icon: "📍", title: "GPS Session Tracking", sub: "Geofencing & auto check-in" },
-            ].map((f) => (
-              <div key={f.title} className="flex items-start gap-3">
-                <div className="w-9 h-9 bg-white/10 rounded-xl flex items-center justify-center text-lg">
-                  {f.icon}
-                </div>
-                <div>
-                  <p className="text-sm font-bold">{f.title}</p>
-                  <p className="text-[11px] text-teal-300/80">{f.sub}</p>
-                </div>
-              </div>
-            ))}
-          </div>
-        </div>
-        <div className="relative">
-          <p className="text-[11px] text-teal-200 mb-3">12,000+ families trust us</p>
-          <div className="flex gap-1">
-            <div className="h-1 w-10 bg-green-500 rounded-full" />
-            <div className="h-1 w-10 bg-yellow-400 rounded-full" />
-            <div className="h-1 w-10 bg-red-500 rounded-full" />
-          </div>
-        </div>
-      </aside>
-
-      <div className="flex-1 flex flex-col items-center justify-center p-6 md:p-10">
-        <div className="w-full max-w-sm">
-          <div className="flex justify-between items-center mb-6">
-            <div>
-              <p className="text-2xl font-extrabold text-[var(--foreground)]">Sign In</p>
-              <p className="text-sm text-[var(--muted-foreground)]">Welcome back</p>
-            </div>
-            <div className="flex gap-1">
-              {LANGS.map((l) => (
-                <button
-                  key={l}
-                  type="button"
-                  onClick={() => setLang(l)}
-                  className={`text-[10px] font-bold px-2.5 py-1 rounded-full ${
-                    lang === l ? "bg-teal-600 text-white" : "text-[var(--muted-foreground)]"
-                  }`}
-                >
-                  {l}
-                </button>
-              ))}
-            </div>
-          </div>
-
-          <div className="flex p-1 rounded-xl gap-1 mb-5 bg-[var(--muted)]">
-            {(["phone", "email"] as const).map((t) => (
+          <div className="mt-3 flex justify-center gap-2">
+            {LANGS.map((l) => (
               <button
-                key={t}
+                key={l}
                 type="button"
-                onClick={() => setTab(t)}
-                className={`flex-1 py-2 text-xs font-bold rounded-lg transition-all ${
-                  tab === t
-                    ? "bg-[var(--card)] text-teal-600 shadow-sm"
-                    : "text-[var(--muted-foreground)]"
+                onClick={() => setLang(l)}
+                className={`rounded-lg px-2 py-1 text-xs font-bold ${
+                  lang === l
+                    ? "bg-[var(--primary)] text-white"
+                    : "border border-[var(--border)] text-[var(--muted-foreground)]"
                 }`}
               >
-                {t === "phone" ? "📱 Phone" : "✉️ Email"}
+                {l}
               </button>
             ))}
           </div>
+        </div>
 
-          {step === "credentials" ? (
-            <form onSubmit={handleCredentials} className="space-y-3">
+        <div className="rounded-2xl border border-[var(--border)] bg-[var(--card)] p-6 shadow-sm">
+          {step === "credentials" && (
+            <>
+              <div className="mb-4 flex rounded-xl border border-[var(--border)] p-1">
+                <button
+                  type="button"
+                  onClick={() => setTab("phone")}
+                  className={`flex-1 rounded-lg py-2 text-sm font-bold ${
+                    tab === "phone"
+                      ? "bg-[var(--primary)] text-white"
+                      : "text-[var(--muted-foreground)]"
+                  }`}
+                >
+                  Phone
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setTab("google")}
+                  className={`flex-1 rounded-lg py-2 text-sm font-bold ${
+                    tab === "google"
+                      ? "bg-[var(--primary)] text-white"
+                      : "text-[var(--muted-foreground)]"
+                  }`}
+                >
+                  Google / Gmail
+                </button>
+              </div>
+
               {tab === "phone" ? (
-                <div>
-                  <label className="text-xs font-semibold text-[var(--muted-foreground)] block mb-1">
-                    Phone Number
-                  </label>
-                  <div className="flex items-center gap-2 rounded-xl px-4 py-3 border border-[var(--border)] bg-[var(--card)]">
-                    <span>🇪🇹</span>
-                    <span className="text-sm font-extrabold text-teal-600">+251</span>
-                    <div className="w-px h-5 bg-[var(--border)]" />
+                <form onSubmit={handleCredentials} className="space-y-4">
+                  <div>
+                    <label className="mb-1 block text-sm font-semibold">
+                      Phone (09… / 07… / +251)
+                    </label>
                     <input
-                      type="tel"
-                      required
                       value={phoneNumber}
                       onChange={(e) => setPhoneNumber(e.target.value)}
-                      placeholder="91 234 5678"
-                      className="bg-transparent text-sm flex-1 outline-none text-[var(--foreground)]"
+                      className="w-full rounded-xl border border-[var(--border)] bg-[var(--background)] px-3 py-3 text-sm"
+                      placeholder="0912345678"
+                      autoComplete="tel"
                     />
                   </div>
-                </div>
+                  <div>
+                    <label className="mb-1 block text-sm font-semibold">
+                      Password
+                    </label>
+                    <input
+                      type="password"
+                      value={password}
+                      onChange={(e) => setPassword(e.target.value)}
+                      className="w-full rounded-xl border border-[var(--border)] bg-[var(--background)] px-3 py-3 text-sm"
+                      placeholder="••••••••"
+                      autoComplete="current-password"
+                    />
+                  </div>
+                  <button
+                    type="submit"
+                    disabled={loading}
+                    className="w-full rounded-xl bg-[var(--primary)] py-3 text-sm font-bold text-white disabled:opacity-60"
+                  >
+                    {loading ? "Sending OTP…" : "Continue with OTP"}
+                  </button>
+                </form>
               ) : (
-                <div>
-                  <label className="text-xs font-semibold text-[var(--muted-foreground)] block mb-1">
-                    Email
-                  </label>
-                  <input
-                    type="email"
-                    value={email}
-                    onChange={(e) => setEmail(e.target.value)}
-                    className="w-full rounded-xl px-4 py-3 border border-[var(--border)] bg-[var(--card)] text-sm outline-none"
-                    placeholder="you@gmail.com"
+                <form onSubmit={handleGoogleLogin} className="space-y-4">
+                  <p className="text-sm text-[var(--muted-foreground)]">
+                    Gmail sign-in uses <code>POST /auth/google</code>. Add{" "}
+                    <code>GOOGLE_CLIENT_ID</code> on the API. Until the GIS
+                    button is wired, paste an ID token for testing.
+                  </p>
+                  <textarea
+                    value={googleIdToken}
+                    onChange={(e) => setGoogleIdToken(e.target.value)}
+                    rows={3}
+                    className="w-full rounded-xl border border-[var(--border)] bg-[var(--background)] px-3 py-3 text-sm"
+                    placeholder="Google idToken"
                   />
-                </div>
+                  <button
+                    type="submit"
+                    disabled={loading}
+                    className="w-full rounded-xl bg-[var(--primary)] py-3 text-sm font-bold text-white disabled:opacity-60"
+                  >
+                    {loading ? "Signing in…" : "Continue with Google"}
+                  </button>
+                </form>
               )}
+            </>
+          )}
 
-              <div>
-                <label className="text-xs font-semibold text-[var(--muted-foreground)] block mb-1">
-                  Password
-                </label>
-                <input
-                  type="password"
-                  required
-                  minLength={6}
-                  value={password}
-                  onChange={(e) => setPassword(e.target.value)}
-                  className="w-full rounded-xl px-4 py-3 border border-[var(--border)] bg-[var(--card)] text-sm outline-none"
-                />
-              </div>
-
-              <div className="flex justify-between text-xs">
-                <span className="text-[var(--muted-foreground)]">Remember me</span>
-                <Link href="/forgot-password" className="text-teal-600 font-semibold">
-                  Forgot password?
-                </Link>
-              </div>
-
-              {message && <p className="text-xs text-red-500 text-center">{message}</p>}
-
-              <button
-                type="submit"
-                disabled={loading}
-                className="w-full bg-teal-600 hover:bg-teal-700 text-white font-bold py-3 rounded-xl text-sm"
-              >
-                {loading ? "Sending OTP..." : "Continue"}
-              </button>
-            </form>
-          ) : (
+          {step === "otp" && (
             <form onSubmit={handleVerifyAndLogin} className="space-y-4">
-              <p className="text-xs text-[var(--muted-foreground)] text-center">
-                Code sent to <strong className="text-[var(--foreground)]">{phoneNumber}</strong>
+              <p className="text-sm text-[var(--muted-foreground)]">
+                Enter the 6-digit code sent to {phoneNumber}
               </p>
-              <div className="flex justify-center gap-2">
+              <div className="flex justify-between gap-2">
                 {otpDigits.map((d, i) => (
                   <input
                     key={i}
                     value={d}
                     onChange={(e) => setDigit(i, e.target.value)}
                     maxLength={1}
-                    inputMode="numeric"
-                    className="w-11 h-12 rounded-xl border-2 border-teal-500 text-center text-lg font-extrabold outline-none bg-[var(--card)]"
+                    className="h-12 w-10 rounded-lg border border-[var(--border)] bg-[var(--background)] text-center text-lg font-bold"
                   />
                 ))}
               </div>
-              <p className="text-center text-xs text-[var(--muted-foreground)]">
-                {countdown > 0 ? (
-                  `Resend in ${countdown}s`
-                ) : (
-                  <button
-                    type="button"
-                    className="text-teal-600 font-semibold"
-                    onClick={async () => {
-                      try {
-                        await sendOtp();
-                        setCountdown(60);
-                      } catch (err: any) {
-                        setMessage(err.message);
-                      }
-                    }}
-                  >
-                    Resend code
-                  </button>
-                )}
-              </p>
-              {message && <p className="text-xs text-red-500 text-center">{message}</p>}
               <button
                 type="submit"
                 disabled={loading}
-                className="w-full bg-teal-600 text-white font-bold py-3 rounded-xl text-sm"
+                className="w-full rounded-xl bg-[var(--primary)] py-3 text-sm font-bold text-white disabled:opacity-60"
               >
-                {loading ? "Signing in..." : "Verify & Sign In →"}
+                {loading ? "Verifying…" : "Verify & sign in"}
               </button>
               <button
                 type="button"
-                className="w-full text-xs text-[var(--muted-foreground)]"
+                disabled={countdown > 0 || loading}
+                onClick={async () => {
+                  try {
+                    setLoading(true);
+                    await sendOtp();
+                    setCountdown(60);
+                    setMessage("OTP resent");
+                  } catch (err: any) {
+                    setMessage(err.message);
+                  } finally {
+                    setLoading(false);
+                  }
+                }}
+                className="w-full text-sm font-semibold text-[var(--primary)]"
+              >
+                {countdown > 0 ? `Resend in ${countdown}s` : "Resend code"}
+              </button>
+              <button
+                type="button"
                 onClick={() => setStep("credentials")}
+                className="w-full text-sm text-[var(--muted-foreground)]"
               >
                 ← Back
               </button>
             </form>
           )}
 
-          <p className="text-center text-xs text-[var(--muted-foreground)] mt-6">
-            New here?{" "}
-            <Link href="/register" className="text-teal-600 font-semibold">
-              Create free account
+          {message && (
+            <p className="mt-4 text-center text-sm text-[var(--warning)]">
+              {message}
+            </p>
+          )}
+
+          <div className="mt-6 space-y-2 text-center text-sm">
+            <Link href="/forgot-password" className="block text-[var(--primary)]">
+              Forgot password?
             </Link>
-          </p>
+            <Link href="/register" className="block text-[var(--muted-foreground)]">
+              Create account
+            </Link>
+          </div>
         </div>
       </div>
     </main>
