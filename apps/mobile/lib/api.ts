@@ -14,9 +14,28 @@ export async function setToken(token: string): Promise<void> {
   await SecureStore.setItemAsync("auth_token", token);
 }
 
+export async function setSession(
+  token: string,
+  role?: string,
+  userJson?: string,
+): Promise<void> {
+  await SecureStore.setItemAsync("auth_token", token);
+  if (role) await SecureStore.setItemAsync("auth_role", role);
+  if (userJson) await SecureStore.setItemAsync("auth_user", userJson);
+}
+
+export async function getRole(): Promise<string | null> {
+  try {
+    return await SecureStore.getItemAsync("auth_role");
+  } catch {
+    return null;
+  }
+}
+
 export async function clearToken(): Promise<void> {
   await SecureStore.deleteItemAsync("auth_token");
   await SecureStore.deleteItemAsync("auth_user");
+  await SecureStore.deleteItemAsync("auth_role");
 }
 
 export async function apiRequest<T = any>(
@@ -24,12 +43,10 @@ export async function apiRequest<T = any>(
   options: RequestInit = {},
 ): Promise<T> {
   const token = await getToken();
-
   const headers: Record<string, string> = {
     "Content-Type": "application/json",
     ...(options.headers as Record<string, string>),
   };
-
   if (token) headers.Authorization = "Bearer " + token;
 
   const url = API_URL + (endpoint.startsWith("/") ? endpoint : "/" + endpoint);
@@ -41,7 +58,6 @@ export async function apiRequest<T = any>(
       (errorData as any).message || "Request failed (" + response.status + ")",
     );
   }
-
   return response.json();
 }
 
