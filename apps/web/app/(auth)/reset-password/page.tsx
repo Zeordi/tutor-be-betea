@@ -1,199 +1,147 @@
 "use client";
 
-import { Suspense, useState } from "react";
+import { Suspense, useMemo, useState } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
-import { useSearchParams } from "next/navigation";
 
-function passwordStrength(pw: string) {
-  let score = 0;
-  if (pw.length >= 6) score++;
-  if (pw.length >= 10) score++;
-  if (/[A-Z]/.test(pw) && /[a-z]/.test(pw)) score++;
-  if (/\d/.test(pw)) score++;
-  if (/[^A-Za-z0-9]/.test(pw)) score++;
-  if (score <= 1) return { score, label: "Weak", bar: "bg-red-500" };
-  if (score <= 3) return { score, label: "Fair", bar: "bg-amber-500" };
-  return { score, label: "Strong", bar: "bg-emerald-500" };
-}
-
-function ResetPasswordForm() {
-  const search = useSearchParams();
-  const phone = search.get("phone") || "";
-
-  const [otp, setOtp] = useState("");
-  const [password, setPassword] = useState("");
-  const [confirm, setConfirm] = useState("");
-  const [loading, setLoading] = useState(false);
-  const [done, setDone] = useState(false);
-  const [error, setError] = useState("");
-
-  const strength = passwordStrength(password);
+function ResetForm() {
+  const router = useRouter();
+  const params = useSearchParams();
   const api = process.env.NEXT_PUBLIC_API_URL || "http://localhost:4000";
 
-  const submit = async (e: React.FormEvent) => {
+  const initialPhone = useMemo(
+    () =>
+      params.get("phone") ||
+      (typeof window !== "undefined"
+        ? sessionStorage.getItem("resetPhone") || ""
+        : ""),
+    [params],
+  );
+
+  const [phoneNumber, setPhoneNumber] = useState(initialPhone);
+  const [otpDigits, setOtpDigits] = useState(["", "", "", "", "", ""]);
+  const [newPassword, setNewPassword] = useState("");
+  const [confirm, setConfirm] = useState("");
+  const [loading, setLoading] = useState(false);
+  const [message, setMessage] = useState("");
+
+  const strength =
+    newPassword.length >= 10
+      ? "Strong"
+      : newPassword.length >= 6
+        ? "OK"
+        : "Too short";
+
+  const setDigit = (i: number, v: string) => {
+    const next = [...otpDigits];
+    next[i] = v.replace(/\D/g, "").slice(-1);
+    setOtpDigits(next);
+  };
+
+  const onSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    setError("");
-    if (otp.length < 6) {
-      setError("Enter the 6-digit OTP");
-      return;
-    }
-    if (password.length < 6) {
-      setError("Password min 6 characters");
-      return;
-    }
-    if (password !== confirm) {
-      setError("Passwords do not match");
-      return;
-    }
     setLoading(true);
+    setMessage("");
     try {
-      try {
-        await fetch(`${api}/auth/password/reset`, {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            phoneNumber: phone.startsWith("+")
-              ? phone
-              : `+251${phone.replace(/^0/, "")}`,
-            code: otp,
-            newPassword: password,
-          }),
-        });
-      } catch {
-        /* UI still completes on network error in this flow */
+      if (newPassword !== confirm) {
+        throw new Error("Passwords do not match");
       }
-      setDone(true);
+      if (newPassword.length < 6) {
+        throw new Error("Password min 6 characters");
+      }
+      const code = otpDigits.join("");
+      if (code.length !== 6) throw new Error("Enter 6-digit OTP");
+
+      const verifyRes = await fetch(`${api}/auth/otp/verify`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ phoneNumber: phoneNumber.trim(), code }),
+      });
+      const verifyData = await verifyRes.json().catch(() => ({}));
+      if (!verifyRes.ok) {
+        throw new Error((verifyData as any).message || "Invalid OTP");
+      }
+
+      const res = await fetch(`${api}/auth/password/reset`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          phoneNumber: phoneNumber.trim(),
+          verificationToken: (verifyData as any).verificationToken,
+          newPassword,
+        }),
+      });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) {
+        throw new Error((data as any).message || "Reset failed");
+      }
+      router.push("/login");
+    } catch (err: any) {
+      setMessage(err.message || "Reset failed");
     } finally {
       setLoading(false);
     }
   };
 
-  if (done) {
-    return (
-      <div className="flex min-h-screen items-center justify-center bg-slate-50 px-4 dark:bg-[#0A1628]">
-        <div className="w-full max-w-md rounded-3xl border border-slate-100 bg-white p-8 text-center shadow-sm dark:border-slate-800 dark:bg-[#112240]">
-          <p className="mb-3 text-4xl">✅</p>
-          <h1 className="text-2xl font-extrabold text-slate-900 dark:text-white">
-            Password updated
-          </h1>
-          <p className="mt-2 text-sm text-slate-500">
-            Sign in with your new password.
-          </p>
-          <Link
-            href="/login"
-            className="mt-6 inline-block w-full rounded-xl bg-teal-600 py-3 text-sm font-bold text-white"
-          >
-            Back to Sign In
-          </Link>
-        </div>
-      </div>
-    );
-  }
-
   return (
-    <div className="flex min-h-screen items-center justify-center bg-slate-50 px-4 dark:bg-[#0A1628]">
-      <div className="w-full max-w-md rounded-3xl border border-slate-100 bg-white p-8 shadow-sm dark:border-slate-800 dark:bg-[#112240]">
-        <div className="mb-6 text-center">
-          <div className="mx-auto mb-3 flex h-12 w-12 items-center justify-center rounded-2xl bg-teal-600 text-xl">
-            🎓
-          </div>
-          <h1 className="text-2xl font-extrabold text-slate-900 dark:text-white">
-            Reset Password
-          </h1>
-          <p className="mt-2 text-sm text-slate-500">
-            OTP for +251 {phone || "••••"}
-          </p>
-        </div>
-        <form onSubmit={submit} className="space-y-4">
-          <div>
-            <label className="mb-1 block text-xs font-semibold text-slate-500">
-              OTP
-            </label>
-            <input
-              value={otp}
-              onChange={(e) => setOtp(e.target.value)}
-              maxLength={6}
-              inputMode="numeric"
-              className="w-full rounded-xl border border-slate-200 px-4 py-2.5 text-center text-lg font-extrabold tracking-[0.3em] outline-none dark:border-slate-700 dark:bg-[#0A1628] dark:text-white"
-            />
-          </div>
-          <div>
-            <label className="mb-1 block text-xs font-semibold text-slate-500">
-              New password
-            </label>
-            <input
-              type="password"
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              className="w-full rounded-xl border border-slate-200 px-4 py-2.5 text-sm outline-none dark:border-slate-700 dark:bg-[#0A1628] dark:text-white"
-            />
-            {password.length > 0 && (
-              <div className="mt-2">
-                <div className="mb-1 flex gap-1">
-                  {[1, 2, 3, 4].map((i) => (
-                    <div
-                      key={i}
-                      className={`h-1 flex-1 rounded-full ${
-                        strength.score >= i
-                          ? strength.bar
-                          : "bg-slate-200 dark:bg-slate-700"
-                      }`}
-                    />
-                  ))}
-                </div>
-                <p className="text-[10px] font-bold text-slate-500">
-                  {strength.label}
-                </p>
-              </div>
-            )}
-          </div>
-          <div>
-            <label className="mb-1 block text-xs font-semibold text-slate-500">
-              Confirm
-            </label>
-            <input
-              type="password"
-              value={confirm}
-              onChange={(e) => setConfirm(e.target.value)}
-              className="w-full rounded-xl border border-slate-200 px-4 py-2.5 text-sm outline-none dark:border-slate-700 dark:bg-[#0A1628] dark:text-white"
-            />
-          </div>
-          {error && (
-            <p className="text-center text-xs text-red-500">{error}</p>
-          )}
-          <button
-            type="submit"
-            disabled={loading}
-            className="w-full rounded-xl bg-teal-600 py-3 text-sm font-bold text-white hover:bg-teal-700 disabled:opacity-60"
-          >
-            {loading ? "Updating..." : "Update Password"}
-          </button>
-        </form>
-        <p className="mt-4 text-center text-sm text-slate-500">
-          <Link href="/login" className="font-semibold text-teal-600">
-            ← Back to Sign In
-          </Link>
-        </p>
+    <form
+      onSubmit={onSubmit}
+      className="w-full max-w-md space-y-4 rounded-2xl border border-[var(--border)] bg-[var(--card)] p-6"
+    >
+      <h1 className="text-xl font-extrabold">Reset password</h1>
+      <input
+        value={phoneNumber}
+        onChange={(e) => setPhoneNumber(e.target.value)}
+        className="w-full rounded-xl border border-[var(--border)] bg-[var(--background)] px-3 py-3 text-sm"
+        placeholder="Phone"
+      />
+      <div className="flex justify-between gap-2">
+        {otpDigits.map((d, i) => (
+          <input
+            key={i}
+            value={d}
+            onChange={(e) => setDigit(i, e.target.value)}
+            maxLength={1}
+            className="h-12 w-10 rounded-lg border border-[var(--border)] bg-[var(--background)] text-center font-bold"
+          />
+        ))}
       </div>
-    </div>
+      <input
+        type="password"
+        value={newPassword}
+        onChange={(e) => setNewPassword(e.target.value)}
+        className="w-full rounded-xl border border-[var(--border)] bg-[var(--background)] px-3 py-3 text-sm"
+        placeholder="New password"
+      />
+      <p className="text-xs text-[var(--muted-foreground)]">Strength: {strength}</p>
+      <input
+        type="password"
+        value={confirm}
+        onChange={(e) => setConfirm(e.target.value)}
+        className="w-full rounded-xl border border-[var(--border)] bg-[var(--background)] px-3 py-3 text-sm"
+        placeholder="Confirm password"
+      />
+      <button
+        type="submit"
+        disabled={loading}
+        className="w-full rounded-xl bg-[var(--primary)] py-3 text-sm font-bold text-white"
+      >
+        {loading ? "Updating…" : "Update password"}
+      </button>
+      {message && <p className="text-sm text-[var(--warning)]">{message}</p>}
+      <Link href="/login" className="block text-center text-sm text-[var(--primary)]">
+        Back to login
+      </Link>
+    </form>
   );
 }
 
-function ResetPasswordFallback() {
-  return (
-    <div className="flex min-h-screen items-center justify-center bg-slate-50 px-4 dark:bg-[#0A1628]">
-      <div className="w-full max-w-md rounded-3xl border border-slate-100 bg-white p-8 text-center shadow-sm dark:border-slate-800 dark:bg-[#112240]">
-        <p className="text-sm text-slate-500">Loading…</p>
-      </div>
-    </div>
-  );
-}
-
-/** Default export must wrap useSearchParams in Suspense for Next.js static build */
 export default function ResetPasswordPage() {
   return (
-    <Suspense fallback={<ResetPasswordFallback />}>
-      <ResetPasswordForm />
-    </Suspense>
+    <main className="flex min-h-screen items-center justify-center bg-[var(--background)] px-4">
+      <Suspense fallback={<p>Loading…</p>}>
+        <ResetForm />
+      </Suspense>
+    </main>
   );
 }
