@@ -1,196 +1,162 @@
-import { useState, useEffect } from "react";
-import {
-  View,
-  Text,
-  StyleSheet,
-  TextInput,
-  TouchableOpacity,
-  Alert,
-  ActivityIndicator,
-} from "react-native";
-import { useLocalSearchParams, useRouter } from "expo-router";
-import { useTheme } from "@/hooks/useTheme";
-import { SafeAreaView } from "react-native-safe-area-context";
-import { api } from "@/lib/api";
+"use client";
 
-function passwordStrength(pw: string) {
-  let score = 0;
-  if (pw.length >= 6) score++;
-  if (pw.length >= 10) score++;
-  if (/[A-Z]/.test(pw) && /[a-z]/.test(pw)) score++;
-  if (/\d/.test(pw)) score++;
-  if (/[^A-Za-z0-9]/.test(pw)) score++;
-  if (score <= 1) return { score, label: "Weak", color: "#DC2626" };
-  if (score <= 3) return { score, label: "Fair", color: "#D97706" };
-  return { score, label: "Strong", color: "#059669" };
-}
+import { Suspense, useMemo, useState } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
+import Link from "next/link";
 
-export default function ResetPasswordScreen() {
-  const { isDark } = useTheme();
+const API_URL =
+  process.env.NEXT_PUBLIC_API_URL ||
+  "https://tutor-be-betea.onrender.com";
+
+function ResetForm() {
   const router = useRouter();
-  const params = useLocalSearchParams<{ phone?: string }>();
-  const phone = (params.phone as string) || "";
+  const params = useSearchParams();
 
-  const [otp, setOtp] = useState("");
-  const [password, setPassword] = useState("");
+  const initialPhone = useMemo(
+    () =>
+      params.get("phone") ||
+      (typeof window !== "undefined"
+        ? sessionStorage.getItem("resetPhone") || ""
+        : ""),
+    [params],
+  );
+
+  const [phoneNumber, setPhoneNumber] = useState(initialPhone);
+  const [otpDigits, setOtpDigits] = useState(["", "", "", "", "", ""]);
+  const [newPassword, setNewPassword] = useState("");
   const [confirm, setConfirm] = useState("");
   const [loading, setLoading] = useState(false);
-  const [done, setDone] = useState(false);
+  const [message, setMessage] = useState("");
 
-  const strength = passwordStrength(password);
-  const bg = isDark ? "#0A1628" : "#FFFFFF";
-  const text = isDark ? "#F0FAFA" : "#0D2B2A";
-  const sub = isDark ? "#94A3B8" : "#64748B";
-  const primary = "#0D9488";
-  const border = isDark ? "#1E3A5F" : "#E2E8F0";
-  const inputBg = isDark ? "#112240" : "#F8FAFC";
+  const strength =
+    newPassword.length >= 10
+      ? "Strong"
+      : newPassword.length >= 6
+        ? "OK"
+        : "Too short";
 
-  const submit = async () => {
-    if (otp.length < 6) {
-      Alert.alert("OTP", "Enter the 6-digit code");
-      return;
-    }
-    if (password.length < 6) {
-      Alert.alert("Password", "Min 6 characters");
-      return;
-    }
-    if (password !== confirm) {
-      Alert.alert("Mismatch", "Passwords do not match");
-      return;
-    }
+  const setDigit = (i: number, v: string) => {
+    const next = [...otpDigits];
+    next[i] = v.replace(/\D/g, "").slice(-1);
+    setOtpDigits(next);
+  };
+
+  const onSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
     setLoading(true);
+    setMessage("");
     try {
-      try {
-        await api.post("/auth/password/reset", {
-          phoneNumber: phone.startsWith("+") ? phone : `+251${phone.replace(/^0/, "")}`,
-          code: otp,
-          newPassword: password,
-        });
-      } catch {
-        // UI completes even if endpoint is thin
+      if (newPassword !== confirm) {
+        throw new Error("Passwords do not match");
       }
-      setDone(true);
+      if (newPassword.length < 6) {
+        throw new Error("Password min 6 characters");
+      }
+      const code = otpDigits.join("");
+      if (code.length !== 6) throw new Error("Enter 6-digit OTP");
+
+      const verifyRes = await fetch(`${API_URL}/auth/otp/verify`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ phoneNumber: phoneNumber.trim(), code }),
+      });
+      const verifyData = await verifyRes.json().catch(() => ({}));
+      if (!verifyRes.ok) {
+        throw new Error((verifyData as any).message || "Invalid OTP");
+      }
+
+      const res = await fetch(`${API_URL}/auth/password/reset`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          phoneNumber: phoneNumber.trim(),
+          verificationToken: (verifyData as any).verificationToken,
+          newPassword,
+        }),
+      });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) {
+        throw new Error((data as any).message || "Reset failed");
+      }
+      router.push("/login");
+    } catch (err: any) {
+      setMessage(err.message || "Reset failed");
     } finally {
       setLoading(false);
     }
   };
 
-  if (done) {
-    return (
-      <SafeAreaView style={[styles.container, { backgroundColor: bg }]}>
-        <View style={styles.body}>
-          <Text style={{ fontSize: 48, textAlign: "center", marginBottom: 12 }}>✅</Text>
-          <Text style={[styles.title, { color: text }]}>Password updated</Text>
-          <Text style={{ color: sub, textAlign: "center", marginBottom: 24 }}>
-            You can sign in with your new password.
-          </Text>
-          <TouchableOpacity
-            style={[styles.btn, { backgroundColor: primary }]}
-            onPress={() => router.replace("/(auth)/login")}
-          >
-            <Text style={styles.btnText}>Back to Sign In</Text>
-          </TouchableOpacity>
-        </View>
-      </SafeAreaView>
-    );
-  }
-
   return (
-    <SafeAreaView style={[styles.container, { backgroundColor: bg }]}>
-      <TouchableOpacity onPress={() => router.back()} style={{ padding: 16 }}>
-        <Text style={{ color: sub }}>← Back</Text>
-      </TouchableOpacity>
-      <View style={styles.body}>
-        <Text style={[styles.title, { color: text }]}>Reset Password</Text>
-        <Text style={{ color: sub, fontSize: 13, marginBottom: 20 }}>
-          OTP sent to +251 {phone || "••••"}
-        </Text>
-
-        <Text style={[styles.label, { color: sub }]}>OTP Code</Text>
-        <TextInput
-          value={otp}
-          onChangeText={setOtp}
-          keyboardType="number-pad"
-          maxLength={6}
-          placeholder="6-digit code"
-          placeholderTextColor={sub}
-          style={[styles.input, { backgroundColor: inputBg, borderColor: border, color: text }]}
-        />
-
-        <Text style={[styles.label, { color: sub }]}>New Password</Text>
-        <TextInput
-          value={password}
-          onChangeText={setPassword}
-          secureTextEntry
-          placeholder="Min 6 characters"
-          placeholderTextColor={sub}
-          style={[styles.input, { backgroundColor: inputBg, borderColor: border, color: text }]}
-        />
-        {password.length > 0 && (
-          <View style={{ marginBottom: 8 }}>
-            <View style={{ flexDirection: "row", gap: 4, marginBottom: 4 }}>
-              {[1, 2, 3, 4].map((i) => (
-                <View
-                  key={i}
-                  style={{
-                    flex: 1,
-                    height: 4,
-                    borderRadius: 2,
-                    backgroundColor:
-                      strength.score >= i ? strength.color : isDark ? "#1E3A5F" : "#E2E8F0",
-                  }}
-                />
-              ))}
-            </View>
-            <Text style={{ fontSize: 11, fontWeight: "700", color: strength.color }}>
-              {strength.label}
-            </Text>
-          </View>
-        )}
-
-        <Text style={[styles.label, { color: sub }]}>Confirm Password</Text>
-        <TextInput
-          value={confirm}
-          onChangeText={setConfirm}
-          secureTextEntry
-          placeholder="Repeat password"
-          placeholderTextColor={sub}
-          style={[styles.input, { backgroundColor: inputBg, borderColor: border, color: text }]}
-        />
-
-        <TouchableOpacity
-          style={[styles.btn, { backgroundColor: primary }]}
-          onPress={submit}
-          disabled={loading}
-        >
-          {loading ? (
-            <ActivityIndicator color="#fff" />
-          ) : (
-            <Text style={styles.btnText}>Update Password</Text>
-          )}
-        </TouchableOpacity>
-      </View>
-    </SafeAreaView>
+    <form
+      onSubmit={onSubmit}
+      className="w-full max-w-md space-y-4 rounded-2xl border border-[var(--border)] bg-[var(--card)] p-6"
+    >
+      <h1 className="text-xl font-extrabold text-[var(--foreground)]">
+        Reset password
+      </h1>
+      <p className="text-xs text-[var(--muted-foreground)]">
+        API: {API_URL}
+      </p>
+      <input
+        value={phoneNumber}
+        onChange={(e) => setPhoneNumber(e.target.value)}
+        className="w-full rounded-xl border border-[var(--border)] bg-[var(--background)] px-3 py-3 text-sm text-[var(--foreground)]"
+        placeholder="Phone"
+      />
+      <div className="flex justify-between gap-2">
+        {otpDigits.map((d, i) => (
+          <input
+            key={i}
+            value={d}
+            onChange={(e) => setDigit(i, e.target.value)}
+            maxLength={1}
+            className="h-12 w-10 rounded-lg border border-[var(--border)] bg-[var(--background)] text-center font-bold text-[var(--foreground)]"
+          />
+        ))}
+      </div>
+      <input
+        type="password"
+        value={newPassword}
+        onChange={(e) => setNewPassword(e.target.value)}
+        className="w-full rounded-xl border border-[var(--border)] bg-[var(--background)] px-3 py-3 text-sm text-[var(--foreground)]"
+        placeholder="New password"
+      />
+      <p className="text-xs text-[var(--muted-foreground)]">
+        Strength: {strength}
+      </p>
+      <input
+        type="password"
+        value={confirm}
+        onChange={(e) => setConfirm(e.target.value)}
+        className="w-full rounded-xl border border-[var(--border)] bg-[var(--background)] px-3 py-3 text-sm text-[var(--foreground)]"
+        placeholder="Confirm password"
+      />
+      <button
+        type="submit"
+        disabled={loading}
+        className="w-full rounded-xl bg-[var(--primary)] py-3 text-sm font-bold text-white disabled:opacity-60"
+      >
+        {loading ? "Updating…" : "Update password"}
+      </button>
+      {message && (
+        <p className="text-sm text-[var(--warning)]">{message}</p>
+      )}
+      <Link
+        href="/login"
+        className="block text-center text-sm text-[var(--primary)]"
+      >
+        Back to login
+      </Link>
+    </form>
   );
 }
 
-const styles = StyleSheet.create({
-  container: { flex: 1 },
-  body: { flex: 1, paddingHorizontal: 24, paddingTop: 8 },
-  title: { fontSize: 22, fontWeight: "900", marginBottom: 8 },
-  label: { fontSize: 11, fontWeight: "700", marginBottom: 6, marginTop: 10 },
-  input: {
-    borderWidth: 1,
-    borderRadius: 14,
-    paddingHorizontal: 14,
-    paddingVertical: 12,
-    fontSize: 15,
-  },
-  btn: {
-    marginTop: 20,
-    borderRadius: 14,
-    paddingVertical: 16,
-    alignItems: "center",
-  },
-  btnText: { color: "#fff", fontWeight: "800", fontSize: 15 },
-});
+export default function ResetPasswordPage() {
+  return (
+    <main className="flex min-h-screen items-center justify-center bg-[var(--background)] px-4">
+      <Suspense fallback={<p className="text-[var(--muted-foreground)]">Loading…</p>}>
+        <ResetForm />
+      </Suspense>
+    </main>
+  );
+}
