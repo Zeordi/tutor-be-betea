@@ -9,7 +9,7 @@ export interface VideoRoomConfig {
   serverUrl: string;
 }
 
-const API_URL = process.env.EXPO_PUBLIC_API_URL || "http://localhost:4000";
+const API_URL = process.env.EXPO_PUBLIC_API_URL || "https://tutor-be-betea.onrender.com";
 
 /** Fetch a short-lived room token from API */
 export async function createVideoSession(
