@@ -6,7 +6,9 @@ import Link from "next/link";
 
 export default function ForgotPasswordPage() {
   const router = useRouter();
-  const api = process.env.NEXT_PUBLIC_API_URL || "http://localhost:4000";
+  const API_URL =
+  process.env.NEXT_PUBLIC_API_URL ||
+  "https://tutor-be-betea.onrender.com";
   const [phoneNumber, setPhoneNumber] = useState("");
   const [loading, setLoading] = useState(false);
   const [message, setMessage] = useState("");
