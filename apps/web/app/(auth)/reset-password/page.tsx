@@ -7,7 +7,9 @@ import Link from "next/link";
 function ResetForm() {
   const router = useRouter();
   const params = useSearchParams();
-  const api = process.env.NEXT_PUBLIC_API_URL || "http://localhost:4000";
+  const API_URL =
+  process.env.NEXT_PUBLIC_API_URL ||
+  "https://tutor-be-betea.onrender.com";
 
   const initialPhone = useMemo(
     () =>
