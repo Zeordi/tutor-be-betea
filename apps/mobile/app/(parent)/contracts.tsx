@@ -26,7 +26,10 @@ export default function ContractsListScreen() {
   const loadContracts = useCallback(async () => {
     try {
       const token = await getToken();
-      const res = await fetch(`${process.env.EXPO_PUBLIC_API_URL}/contracts/my`, {
+      const base =
+        process.env.EXPO_PUBLIC_API_URL ||
+        "https://tutor-be-betea.onrender.com";
+      const res = await fetch(`${base}/contracts/mine/parent`, {
         headers: { Authorization: `Bearer ${token}` },
       });
       const data = await res.json();
