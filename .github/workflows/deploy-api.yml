@@ -15,17 +15,13 @@ on:
   workflow_dispatch:
 
 jobs:
-  deploy:
-    name: Deploy API (Vercel)
+  notice:
+    name: API hosts on Render (no Vercel)
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
-
-      - name: Deploy API to Vercel
-        uses: amondnet/vercel-action@v25
-        with:
-          vercel-token: ${{ secrets.VERCEL_TOKEN }}
-          vercel-org-id: ${{ secrets.VERCEL_ORG_ID }}
-          vercel-project-id: ${{ secrets.VERCEL_PROJECT_ID_API }}
-          vercel-args: "--prod"
-          working-directory: ./
+      - name: Skip Vercel API deploy
+        run: |
+          echo "API is deployed on Render: https://tutor-be-betea.onrender.com"
+          echo "Link the Render web service to this GitHub repo for auto-deploy on push."
+          echo "Secrets (DATABASE_URL, JWT_SECRET, AFROMESSAGE_*, Redis, etc.) live on Render → Environment."
+          echo "No VERCEL_PROJECT_ID_API or Vercel deploy step is required."
