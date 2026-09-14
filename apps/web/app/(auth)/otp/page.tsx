@@ -16,7 +16,7 @@ function OtpForm() {
   const [otp, setOtp] = useState("");
   const [loading, setLoading] = useState(false);
   const [message, setMessage] = useState("");
-  const API_URL =
+  const api =
   process.env.NEXT_PUBLIC_API_URL ||
   "https://tutor-be-betea.onrender.com";
   const handleVerify = async (e: React.FormEvent) => {
