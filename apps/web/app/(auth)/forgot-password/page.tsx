@@ -4,11 +4,12 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 
-export default function ForgotPasswordPage() {
-  const router = useRouter();
-  const API_URL =
+const api =
   process.env.NEXT_PUBLIC_API_URL ||
   "https://tutor-be-betea.onrender.com";
+
+export default function ForgotPasswordPage() {
+  const router = useRouter();
   const [phoneNumber, setPhoneNumber] = useState("");
   const [loading, setLoading] = useState(false);
   const [message, setMessage] = useState("");
@@ -27,7 +28,9 @@ export default function ForgotPasswordPage() {
       if (!res.ok) {
         throw new Error((data as any).message || "Request failed");
       }
-      sessionStorage.setItem("resetPhone", phoneNumber.trim());
+      if (typeof window !== "undefined") {
+        sessionStorage.setItem("resetPhone", phoneNumber.trim());
+      }
       router.push(
         `/reset-password?phone=${encodeURIComponent(phoneNumber.trim())}`,
       );
