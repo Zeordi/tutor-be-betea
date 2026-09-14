@@ -14,16 +14,23 @@ import { useLocalSearchParams, useRouter } from "expo-router";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useTheme } from "@/hooks/useTheme";
 import { useAuth } from "@/hooks/useAuth";
-import { api, setToken } from "@/lib/api";
+import { api, setSession } from "@/lib/api";
 
 export default function OTPScreen() {
   const router = useRouter();
-  const params = useLocalSearchParams<{ phone?: string; mode?: string }>();
+  const params = useLocalSearchParams<{
+    phone?: string;
+    mode?: string;
+    password?: string;
+    fullName?: string;
+    role?: string;
+    email?: string;
+  }>();
   const { isDark } = useTheme();
   const { login } = useAuth();
 
   const phone = (params.phone as string) || "";
-  const mode = (params.mode as string) || "login"; // login | register
+  const mode = (params.mode as string) || "login";
 
   const [otp, setOtp] = useState(["", "", "", "", "", ""]);
   const [loading, setLoading] = useState(false);
@@ -52,115 +59,110 @@ export default function OTPScreen() {
     }
     setLoading(true);
     try {
-      const verify = await api.post("/auth/otp/verify", {
+      const verify = await api.post<{
+        verificationToken: string;
+        accessToken?: string;
+        user?: any;
+      }>("/auth/otp/verify", {
         phoneNumber: phone.trim(),
         code,
       });
 
+      // Standalone verify may only return verificationToken
       if (mode === "register") {
         router.replace({
-          pathname: "/(auth)/role-select",
-          params: { verificationToken: verify.verificationToken, phone },
+          pathname: "/(auth)/register",
+          params: {
+            verificationToken: verify.verificationToken,
+            phone,
+          },
         } as any);
         return;
       }
 
-      // login path: verification token used by caller; if token returned with session:
-      if (verify.accessToken && verify.user) {
-        await setToken(verify.accessToken);
-        await login(verify.accessToken, verify.user);
-        if (verify.user?.role === "TEACHER") router.replace("/(teacher)/(tabs)");
-        else router.replace("/(parent)/(tabs)");
+      if (mode === "reset") {
+        router.replace({
+          pathname: "/(auth)/reset-password",
+          params: {
+            phone,
+            verificationToken: verify.verificationToken,
+          },
+        } as any);
         return;
       }
 
-      router.replace({
-        pathname: "/(auth)/login",
-        params: { phone, verificationToken: verify.verificationToken },
-      } as any);
+      // Login path needs password on login screen — prefer in-screen OTP there.
+      // If API ever returns session on verify:
+      if (verify.accessToken && verify.user) {
+        await setSession(
+          verify.accessToken,
+          verify.user?.role,
+          JSON.stringify(verify.user),
+        );
+        await login(verify.accessToken, verify.user);
+        router.replace(
+          verify.user?.role === "TEACHER"
+            ? "/(teacher)/(tabs)"
+            : "/(parent)/(tabs)",
+        );
+        return;
+      }
+
+      Alert.alert(
+        "Verified",
+        "Return to login and complete sign-in with password + OTP there.",
+      );
+      router.replace("/(auth)/login");
     } catch (e: any) {
-      Alert.alert("Verification failed", e.message || "Try again");
+      Alert.alert("Error", e.message || "Verification failed");
     } finally {
       setLoading(false);
-    }
-  };
-
-  const resend = async () => {
-    if (!phone) {
-      Alert.alert("Missing phone", "Go back and enter your phone number.");
-      return;
-    }
-    try {
-      await api.post("/auth/otp/send", { phoneNumber: phone.trim() });
-      Alert.alert("Sent", "A new code was sent via SMS.");
-    } catch (e: any) {
-      Alert.alert("Error", e.message || "Could not resend");
     }
   };
 
   return (
     <SafeAreaView style={[styles.container, { backgroundColor: bg }]}>
       <KeyboardAvoidingView
-        style={{ flex: 1 }}
+        style={{ flex: 1, padding: 24 }}
         behavior={Platform.OS === "ios" ? "padding" : undefined}
       >
-        <View style={styles.content}>
-          <TouchableOpacity onPress={() => router.back()}>
-            <Text style={{ color: sub, fontWeight: "700" }}>← Back</Text>
-          </TouchableOpacity>
-
-          <View style={[styles.iconWrap, { backgroundColor: isDark ? "rgba(13,148,136,0.2)" : "#CCFBF1" }]}>
-            <Text style={{ fontSize: 28 }}>💬</Text>
-          </View>
-          <Text style={[styles.title, { color: text }]}>Verify your number</Text>
-          <Text style={{ color: sub, textAlign: "center", lineHeight: 20 }}>
-            Enter the 6-digit code sent to{"\n"}
-            <Text style={{ fontWeight: "800", color: text }}>
-              {phone ? `+251 ${phone}` : "your phone"}
-            </Text>
-          </Text>
-
-          <View style={styles.otpRow}>
-            {otp.map((d, i) => (
-              <TextInput
-                key={i}
-                ref={(r) => {
-                  inputs.current[i] = r;
-                }}
-                value={d}
-                onChangeText={(v) => setDigit(i, v)}
-                keyboardType="number-pad"
-                maxLength={1}
-                style={[
-                  styles.otpBox,
-                  {
-                    borderColor: d ? primary : border,
-                    backgroundColor: card,
-                    color: text,
-                  },
-                ]}
-              />
-            ))}
-          </View>
-
-          <TouchableOpacity
-            style={[styles.primaryBtn, { backgroundColor: primary }]}
-            onPress={handleVerify}
-            disabled={loading}
-          >
-            {loading ? (
-              <ActivityIndicator color="#fff" />
-            ) : (
-              <Text style={styles.primaryBtnText}>Verify</Text>
-            )}
-          </TouchableOpacity>
-
-          <TouchableOpacity onPress={resend}>
-            <Text style={{ color: primary, fontWeight: "700", textAlign: "center", marginTop: 16 }}>
-              Resend code
-            </Text>
-          </TouchableOpacity>
+        <Text style={[styles.title, { color: text }]}>Enter OTP</Text>
+        <Text style={{ color: sub, marginBottom: 20 }}>
+          Sent to {phone || "your phone"}
+        </Text>
+        <View style={styles.otpRow}>
+          {otp.map((d, i) => (
+            <TextInput
+              key={i}
+              ref={(el) => {
+                inputs.current[i] = el;
+              }}
+              value={d}
+              onChangeText={(v) => setDigit(i, v)}
+              keyboardType="number-pad"
+              maxLength={1}
+              style={[
+                styles.otpBox,
+                {
+                  borderColor: d ? primary : border,
+                  backgroundColor: card,
+                  color: text,
+                },
+              ]}
+            />
+          ))}
         </View>
+        <TouchableOpacity
+          style={[styles.btn, { backgroundColor: primary }]}
+          onPress={handleVerify}
+          disabled={loading}
+        >
+          {loading ? (
+            <ActivityIndicator color="#fff" />
+          ) : (
+            <Text style={styles.btnText}>Verify</Text>
+          )}
+        </TouchableOpacity>
       </KeyboardAvoidingView>
     </SafeAreaView>
   );
@@ -168,33 +170,26 @@ export default function OTPScreen() {
 
 const styles = StyleSheet.create({
   container: { flex: 1 },
-  content: { flex: 1, padding: 24, paddingTop: 12 },
-  iconWrap: {
-    width: 64,
-    height: 64,
-    borderRadius: 20,
-    alignItems: "center",
+  title: { fontSize: 22, fontWeight: "900", marginBottom: 8 },
+  otpRow: {
+    flexDirection: "row",
     justifyContent: "center",
-    alignSelf: "center",
-    marginTop: 32,
-    marginBottom: 16,
+    gap: 8,
+    marginBottom: 20,
   },
-  title: { fontSize: 22, fontWeight: "900", textAlign: "center", marginBottom: 8 },
-  otpRow: { flexDirection: "row", justifyContent: "center", gap: 8, marginTop: 28 },
   otpBox: {
-    width: 46,
-    height: 54,
+    width: 44,
+    height: 52,
     borderWidth: 2,
     borderRadius: 12,
     textAlign: "center",
-    fontSize: 20,
+    fontSize: 18,
     fontWeight: "800",
   },
-  primaryBtn: {
-    marginTop: 28,
+  btn: {
     borderRadius: 14,
-    paddingVertical: 15,
+    paddingVertical: 14,
     alignItems: "center",
   },
-  primaryBtnText: { color: "#fff", fontWeight: "800", fontSize: 15 },
+  btnText: { color: "#fff", fontWeight: "800" },
 });
