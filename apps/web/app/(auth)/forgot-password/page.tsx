@@ -4,7 +4,7 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 
-const api =
+const API_URL =
   process.env.NEXT_PUBLIC_API_URL ||
   "https://tutor-be-betea.onrender.com";
 
@@ -19,7 +19,7 @@ export default function ForgotPasswordPage() {
     setLoading(true);
     setMessage("");
     try {
-      const res = await fetch(`${api}/auth/password/forgot`, {
+      const res = await fetch(`${API_URL}/auth/password/forgot`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ phoneNumber: phoneNumber.trim() }),
@@ -64,8 +64,13 @@ export default function ForgotPasswordPage() {
         >
           {loading ? "Sending…" : "Send reset code"}
         </button>
-        {message && <p className="text-sm text-[var(--warning)]">{message}</p>}
-        <Link href="/login" className="block text-center text-sm text-[var(--primary)]">
+        {message && (
+          <p className="text-sm text-[var(--warning)]">{message}</p>
+        )}
+        <Link
+          href="/login"
+          className="block text-center text-sm text-[var(--primary)]"
+        >
           Back to login
         </Link>
       </form>
