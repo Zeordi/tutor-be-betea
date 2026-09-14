@@ -14,9 +14,12 @@ export default function CreateContractScreen() {
   const handleCreate = async () => {
     try {
       setLoading(true);
+      const base =
+        process.env.EXPO_PUBLIC_API_URL ||
+        "https://tutor-be-betea.onrender.com";
       const token = await getToken();
 
-      const res = await fetch(`${process.env.EXPO_PUBLIC_API_URL}/contracts`, {
+      const res = await fetch(`\( {base}/escrow/ \){contract.id}/hold`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
