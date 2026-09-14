@@ -20,7 +20,7 @@ export default function LoginPage() {
   const [countdown, setCountdown] = useState(0);
   const [googleIdToken, setGoogleIdToken] = useState("");
 
-  const API_URL =
+  const api =
   process.env.NEXT_PUBLIC_API_URL ||
   "https://tutor-be-betea.onrender.com";
 
