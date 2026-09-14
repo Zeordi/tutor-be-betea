@@ -5,6 +5,10 @@ import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { setSession } from "@/lib/auth";
 
+const API_URL =
+  process.env.NEXT_PUBLIC_API_URL ||
+  "https://tutor-be-betea.onrender.com";
+
 const LANGS = ["EN", "አማ", "ORO", "ትግ"] as const;
 
 export default function LoginPage() {
@@ -19,10 +23,6 @@ export default function LoginPage() {
   const [lang, setLang] = useState<(typeof LANGS)[number]>("EN");
   const [countdown, setCountdown] = useState(0);
   const [googleIdToken, setGoogleIdToken] = useState("");
-
-  const api =
-  process.env.NEXT_PUBLIC_API_URL ||
-  "https://tutor-be-betea.onrender.com";
 
   useEffect(() => {
     if (countdown <= 0) return;
@@ -43,7 +43,7 @@ export default function LoginPage() {
   };
 
   const sendOtp = async () => {
-    const res = await fetch(`${api}/auth/otp/send`, {
+    const res = await fetch(`${API_URL}/auth/otp/send`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ phoneNumber: phoneNumber.trim() }),
@@ -70,7 +70,7 @@ export default function LoginPage() {
       await sendOtp();
       setStep("otp");
       setCountdown(60);
-      setMessage("OTP sent to your phone (Safaricom & other ET numbers supported).");
+      setMessage("OTP sent to your phone.");
     } catch (err: any) {
       setMessage(err.message || "Could not send OTP");
     } finally {
@@ -89,7 +89,7 @@ export default function LoginPage() {
         return;
       }
 
-      const verifyRes = await fetch(`${api}/auth/otp/verify`, {
+      const verifyRes = await fetch(`${API_URL}/auth/otp/verify`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ phoneNumber: phoneNumber.trim(), code }),
@@ -99,7 +99,7 @@ export default function LoginPage() {
         throw new Error((verifyData as any).message || "Invalid OTP");
       }
 
-      const loginRes = await fetch(`${api}/auth/login`, {
+      const loginRes = await fetch(`${API_URL}/auth/login`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
@@ -130,20 +130,17 @@ export default function LoginPage() {
     setMessage("");
     try {
       if (!googleIdToken.trim()) {
-        setMessage("Google ID token is required (connect Google Client ID on API).");
+        setMessage("Google ID token is required.");
         return;
       }
-      const res = await fetch(`${api}/auth/google`, {
+      const res = await fetch(`${API_URL}/auth/google`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ idToken: googleIdToken.trim() }),
       });
       const data = await res.json().catch(() => ({}));
       if (!res.ok) {
-        throw new Error(
-          (data as any).message ||
-            "Google sign-in failed. Set GOOGLE_CLIENT_ID on the API.",
-        );
+        throw new Error((data as any).message || "Google sign-in failed");
       }
       if ((data as any).accessToken) {
         setSession((data as any).accessToken, (data as any).user?.role);
@@ -257,9 +254,8 @@ export default function LoginPage() {
               ) : (
                 <form onSubmit={handleGoogleLogin} className="space-y-4">
                   <p className="text-sm text-[var(--muted-foreground)]">
-                    Gmail sign-in uses <code>POST /auth/google</code>. Add{" "}
-                    <code>GOOGLE_CLIENT_ID</code> on the API. Until the GIS
-                    button is wired, paste an ID token for testing.
+                    Uses POST /auth/google. Set GOOGLE_CLIENT_ID on the API
+                    (Render).
                   </p>
                   <textarea
                     value={googleIdToken}
@@ -339,10 +335,16 @@ export default function LoginPage() {
           )}
 
           <div className="mt-6 space-y-2 text-center text-sm">
-            <Link href="/forgot-password" className="block text-[var(--primary)]">
+            <Link
+              href="/forgot-password"
+              className="block text-[var(--primary)]"
+            >
               Forgot password?
             </Link>
-            <Link href="/register" className="block text-[var(--muted-foreground)]">
+            <Link
+              href="/register"
+              className="block text-[var(--muted-foreground)]"
+            >
               Create account
             </Link>
           </div>
