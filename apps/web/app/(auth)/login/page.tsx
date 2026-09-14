@@ -14,15 +14,15 @@ const LANGS = ["EN", "አማ", "ORO", "ትግ"] as const;
 export default function LoginPage() {
   const router = useRouter();
   const [step, setStep] = useState<"credentials" | "otp">("credentials");
-  const [tab, setTab] = useState<"phone" | "google">("phone");
+  const [tab, setTab] = useState<"phone" | "email">("phone");
   const [phoneNumber, setPhoneNumber] = useState("");
+  const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [otpDigits, setOtpDigits] = useState(["", "", "", "", "", ""]);
   const [loading, setLoading] = useState(false);
   const [message, setMessage] = useState("");
   const [lang, setLang] = useState<(typeof LANGS)[number]>("EN");
   const [countdown, setCountdown] = useState(0);
-  const [googleIdToken, setGoogleIdToken] = useState("");
 
   useEffect(() => {
     if (countdown <= 0) return;
@@ -42,7 +42,7 @@ export default function LoginPage() {
     } else router.push("/parent");
   };
 
-  const sendOtp = async () => {
+  const sendPhoneOtp = async () => {
     const res = await fetch(`${API_URL}/auth/otp/send`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
@@ -54,148 +54,163 @@ export default function LoginPage() {
     }
   };
 
+  const setDigit = (index: number, value: string) => {
+    const v = value.replace(/\D/g, "").slice(-1);
+    setOtpDigits((prev) => {
+      const next = [...prev];
+      next[index] = v;
+      return next;
+    });
+  };
+
   const handleCredentials = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
     setMessage("");
     try {
-      if (tab === "google") {
-        setMessage("Paste a Google ID token below, or wire Google GIS button.");
+      if (password.length < 6) {
+        setMessage("Password must be at least 6 characters.");
         return;
       }
-      if (!phoneNumber.trim() || password.length < 6) {
-        setMessage("Enter a valid phone and password (min 6 characters).");
+
+      // Email + password (no Google idToken)
+      if (tab === "email") {
+        if (!email.trim()) {
+          setMessage("Enter your email.");
+          return;
+        }
+        const res = await fetch(`${API_URL}/auth/login`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            email: email.trim().toLowerCase(),
+            password,
+          }),
+        });
+        const data = await res.json().catch(() => ({}));
+        if (!res.ok) {
+          throw new Error((data as any).message || "Login failed");
+        }
+        if ((data as any).accessToken) {
+          setSession(
+            (data as any).accessToken,
+            (data as any).user?.role,
+          );
+          redirectByRole((data as any).user?.role);
+          return;
+        }
+        throw new Error("No access token returned");
+      }
+
+      // Phone + password → SMS OTP → login
+      if (!phoneNumber.trim()) {
+        setMessage("Enter your phone number.");
         return;
       }
-      await sendOtp();
+      await sendPhoneOtp();
       setStep("otp");
       setCountdown(60);
-      setMessage("OTP sent to your phone.");
+      setOtpDigits(["", "", "", "", "", ""]);
+      setMessage("OTP sent to your phone. Use the newest code only.");
     } catch (err: any) {
-      setMessage(err.message || "Could not send OTP");
+      setMessage(err.message || "Could not continue");
     } finally {
       setLoading(false);
     }
   };
 
-  const handleVerifyAndLogin = async (e: React.FormEvent) => {
+  const handleOtpLogin = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
     setMessage("");
     try {
       const code = otpDigits.join("");
       if (code.length !== 6) {
-        setMessage("Enter the 6-digit code");
+        setMessage("Enter the 6-digit code.");
         return;
       }
 
       const verifyRes = await fetch(`${API_URL}/auth/otp/verify`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ phoneNumber: phoneNumber.trim(), code }),
+        body: JSON.stringify({
+          phoneNumber: phoneNumber.trim(),
+          code,
+        }),
       });
       const verifyData = await verifyRes.json().catch(() => ({}));
       if (!verifyRes.ok) {
-        throw new Error((verifyData as any).message || "Invalid OTP");
+        throw new Error(
+          (verifyData as any).message || "Invalid or expired OTP",
+        );
       }
 
+      const verificationToken = (verifyData as any).verificationToken;
       const loginRes = await fetch(`${API_URL}/auth/login`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           phoneNumber: phoneNumber.trim(),
           password,
-          verificationToken: (verifyData as any).verificationToken,
+          verificationToken,
         }),
       });
-      const data = await loginRes.json().catch(() => ({}));
+      const loginData = await loginRes.json().catch(() => ({}));
       if (!loginRes.ok) {
-        throw new Error((data as any).message || "Login failed");
+        throw new Error((loginData as any).message || "Login failed");
       }
 
-      if ((data as any).accessToken) {
-        setSession((data as any).accessToken, (data as any).user?.role);
-        redirectByRole((data as any).user?.role);
-      }
-    } catch (err: any) {
-      setMessage(err.message || "Login failed");
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const handleGoogleLogin = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setLoading(true);
-    setMessage("");
-    try {
-      if (!googleIdToken.trim()) {
-        setMessage("Google ID token is required.");
+      if ((loginData as any).accessToken) {
+        setSession(
+          (loginData as any).accessToken,
+          (loginData as any).user?.role,
+        );
+        redirectByRole((loginData as any).user?.role);
         return;
       }
-      const res = await fetch(`${API_URL}/auth/google`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ idToken: googleIdToken.trim() }),
-      });
-      const data = await res.json().catch(() => ({}));
-      if (!res.ok) {
-        throw new Error((data as any).message || "Google sign-in failed");
-      }
-      if ((data as any).accessToken) {
-        setSession((data as any).accessToken, (data as any).user?.role);
-        redirectByRole((data as any).user?.role);
-      }
+      throw new Error("No access token returned");
     } catch (err: any) {
-      setMessage(err.message || "Google sign-in failed");
+      setMessage(err.message || "Verification failed");
     } finally {
       setLoading(false);
     }
-  };
-
-  const setDigit = (index: number, value: string) => {
-    const v = value.replace(/\D/g, "").slice(-1);
-    const next = [...otpDigits];
-    next[index] = v;
-    setOtpDigits(next);
   };
 
   return (
-    <main className="min-h-screen bg-[var(--background)] px-4 py-10">
-      <div className="mx-auto w-full max-w-md">
-        <div className="mb-8 text-center">
-          <div className="text-3xl font-extrabold text-[var(--primary)]">
-            Tutor Be Betea
-          </div>
-          <p className="mt-2 text-sm text-[var(--muted-foreground)]">
-            Sign in with phone + OTP or Google
-          </p>
-          <div className="mt-3 flex justify-center gap-2">
-            {LANGS.map((l) => (
-              <button
-                key={l}
-                type="button"
-                onClick={() => setLang(l)}
-                className={`rounded-lg px-2 py-1 text-xs font-bold ${
-                  lang === l
-                    ? "bg-[var(--primary)] text-white"
-                    : "border border-[var(--border)] text-[var(--muted-foreground)]"
-                }`}
-              >
-                {l}
-              </button>
-            ))}
-          </div>
+    <main className="min-h-screen flex items-center justify-center bg-[var(--background)] px-4 py-10">
+      <div className="w-full max-w-md">
+        <div className="mb-4 flex justify-end gap-2">
+          {LANGS.map((l) => (
+            <button
+              key={l}
+              type="button"
+              onClick={() => setLang(l)}
+              className={`rounded-full px-2.5 py-1 text-xs font-semibold ${
+                lang === l
+                  ? "bg-[var(--primary)] text-white"
+                  : "bg-[var(--muted)] text-[var(--muted-foreground)]"
+              }`}
+            >
+              {l}
+            </button>
+          ))}
         </div>
 
         <div className="rounded-2xl border border-[var(--border)] bg-[var(--card)] p-6 shadow-sm">
+          <h1 className="text-2xl font-bold text-[var(--foreground)] mb-4">
+            Sign in
+          </h1>
+
           {step === "credentials" && (
             <>
-              <div className="mb-4 flex rounded-xl border border-[var(--border)] p-1">
+              <div className="mb-4 flex rounded-full bg-[var(--muted)] p-1">
                 <button
                   type="button"
-                  onClick={() => setTab("phone")}
-                  className={`flex-1 rounded-lg py-2 text-sm font-bold ${
+                  onClick={() => {
+                    setTab("phone");
+                    setMessage("");
+                  }}
+                  className={`flex-1 rounded-full py-2 text-sm font-semibold ${
                     tab === "phone"
                       ? "bg-[var(--primary)] text-white"
                       : "text-[var(--muted-foreground)]"
@@ -205,79 +220,64 @@ export default function LoginPage() {
                 </button>
                 <button
                   type="button"
-                  onClick={() => setTab("google")}
-                  className={`flex-1 rounded-lg py-2 text-sm font-bold ${
-                    tab === "google"
+                  onClick={() => {
+                    setTab("email");
+                    setMessage("");
+                  }}
+                  className={`flex-1 rounded-full py-2 text-sm font-semibold ${
+                    tab === "email"
                       ? "bg-[var(--primary)] text-white"
                       : "text-[var(--muted-foreground)]"
                   }`}
                 >
-                  Google / Gmail
+                  Email
                 </button>
               </div>
 
-              {tab === "phone" ? (
-                <form onSubmit={handleCredentials} className="space-y-4">
-                  <div>
-                    <label className="mb-1 block text-sm font-semibold">
-                      Phone (09… / 07… / +251)
-                    </label>
-                    <input
-                      value={phoneNumber}
-                      onChange={(e) => setPhoneNumber(e.target.value)}
-                      className="w-full rounded-xl border border-[var(--border)] bg-[var(--background)] px-3 py-3 text-sm"
-                      placeholder="0912345678"
-                      autoComplete="tel"
-                    />
-                  </div>
-                  <div>
-                    <label className="mb-1 block text-sm font-semibold">
-                      Password
-                    </label>
-                    <input
-                      type="password"
-                      value={password}
-                      onChange={(e) => setPassword(e.target.value)}
-                      className="w-full rounded-xl border border-[var(--border)] bg-[var(--background)] px-3 py-3 text-sm"
-                      placeholder="••••••••"
-                      autoComplete="current-password"
-                    />
-                  </div>
-                  <button
-                    type="submit"
-                    disabled={loading}
-                    className="w-full rounded-xl bg-[var(--primary)] py-3 text-sm font-bold text-white disabled:opacity-60"
-                  >
-                    {loading ? "Sending OTP…" : "Continue with OTP"}
-                  </button>
-                </form>
-              ) : (
-                <form onSubmit={handleGoogleLogin} className="space-y-4">
-                  <p className="text-sm text-[var(--muted-foreground)]">
-                    Uses POST /auth/google. Set GOOGLE_CLIENT_ID on the API
-                    (Render).
-                  </p>
-                  <textarea
-                    value={googleIdToken}
-                    onChange={(e) => setGoogleIdToken(e.target.value)}
-                    rows={3}
+              <form onSubmit={handleCredentials} className="space-y-3">
+                {tab === "phone" ? (
+                  <input
+                    value={phoneNumber}
+                    onChange={(e) => setPhoneNumber(e.target.value)}
+                    placeholder="Phone (+251… or 09…)"
                     className="w-full rounded-xl border border-[var(--border)] bg-[var(--background)] px-3 py-3 text-sm"
-                    placeholder="Google idToken"
+                    autoComplete="tel"
                   />
-                  <button
-                    type="submit"
-                    disabled={loading}
-                    className="w-full rounded-xl bg-[var(--primary)] py-3 text-sm font-bold text-white disabled:opacity-60"
-                  >
-                    {loading ? "Signing in…" : "Continue with Google"}
-                  </button>
-                </form>
-              )}
+                ) : (
+                  <input
+                    type="email"
+                    value={email}
+                    onChange={(e) => setEmail(e.target.value)}
+                    placeholder="Email (Gmail, etc.)"
+                    className="w-full rounded-xl border border-[var(--border)] bg-[var(--background)] px-3 py-3 text-sm"
+                    autoComplete="email"
+                  />
+                )}
+                <input
+                  type="password"
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  placeholder="Password"
+                  className="w-full rounded-xl border border-[var(--border)] bg-[var(--background)] px-3 py-3 text-sm"
+                  autoComplete="current-password"
+                />
+                <button
+                  type="submit"
+                  disabled={loading}
+                  className="w-full rounded-xl bg-[var(--primary)] py-3 text-sm font-bold text-white disabled:opacity-60"
+                >
+                  {loading
+                    ? "Please wait…"
+                    : tab === "phone"
+                      ? "Continue — Send OTP"
+                      : "Sign in with email"}
+                </button>
+              </form>
             </>
           )}
 
           {step === "otp" && (
-            <form onSubmit={handleVerifyAndLogin} className="space-y-4">
+            <form onSubmit={handleOtpLogin} className="space-y-3">
               <p className="text-sm text-[var(--muted-foreground)]">
                 Enter the 6-digit code sent to {phoneNumber}
               </p>
@@ -305,9 +305,9 @@ export default function LoginPage() {
                 onClick={async () => {
                   try {
                     setLoading(true);
-                    await sendOtp();
+                    await sendPhoneOtp();
                     setCountdown(60);
-                    setMessage("OTP resent");
+                    setMessage("OTP resent — use the newest code only.");
                   } catch (err: any) {
                     setMessage(err.message);
                   } finally {
@@ -329,16 +329,11 @@ export default function LoginPage() {
           )}
 
           {message && (
-            <p className="mt-4 text-center text-sm text-[var(--warning)]">
-              {message}
-            </p>
+            <p className="mt-4 text-center text-sm text-amber-600">{message}</p>
           )}
 
           <div className="mt-6 space-y-2 text-center text-sm">
-            <Link
-              href="/forgot-password"
-              className="block text-[var(--primary)]"
-            >
+            <Link href="/forgot-password" className="block text-[var(--primary)]">
               Forgot password?
             </Link>
             <Link
