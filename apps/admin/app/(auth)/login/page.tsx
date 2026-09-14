@@ -6,7 +6,9 @@ import { setToken } from "@/lib/api";
 
 export default function AdminLoginPage() {
   const router = useRouter();
-  const api = process.env.NEXT_PUBLIC_API_URL || "http://localhost:4000";
+  const api =
+  process.env.NEXT_PUBLIC_API_URL ||
+  "https://tutor-be-betea.onrender.com";
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
