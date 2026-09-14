@@ -18,7 +18,7 @@ export default function LoginPage() {
   const [phoneNumber, setPhoneNumber] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
-  const [otpDigits, setOtpDigits] = useState(["", "", "", "", "", ""]);
+  const [otp, setOtp] = useState("");
   const [loading, setLoading] = useState(false);
   const [message, setMessage] = useState("");
   const [lang, setLang] = useState<(typeof LANGS)[number]>("EN");
@@ -32,14 +32,7 @@ export default function LoginPage() {
 
   const redirectByRole = (role?: string) => {
     if (role === "TEACHER") router.push("/teacher");
-    else if (
-      role === "SUPER_ADMIN" ||
-      role === "SUPPORT_AGENT" ||
-      role === "FINANCE" ||
-      role === "VERIFICATION_OFFICER"
-    ) {
-      router.push("/login");
-    } else router.push("/parent");
+    else router.push("/parent");
   };
 
   const sendPhoneOtp = async () => {
@@ -54,31 +47,16 @@ export default function LoginPage() {
     }
   };
 
-  const setDigit = (index: number, value: string) => {
-    const v = value.replace(/\D/g, "").slice(-1);
-    setOtpDigits((prev) => {
-      const next = [...prev];
-      next[index] = v;
-      return next;
-    });
-  };
-
   const handleCredentials = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
     setMessage("");
     try {
       if (password.length < 6) {
-        setMessage("Password must be at least 6 characters.");
+        setMessage("Password min 6 characters");
         return;
       }
-
-      // Email + password (no Google idToken)
       if (tab === "email") {
-        if (!email.trim()) {
-          setMessage("Enter your email.");
-          return;
-        }
         const res = await fetch(`${API_URL}/auth/login`, {
           method: "POST",
           headers: { "Content-Type": "application/json" },
@@ -88,32 +66,21 @@ export default function LoginPage() {
           }),
         });
         const data = await res.json().catch(() => ({}));
-        if (!res.ok) {
-          throw new Error((data as any).message || "Login failed");
-        }
-        if ((data as any).accessToken) {
-          setSession(
-            (data as any).accessToken,
-            (data as any).user?.role,
-          );
-          redirectByRole((data as any).user?.role);
-          return;
-        }
-        throw new Error("No access token returned");
+        if (!res.ok) throw new Error((data as any).message || "Login failed");
+        setSession((data as any).accessToken, (data as any).user?.role);
+        redirectByRole((data as any).user?.role);
+        return;
       }
-
-      // Phone + password → SMS OTP → login
       if (!phoneNumber.trim()) {
-        setMessage("Enter your phone number.");
+        setMessage("Enter phone number");
         return;
       }
       await sendPhoneOtp();
       setStep("otp");
       setCountdown(60);
-      setOtpDigits(["", "", "", "", "", ""]);
-      setMessage("OTP sent to your phone. Use the newest code only.");
+      setOtp("");
     } catch (err: any) {
-      setMessage(err.message || "Could not continue");
+      setMessage(err.message || "Failed");
     } finally {
       setLoading(false);
     }
@@ -124,18 +91,13 @@ export default function LoginPage() {
     setLoading(true);
     setMessage("");
     try {
-      const code = otpDigits.join("");
-      if (code.length !== 6) {
-        setMessage("Enter the 6-digit code.");
-        return;
-      }
-
+      if (otp.trim().length !== 6) throw new Error("Enter 6-digit code");
       const verifyRes = await fetch(`${API_URL}/auth/otp/verify`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           phoneNumber: phoneNumber.trim(),
-          code,
+          code: otp.trim(),
         }),
       });
       const verifyData = await verifyRes.json().catch(() => ({}));
@@ -144,40 +106,33 @@ export default function LoginPage() {
           (verifyData as any).message || "Invalid or expired OTP",
         );
       }
-
-      const verificationToken = (verifyData as any).verificationToken;
       const loginRes = await fetch(`${API_URL}/auth/login`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           phoneNumber: phoneNumber.trim(),
           password,
-          verificationToken,
+          verificationToken: (verifyData as any).verificationToken,
         }),
       });
       const loginData = await loginRes.json().catch(() => ({}));
       if (!loginRes.ok) {
         throw new Error((loginData as any).message || "Login failed");
       }
-
-      if ((loginData as any).accessToken) {
-        setSession(
-          (loginData as any).accessToken,
-          (loginData as any).user?.role,
-        );
-        redirectByRole((loginData as any).user?.role);
-        return;
-      }
-      throw new Error("No access token returned");
+      setSession(
+        (loginData as any).accessToken,
+        (loginData as any).user?.role,
+      );
+      redirectByRole((loginData as any).user?.role);
     } catch (err: any) {
-      setMessage(err.message || "Verification failed");
+      setMessage(err.message || "Failed");
     } finally {
       setLoading(false);
     }
   };
 
   return (
-    <main className="min-h-screen flex items-center justify-center bg-[var(--background)] px-4 py-10">
+    <main className="min-h-screen flex items-center justify-center bg-[#F0FDFA] dark:bg-[var(--background)] px-4 py-10">
       <div className="w-full max-w-md">
         <div className="mb-4 flex justify-end gap-2">
           {LANGS.map((l) => (
@@ -187,8 +142,8 @@ export default function LoginPage() {
               onClick={() => setLang(l)}
               className={`rounded-full px-2.5 py-1 text-xs font-semibold ${
                 lang === l
-                  ? "bg-[var(--primary)] text-white"
-                  : "bg-[var(--muted)] text-[var(--muted-foreground)]"
+                  ? "bg-[#008779] text-white"
+                  : "bg-white text-slate-500 border border-slate-200"
               }`}
             >
               {l}
@@ -196,52 +151,44 @@ export default function LoginPage() {
           ))}
         </div>
 
-        <div className="rounded-2xl border border-[var(--border)] bg-[var(--card)] p-6 shadow-sm">
-          <h1 className="text-2xl font-bold text-[var(--foreground)] mb-4">
+        <div className="rounded-3xl border border-slate-100 bg-white p-6 shadow-lg dark:bg-[var(--card)]">
+          <h1 className="text-2xl font-bold text-slate-900 dark:text-white mb-4">
             Sign in
           </h1>
 
           {step === "credentials" && (
             <>
-              <div className="mb-4 flex rounded-full bg-[var(--muted)] p-1">
+              <div className="mb-4 flex rounded-full bg-slate-100 p-1">
                 <button
                   type="button"
-                  onClick={() => {
-                    setTab("phone");
-                    setMessage("");
-                  }}
+                  onClick={() => setTab("phone")}
                   className={`flex-1 rounded-full py-2 text-sm font-semibold ${
                     tab === "phone"
-                      ? "bg-[var(--primary)] text-white"
-                      : "text-[var(--muted-foreground)]"
+                      ? "bg-[#008779] text-white"
+                      : "text-slate-500"
                   }`}
                 >
                   Phone
                 </button>
                 <button
                   type="button"
-                  onClick={() => {
-                    setTab("email");
-                    setMessage("");
-                  }}
+                  onClick={() => setTab("email")}
                   className={`flex-1 rounded-full py-2 text-sm font-semibold ${
                     tab === "email"
-                      ? "bg-[var(--primary)] text-white"
-                      : "text-[var(--muted-foreground)]"
+                      ? "bg-[#008779] text-white"
+                      : "text-slate-500"
                   }`}
                 >
                   Email
                 </button>
               </div>
-
               <form onSubmit={handleCredentials} className="space-y-3">
                 {tab === "phone" ? (
                   <input
                     value={phoneNumber}
                     onChange={(e) => setPhoneNumber(e.target.value)}
                     placeholder="Phone (+251… or 09…)"
-                    className="w-full rounded-xl border border-[var(--border)] bg-[var(--background)] px-3 py-3 text-sm"
-                    autoComplete="tel"
+                    className="w-full rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm"
                   />
                 ) : (
                   <input
@@ -249,8 +196,7 @@ export default function LoginPage() {
                     value={email}
                     onChange={(e) => setEmail(e.target.value)}
                     placeholder="Email (Gmail, etc.)"
-                    className="w-full rounded-xl border border-[var(--border)] bg-[var(--background)] px-3 py-3 text-sm"
-                    autoComplete="email"
+                    className="w-full rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm"
                   />
                 )}
                 <input
@@ -258,13 +204,12 @@ export default function LoginPage() {
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
                   placeholder="Password"
-                  className="w-full rounded-xl border border-[var(--border)] bg-[var(--background)] px-3 py-3 text-sm"
-                  autoComplete="current-password"
+                  className="w-full rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm"
                 />
                 <button
                   type="submit"
                   disabled={loading}
-                  className="w-full rounded-xl bg-[var(--primary)] py-3 text-sm font-bold text-white disabled:opacity-60"
+                  className="w-full rounded-2xl bg-[#008779] py-3 text-sm font-bold text-white disabled:opacity-60"
                 >
                   {loading
                     ? "Please wait…"
@@ -278,24 +223,21 @@ export default function LoginPage() {
 
           {step === "otp" && (
             <form onSubmit={handleOtpLogin} className="space-y-3">
-              <p className="text-sm text-[var(--muted-foreground)]">
-                Enter the 6-digit code sent to {phoneNumber}
+              <p className="text-sm text-slate-500">
+                Enter OTP sent to {phoneNumber}
               </p>
-              <div className="flex justify-between gap-2">
-                {otpDigits.map((d, i) => (
-                  <input
-                    key={i}
-                    value={d}
-                    onChange={(e) => setDigit(i, e.target.value)}
-                    maxLength={1}
-                    className="h-12 w-10 rounded-lg border border-[var(--border)] bg-[var(--background)] text-center text-lg font-bold"
-                  />
-                ))}
-              </div>
+              <input
+                value={otp}
+                onChange={(e) =>
+                  setOtp(e.target.value.replace(/\D/g, "").slice(0, 6))
+                }
+                placeholder="6-digit code"
+                className="w-full rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-center tracking-[0.3em] font-semibold"
+              />
               <button
                 type="submit"
                 disabled={loading}
-                className="w-full rounded-xl bg-[var(--primary)] py-3 text-sm font-bold text-white disabled:opacity-60"
+                className="w-full rounded-2xl bg-[#008779] py-3 text-sm font-bold text-white"
               >
                 {loading ? "Verifying…" : "Verify & sign in"}
               </button>
@@ -307,21 +249,20 @@ export default function LoginPage() {
                     setLoading(true);
                     await sendPhoneOtp();
                     setCountdown(60);
-                    setMessage("OTP resent — use the newest code only.");
                   } catch (err: any) {
                     setMessage(err.message);
                   } finally {
                     setLoading(false);
                   }
                 }}
-                className="w-full text-sm font-semibold text-[var(--primary)]"
+                className="w-full text-sm font-semibold text-[#008779]"
               >
                 {countdown > 0 ? `Resend in ${countdown}s` : "Resend code"}
               </button>
               <button
                 type="button"
                 onClick={() => setStep("credentials")}
-                className="w-full text-sm text-[var(--muted-foreground)]"
+                className="w-full text-xs text-slate-500"
               >
                 ← Back
               </button>
@@ -333,13 +274,10 @@ export default function LoginPage() {
           )}
 
           <div className="mt-6 space-y-2 text-center text-sm">
-            <Link href="/forgot-password" className="block text-[var(--primary)]">
+            <Link href="/forgot-password" className="block text-[#008779]">
               Forgot password?
             </Link>
-            <Link
-              href="/register"
-              className="block text-[var(--muted-foreground)]"
-            >
+            <Link href="/register" className="block text-slate-500">
               Create account
             </Link>
           </div>
