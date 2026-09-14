@@ -5,7 +5,7 @@ import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { setSession } from "@/lib/auth";
 
-const api =
+const API_URL =
   process.env.NEXT_PUBLIC_API_URL ||
   "https://tutor-be-betea.onrender.com";
 
@@ -196,9 +196,6 @@ export default function RegisterPage() {
           </div>
 
           <h1 className="text-2xl font-extrabold mb-2">Create account</h1>
-          <p className="text-sm text-[var(--muted-foreground)] mb-4">
-            API: {API_URL}
-          </p>
 
           <div className="mb-4 flex rounded-xl border border-[var(--border)] p-1">
             <button
@@ -228,7 +225,7 @@ export default function RegisterPage() {
           {tab === "google" ? (
             <form onSubmit={handleGoogleRegister} className="space-y-4">
               <p className="text-sm text-[var(--muted-foreground)]">
-                First-time Google signup requires role in body.
+                First-time Google signup requires role.
               </p>
               <div className="grid grid-cols-2 gap-2">
                 {(["PARENT", "TEACHER"] as Role[]).map((r) => (
