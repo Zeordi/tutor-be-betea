@@ -2,6 +2,10 @@ const API_URL =
   process.env.NEXT_PUBLIC_API_URL ||
   "https://tutor-be-betea.onrender.com";
 
+export function getApiUrl() {
+  return API_URL;
+}
+
 export function getToken(): string | null {
   if (typeof window === "undefined") return null;
   return localStorage.getItem("admin_token");
@@ -21,10 +25,16 @@ export async function apiFetch<T = any>(
 ): Promise<T> {
   const token = getToken();
   const headers: Record<string, string> = {
-    "Content-Type": "application/json",
     ...(options.headers as Record<string, string>),
   };
-  if (token) headers.Authorization = "Bearer " + token;
+
+  if (!(options.body instanceof FormData)) {
+    headers["Content-Type"] = "application/json";
+  }
+
+  if (token) {
+    headers.Authorization = `Bearer ${token}`;
+  }
 
   const url = API_URL + (path.startsWith("/") ? path : "/" + path);
   const res = await fetch(url, {
