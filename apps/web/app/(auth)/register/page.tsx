@@ -37,7 +37,6 @@ export default function RegisterPage() {
   const [message, setMessage] = useState("");
   const [countdown, setCountdown] = useState(0);
   const [lang, setLang] = useState<(typeof LANGS)[number]>("EN");
-
   const strength = passwordStrength(password);
 
   useEffect(() => {
@@ -70,7 +69,7 @@ export default function RegisterPage() {
       setStep(3);
       setCountdown(60);
       setOtp("");
-      setMessage("OTP sent. Use only the newest code from SMS.");
+      setMessage("");
     } catch (err: any) {
       setMessage(err.message || "Could not send OTP");
     } finally {
@@ -83,9 +82,7 @@ export default function RegisterPage() {
     setLoading(true);
     setMessage("");
     try {
-      if (otp.trim().length !== 6) {
-        throw new Error("Enter the 6-digit code.");
-      }
+      if (otp.trim().length !== 6) throw new Error("Enter the 6-digit code.");
 
       const verifyRes = await fetch(`${API_URL}/auth/otp/verify`, {
         method: "POST",
@@ -102,7 +99,6 @@ export default function RegisterPage() {
         );
       }
 
-      const verificationToken = (verifyData as any).verificationToken;
       const registerRes = await fetch(`${API_URL}/auth/register`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -112,20 +108,19 @@ export default function RegisterPage() {
           email: email.trim() || undefined,
           password,
           role,
-          verificationToken,
+          verificationToken: (verifyData as any).verificationToken,
         }),
       });
       const data = await registerRes.json().catch(() => ({}));
       if (!registerRes.ok) {
         throw new Error((data as any).message || "Registration failed");
       }
-
       if ((data as any).accessToken) {
         setSession((data as any).accessToken, (data as any).user?.role);
         router.push(role === "TEACHER" ? "/teacher" : "/parent");
         return;
       }
-      throw new Error("Account created but no token returned — try Sign in.");
+      throw new Error("No token — try Sign in");
     } catch (err: any) {
       setMessage(err.message || "Could not create account");
     } finally {
@@ -134,7 +129,7 @@ export default function RegisterPage() {
   };
 
   return (
-    <main className="min-h-screen flex items-center justify-center bg-[var(--background)] px-4 py-10">
+    <main className="min-h-screen flex items-center justify-center bg-[#F0FDFA] dark:bg-[var(--background)] px-4 py-10">
       <div className="w-full max-w-md">
         <div className="mb-4 flex justify-end gap-2">
           {LANGS.map((l) => (
@@ -144,8 +139,8 @@ export default function RegisterPage() {
               onClick={() => setLang(l)}
               className={`rounded-full px-2.5 py-1 text-xs font-semibold ${
                 lang === l
-                  ? "bg-[var(--primary)] text-white"
-                  : "bg-[var(--muted)] text-[var(--muted-foreground)]"
+                  ? "bg-[#008779] text-white"
+                  : "bg-white text-slate-500 border border-slate-200"
               }`}
             >
               {l}
@@ -153,9 +148,11 @@ export default function RegisterPage() {
           ))}
         </div>
 
-        <div className="rounded-2xl border border-[var(--border)] bg-[var(--card)] p-6 shadow-sm">
-          <h1 className="text-2xl font-bold mb-1">Create account</h1>
-          <p className="text-sm text-[var(--muted-foreground)] mb-4">
+        <div className="rounded-3xl border border-slate-100 bg-white dark:bg-[var(--card)] p-6 shadow-lg">
+          <h1 className="text-2xl font-bold text-slate-900 dark:text-white">
+            Create account
+          </h1>
+          <p className="text-sm text-slate-500 mb-4">
             Step {step} of 3 —{" "}
             {step === 1 ? "Role" : step === 2 ? "Details" : "Verify phone"}
           </p>
@@ -164,25 +161,35 @@ export default function RegisterPage() {
             {[1, 2, 3].map((s) => (
               <div
                 key={s}
-                className={`h-1 flex-1 rounded-full ${
-                  s <= step ? "bg-[var(--primary)]" : "bg-[var(--border)]"
+                className={`h-1.5 flex-1 rounded-full ${
+                  s <= step ? "bg-[#008779]" : "bg-slate-200"
                 }`}
               />
             ))}
           </div>
 
+          {/* Phone only — no Google idToken */}
+          <div className="mb-4 flex rounded-full bg-slate-100 p-1">
+            <div className="flex-1 rounded-full bg-[#008779] py-2 text-center text-sm font-semibold text-white">
+              Phone
+            </div>
+            <div
+              className="flex-1 rounded-full py-2 text-center text-sm font-medium text-slate-400"
+              title="Email signup uses optional email on step 2; real Google OAuth later"
+            >
+              Email optional
+            </div>
+          </div>
+
           {step === 1 && (
             <div className="space-y-3">
-              <p className="text-sm text-[var(--muted-foreground)]">
-                I am signing up as
-              </p>
               <button
                 type="button"
                 onClick={() => setRole("PARENT")}
-                className={`w-full rounded-xl border px-4 py-3 text-left text-sm font-semibold ${
+                className={`w-full rounded-2xl border px-4 py-3 text-left text-sm font-semibold ${
                   role === "PARENT"
-                    ? "border-[var(--primary)] bg-teal-50 dark:bg-teal-950/30"
-                    : "border-[var(--border)]"
+                    ? "border-[#008779] bg-[#F0FDFA]"
+                    : "border-slate-200"
                 }`}
               >
                 Parent — find tutors for my child
@@ -190,10 +197,10 @@ export default function RegisterPage() {
               <button
                 type="button"
                 onClick={() => setRole("TEACHER")}
-                className={`w-full rounded-xl border px-4 py-3 text-left text-sm font-semibold ${
+                className={`w-full rounded-2xl border px-4 py-3 text-left text-sm font-semibold ${
                   role === "TEACHER"
-                    ? "border-[var(--primary)] bg-teal-50 dark:bg-teal-950/30"
-                    : "border-[var(--border)]"
+                    ? "border-[#008779] bg-[#F0FDFA]"
+                    : "border-slate-200"
                 }`}
               >
                 Teacher — offer tutoring
@@ -201,7 +208,7 @@ export default function RegisterPage() {
               <button
                 type="button"
                 onClick={() => setStep(2)}
-                className="w-full rounded-xl bg-[var(--primary)] py-3 text-sm font-bold text-white"
+                className="w-full rounded-2xl bg-[#008779] py-3 text-sm font-bold text-white"
               >
                 Continue
               </button>
@@ -210,31 +217,49 @@ export default function RegisterPage() {
 
           {step === 2 && (
             <form onSubmit={handleDetailsContinue} className="space-y-3">
+              <label className="block text-xs font-medium text-slate-600">
+                Full name *
+              </label>
               <input
                 value={fullName}
                 onChange={(e) => setFullName(e.target.value)}
-                placeholder="Full name *"
-                className="w-full rounded-xl border border-[var(--border)] bg-[var(--background)] px-3 py-3 text-sm"
+                className="w-full rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm"
               />
-              <input
-                value={phoneNumber}
-                onChange={(e) => setPhoneNumber(e.target.value)}
-                placeholder="Phone * (+251… or 09…)"
-                className="w-full rounded-xl border border-[var(--border)] bg-[var(--background)] px-3 py-3 text-sm"
-              />
+              <label className="block text-xs font-medium text-slate-600">
+                Phone *
+              </label>
+              <div className="flex rounded-2xl border border-slate-200 bg-slate-50 overflow-hidden">
+                <span className="px-3 py-3 text-sm text-slate-500 border-r border-slate-200">
+                  +251
+                </span>
+                <input
+                  value={phoneNumber.replace(/^\+?251/, "")}
+                  onChange={(e) => {
+                    const d = e.target.value.replace(/\D/g, "");
+                    setPhoneNumber(d ? `+251${d.replace(/^0/, "")}` : "");
+                  }}
+                  placeholder="7xxxxxxxx"
+                  className="flex-1 bg-transparent px-3 py-3 text-sm outline-none"
+                />
+              </div>
+              <label className="block text-xs font-medium text-slate-600">
+                Email (optional)
+              </label>
               <input
                 type="email"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
-                placeholder="Email optional (Gmail, etc.)"
-                className="w-full rounded-xl border border-[var(--border)] bg-[var(--background)] px-3 py-3 text-sm"
+                placeholder="you@gmail.com"
+                className="w-full rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm"
               />
+              <label className="block text-xs font-medium text-slate-600">
+                Password *
+              </label>
               <input
                 type="password"
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
-                placeholder="Password *"
-                className="w-full rounded-xl border border-[var(--border)] bg-[var(--background)] px-3 py-3 text-sm"
+                className="w-full rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm"
               />
               <div className="flex items-center gap-2">
                 <div className="flex flex-1 gap-1">
@@ -242,32 +267,32 @@ export default function RegisterPage() {
                     <div
                       key={i}
                       className={`h-1 flex-1 rounded-full ${
-                        i < strength.score ? strength.color : "bg-[var(--border)]"
+                        i < strength.score ? strength.color : "bg-slate-200"
                       }`}
                     />
                   ))}
                 </div>
-                <span className="text-xs text-[var(--muted-foreground)]">
+                <span className="text-xs text-slate-500">
                   {password ? strength.label : ""}
                 </span>
               </div>
-              <p className="text-[11px] text-[var(--muted-foreground)]">
+              <p className="text-[11px] text-slate-500">
                 By continuing you agree to Terms, Privacy, and Escrow Agreement.
               </p>
-              <div className="flex gap-2">
+              <div className="flex gap-2 pt-1">
                 <button
                   type="button"
                   onClick={() => setStep(1)}
-                  className="rounded-xl border border-[var(--border)] px-4 py-3 text-sm"
+                  className="rounded-2xl border border-slate-200 px-4 py-3 text-sm"
                 >
                   Back
                 </button>
                 <button
                   type="submit"
                   disabled={loading}
-                  className="flex-1 rounded-xl bg-[var(--primary)] py-3 text-sm font-bold text-white disabled:opacity-60"
+                  className="flex-1 rounded-2xl bg-[#008779] py-3 text-sm font-bold text-white disabled:opacity-60"
                 >
-                  {loading ? "Sending OTP…" : "Next — Verify phone →"}
+                  {loading ? "Sending…" : "Next — Verify Phone →"}
                 </button>
               </div>
             </form>
@@ -275,7 +300,7 @@ export default function RegisterPage() {
 
           {step === 3 && (
             <form onSubmit={handleVerifyAndRegister} className="space-y-3">
-              <p className="text-sm text-[var(--muted-foreground)]">
+              <p className="text-sm text-slate-500">
                 Enter OTP sent to {phoneNumber}
               </p>
               <input
@@ -284,12 +309,12 @@ export default function RegisterPage() {
                   setOtp(e.target.value.replace(/\D/g, "").slice(0, 6))
                 }
                 placeholder="6-digit code"
-                className="w-full rounded-xl border border-[var(--border)] bg-[var(--background)] px-3 py-3 text-sm tracking-widest"
+                className="w-full rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm tracking-[0.3em] text-center font-semibold"
               />
               <button
                 type="submit"
                 disabled={loading}
-                className="w-full rounded-xl bg-[var(--primary)] py-3 text-sm font-bold text-white"
+                className="w-full rounded-2xl bg-[#008779] py-3 text-sm font-bold text-white"
               >
                 {loading ? "Creating…" : "Verify & Create account"}
               </button>
@@ -301,21 +326,21 @@ export default function RegisterPage() {
                     setLoading(true);
                     await sendOtp();
                     setCountdown(60);
-                    setMessage("New code sent — use only this latest code.");
+                    setMessage("New code sent — use only the latest SMS.");
                   } catch (err: any) {
                     setMessage(err.message);
                   } finally {
                     setLoading(false);
                   }
                 }}
-                className="w-full text-sm font-semibold text-[var(--primary)]"
+                className="w-full text-sm font-semibold text-[#008779]"
               >
                 {countdown > 0 ? `Resend in ${countdown}s` : "Resend code"}
               </button>
               <button
                 type="button"
                 onClick={() => setStep(2)}
-                className="w-full text-xs text-[var(--muted-foreground)]"
+                className="w-full text-xs text-slate-500"
               >
                 ← Back
               </button>
@@ -326,9 +351,9 @@ export default function RegisterPage() {
             <p className="mt-4 text-center text-sm text-amber-600">{message}</p>
           )}
 
-          <p className="text-center text-xs text-[var(--muted-foreground)] mt-6">
+          <p className="mt-6 text-center text-xs text-slate-500">
             Already a member?{" "}
-            <Link href="/login" className="text-teal-600 font-semibold">
+            <Link href="/login" className="font-semibold text-[#008779]">
               Sign in
             </Link>
           </p>
