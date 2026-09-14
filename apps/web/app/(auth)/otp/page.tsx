@@ -4,6 +4,10 @@ import { Suspense, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { setToken } from "@/lib/api";
 
+const API_URL =
+  process.env.NEXT_PUBLIC_API_URL ||
+  "https://tutor-be-betea.onrender.com";
+
 function OtpForm() {
   const router = useRouter();
   const searchParams = useSearchParams();
@@ -16,27 +20,25 @@ function OtpForm() {
   const [otp, setOtp] = useState("");
   const [loading, setLoading] = useState(false);
   const [message, setMessage] = useState("");
-  const api =
-  process.env.NEXT_PUBLIC_API_URL ||
-  "https://tutor-be-betea.onrender.com";
+
   const handleVerify = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
     setMessage("");
     try {
-      const verifyRes = await fetch(`${api}/auth/otp/verify`, {
+      const verifyRes = await fetch(`${API_URL}/auth/otp/verify`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ phoneNumber, code: otp.trim() }),
       });
       if (!verifyRes.ok) {
         const err = await verifyRes.json().catch(() => ({}));
-        throw new Error(err.message || "Invalid or expired OTP");
+        throw new Error((err as any).message || "Invalid or expired OTP");
       }
       const verifyData = await verifyRes.json();
 
       if (mode === "register") {
-        const registerRes = await fetch(`${api}/auth/register`, {
+        const registerRes = await fetch(`${API_URL}/auth/register`, {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
@@ -49,13 +51,13 @@ function OtpForm() {
         });
         if (!registerRes.ok) {
           const err = await registerRes.json().catch(() => ({}));
-          throw new Error(err.message || "Registration failed");
+          throw new Error((err as any).message || "Registration failed");
         }
         const data = await registerRes.json();
         if (data.accessToken) setToken(data.accessToken);
         router.push(role === "TEACHER" ? "/teacher" : "/parent");
       } else {
-        const loginRes = await fetch(`${api}/auth/login`, {
+        const loginRes = await fetch(`${API_URL}/auth/login`, {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
@@ -66,11 +68,13 @@ function OtpForm() {
         });
         if (!loginRes.ok) {
           const err = await loginRes.json().catch(() => ({}));
-          throw new Error(err.message || "Login failed");
+          throw new Error((err as any).message || "Login failed");
         }
         const data = await loginRes.json();
         if (data.accessToken) setToken(data.accessToken);
-        router.push(data.user?.role === "TEACHER" ? "/teacher" : "/parent");
+        router.push(
+          data.user?.role === "TEACHER" ? "/teacher" : "/parent",
+        );
       }
     } catch (error: any) {
       setMessage(error.message || "Something went wrong");
