@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import {
   View,
   Text,
@@ -11,43 +11,34 @@ import {
   Platform,
   ScrollView,
 } from "react-native";
-import { useLocalSearchParams, useRouter } from "expo-router";
+import { useRouter } from "expo-router";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useTheme } from "@/hooks/useTheme";
 import { useAuth } from "@/hooks/useAuth";
-import { api, setToken } from "@/lib/api";
+import { api, setSession } from "@/lib/api";
 
-function passwordStrength(pw: string): { score: number; label: string; color: string } {
-  let score = 0;
-  if (pw.length >= 6) score++;
-  if (pw.length >= 10) score++;
-  if (/[A-Z]/.test(pw) && /[a-z]/.test(pw)) score++;
-  if (/\d/.test(pw)) score++;
-  if (/[^A-Za-z0-9]/.test(pw)) score++;
-  if (score <= 1) return { score, label: "Weak", color: "#DC2626" };
-  if (score <= 3) return { score, label: "Fair", color: "#D97706" };
-  return { score, label: "Strong", color: "#059669" };
-}
+type Role = "PARENT" | "TEACHER";
 
 export default function RegisterScreen() {
   const router = useRouter();
-  const params = useLocalSearchParams<{ role?: string }>();
   const { isDark } = useTheme();
   const { login } = useAuth();
 
-  const initialRole =
-    params.role === "TEACHER" ? "TEACHER" : ("PARENT" as "PARENT" | "TEACHER");
-
   const [step, setStep] = useState<1 | 2 | 3>(1);
-  const [role, setRole] = useState<"PARENT" | "TEACHER">(initialRole);
+  const [role, setRole] = useState<Role>("PARENT");
   const [fullName, setFullName] = useState("");
   const [phoneNumber, setPhoneNumber] = useState("");
+  const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [otp, setOtp] = useState(["", "", "", "", "", ""]);
   const [loading, setLoading] = useState(false);
   const [countdown, setCountdown] = useState(0);
 
-  const strength = passwordStrength(password);
+  useEffect(() => {
+    if (countdown <= 0) return;
+    const t = setTimeout(() => setCountdown((c) => c - 1), 1000);
+    return () => clearTimeout(t);
+  }, [countdown]);
 
   const bg = isDark ? "#0A1628" : "#FFFFFF";
   const card = isDark ? "#112240" : "#FFFFFF";
@@ -56,21 +47,12 @@ export default function RegisterScreen() {
   const sub = isDark ? "#94A3B8" : "#64748B";
   const primary = "#0D9488";
 
-  // countdown timer
-  useState(() => {
-    // no-op placeholder for SSR; effect below
-  });
-  // eslint-disable-next-line react-hooks/rules-of-hooks — useEffect for countdown
-  const React = require("react");
-  React.useEffect(() => {
-    if (countdown <= 0) return;
-    const t = setTimeout(() => setCountdown((c: number) => c - 1), 1000);
-    return () => clearTimeout(t);
-  }, [countdown]);
-
   const handleSendOtp = async () => {
     if (!fullName.trim() || !phoneNumber.trim() || password.length < 6) {
-      Alert.alert("Missing info", "Name, phone, and password (min 6) are required.");
+      Alert.alert(
+        "Missing info",
+        "Name, phone, and password (min 6) are required.",
+      );
       return;
     }
     setLoading(true);
@@ -87,35 +69,51 @@ export default function RegisterScreen() {
 
   const handleVerifyAndRegister = async () => {
     const code = otp.join("");
-    if (code.length < 6) {
+    if (code.length !== 6) {
       Alert.alert("Invalid OTP", "Enter the 6-digit code.");
       return;
     }
     setLoading(true);
     try {
-      const verify = await api.post("/auth/otp/verify", {
-        phoneNumber: phoneNumber.trim(),
-        code,
-      });
-      const data = await api.post("/auth/register", {
+      const verify = await api.post<{ verificationToken: string }>(
+        "/auth/otp/verify",
+        { phoneNumber: phoneNumber.trim(), code },
+      );
+
+      const data = await api.post<{
+        accessToken: string;
+        user?: { role?: string };
+      }>("/auth/register", {
         fullName: fullName.trim(),
         phoneNumber: phoneNumber.trim(),
+        email: email.trim() || undefined,
         password,
         role,
         verificationToken: verify.verificationToken,
       });
-      await setToken(data.accessToken);
-      await login(data.accessToken, data.user);
-      if (role === "TEACHER") router.replace("/(teacher)/(tabs)");
-      else router.replace("/(parent)/(tabs)");
+
+      if (!data.accessToken) throw new Error("No access token returned");
+
+      await setSession(
+        data.accessToken,
+        data.user?.role || role,
+        JSON.stringify(data.user || {}),
+      );
+      await login(data.accessToken, data.user as any);
+
+      router.replace(
+        (data.user?.role || role) === "TEACHER"
+          ? "/(teacher)/(tabs)"
+          : "/(parent)/(tabs)",
+      );
     } catch (e: any) {
-      Alert.alert("Registration failed", e.message || "Please try again");
+      Alert.alert("Registration failed", e.message || "Try again");
     } finally {
       setLoading(false);
     }
   };
 
-  const setOtpDigit = (index: number, value: string) => {
+  const setDigit = (index: number, value: string) => {
     const digit = value.replace(/[^0-9]/g, "").slice(-1);
     const next = [...otp];
     next[index] = digit;
@@ -128,42 +126,16 @@ export default function RegisterScreen() {
         style={{ flex: 1 }}
         behavior={Platform.OS === "ios" ? "padding" : undefined}
       >
-        <View
-          style={[
-            styles.header,
-            { borderBottomColor: border, backgroundColor: isDark ? "#0F1B2D" : "#FFFFFF" },
-          ]}
-        >
-          <TouchableOpacity
-            onPress={() => (step > 1 ? setStep((step - 1) as 1 | 2 | 3) : router.back())}
-          >
-            <Text style={{ color: sub, fontSize: 16 }}>←</Text>
-          </TouchableOpacity>
-          <Text style={[styles.headerTitle, { color: text }]}>Create Account</Text>
-          <View style={{ width: 20 }} />
-        </View>
-        <View style={styles.progressRow}>
-          {[1, 2, 3].map((n) => (
-            <View
-              key={n}
-              style={[
-                styles.progressBar,
-                { backgroundColor: n <= step ? primary : isDark ? "#1E3A5F" : "#E2E8F0" },
-              ]}
-            />
-          ))}
-        </View>
-        <Text style={[styles.stepLabel, { color: sub }]}>
-          Step {step} of 3 — {["Choose Role", "Your Details", "Verify Phone"][step - 1]}
-        </Text>
+        <ScrollView contentContainerStyle={styles.content}>
+          <Text style={[styles.title, { color: text }]}>Create account</Text>
+          <Text style={[styles.sub, { color: sub }]}>
+            Step {step} of 3 · Parent or Teacher
+          </Text>
 
-        <ScrollView contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled">
           {step === 1 && (
             <>
-              <Text style={[styles.sectionTitle, { color: text }]}>
-                How will you use Tutor Be Betea?
-              </Text>
-              {(["PARENT", "TEACHER"] as const).map((r) => (
+              <Text style={[styles.label, { color: sub }]}>I AM A</Text>
+              {(["PARENT", "TEACHER"] as Role[]).map((r) => (
                 <TouchableOpacity
                   key={r}
                   onPress={() => setRole(r)}
@@ -171,144 +143,101 @@ export default function RegisterScreen() {
                     styles.roleCard,
                     {
                       borderColor: role === r ? primary : border,
-                      backgroundColor:
-                        role === r
-                          ? isDark
-                            ? "rgba(13,148,136,0.2)"
-                            : "#F0FDFA"
-                          : card,
+                      backgroundColor: card,
                     },
                   ]}
                 >
-                  <Text style={{ fontSize: 28 }}>{r === "PARENT" ? "👨‍👩‍👧" : "🧑‍🏫"}</Text>
-                  <View style={{ flex: 1 }}>
-                    <Text style={[styles.roleTitle, { color: text }]}>
-                      {r === "PARENT" ? "Parent / Guardian" : "Tutor / Teacher"}
-                    </Text>
-                    <Text style={{ color: sub, fontSize: 11 }}>
-                      {r === "PARENT"
-                        ? "Find verified tutors for your children"
-                        : "Earn income teaching students near you"}
-                    </Text>
-                  </View>
-                  {role === r && <Text style={{ color: primary, fontWeight: "800" }}>✓</Text>}
+                  <Text style={{ color: text, fontWeight: "800" }}>
+                    {r === "PARENT" ? "👨‍👩‍👧 Parent" : "📚 Teacher"}
+                  </Text>
                 </TouchableOpacity>
               ))}
               <TouchableOpacity
-                style={[styles.primaryBtn, { backgroundColor: primary }]}
+                style={[styles.btn, { backgroundColor: primary }]}
                 onPress={() => setStep(2)}
               >
-                <Text style={styles.primaryBtnText}>
-                  Continue as {role === "PARENT" ? "Parent" : "Tutor"} →
-                </Text>
+                <Text style={styles.btnText}>Continue</Text>
               </TouchableOpacity>
             </>
           )}
 
           {step === 2 && (
             <>
-              <Text style={[styles.label, { color: sub }]}>Full Name</Text>
+              <Text style={[styles.label, { color: sub }]}>FULL NAME</Text>
               <TextInput
                 value={fullName}
                 onChangeText={setFullName}
-                placeholder="Yeshi Haile"
+                placeholder="Abebe Bikila"
                 placeholderTextColor={sub}
-                style={[styles.input, { borderColor: border, color: text, backgroundColor: card }]}
+                style={[
+                  styles.input,
+                  { borderColor: border, color: text, backgroundColor: card },
+                ]}
               />
-
-              <Text style={[styles.label, { color: sub }]}>Phone Number</Text>
-              <View style={[styles.phoneRow, { borderColor: border, backgroundColor: card }]}>
-                <Text style={{ fontWeight: "800", color: primary }}>🇪🇹 +251</Text>
-                <View style={[styles.phoneDivider, { backgroundColor: border }]} />
-                <TextInput
-                  value={phoneNumber}
-                  onChangeText={setPhoneNumber}
-                  placeholder="91 234 5678"
-                  keyboardType="phone-pad"
-                  placeholderTextColor={sub}
-                  style={{ flex: 1, color: text, fontSize: 15 }}
-                />
-              </View>
-
-              <Text style={[styles.label, { color: sub }]}>Password</Text>
+              <Text style={[styles.label, { color: sub }]}>PHONE</Text>
+              <TextInput
+                value={phoneNumber}
+                onChangeText={setPhoneNumber}
+                placeholder="912345678"
+                placeholderTextColor={sub}
+                keyboardType="phone-pad"
+                style={[
+                  styles.input,
+                  { borderColor: border, color: text, backgroundColor: card },
+                ]}
+              />
+              <Text style={[styles.label, { color: sub }]}>EMAIL (optional)</Text>
+              <TextInput
+                value={email}
+                onChangeText={setEmail}
+                placeholder="you@gmail.com"
+                placeholderTextColor={sub}
+                autoCapitalize="none"
+                style={[
+                  styles.input,
+                  { borderColor: border, color: text, backgroundColor: card },
+                ]}
+              />
+              <Text style={[styles.label, { color: sub }]}>PASSWORD</Text>
               <TextInput
                 value={password}
                 onChangeText={setPassword}
                 placeholder="Min 6 characters"
-                secureTextEntry
                 placeholderTextColor={sub}
-                style={[styles.input, { borderColor: border, color: text, backgroundColor: card }]}
+                secureTextEntry
+                style={[
+                  styles.input,
+                  { borderColor: border, color: text, backgroundColor: card },
+                ]}
               />
-              {password.length > 0 && (
-                <View style={{ marginTop: 6, marginBottom: 4 }}>
-                  <View style={{ flexDirection: "row", gap: 4, marginBottom: 4 }}>
-                    {[1, 2, 3, 4].map((i) => (
-                      <View
-                        key={i}
-                        style={{
-                          flex: 1,
-                          height: 4,
-                          borderRadius: 2,
-                          backgroundColor:
-                            strength.score >= i ? strength.color : isDark ? "#1E3A5F" : "#E2E8F0",
-                        }}
-                      />
-                    ))}
-                  </View>
-                  <Text style={{ fontSize: 11, fontWeight: "700", color: strength.color }}>
-                    {strength.label}
-                  </Text>
-                </View>
-              )}
-
-              <View style={styles.rowBtns}>
-                <TouchableOpacity
-                  style={[styles.secondaryBtn, { borderColor: border }]}
-                  onPress={() => setStep(1)}
-                >
-                  <Text style={{ color: sub, fontWeight: "700" }}>Back</Text>
-                </TouchableOpacity>
-                <TouchableOpacity
-                  style={[styles.primaryBtn, { backgroundColor: primary, flex: 1, marginTop: 0 }]}
-                  onPress={handleSendOtp}
-                  disabled={loading}
-                >
-                  {loading ? (
-                    <ActivityIndicator color="#fff" />
-                  ) : (
-                    <Text style={styles.primaryBtnText}>Next →</Text>
-                  )}
-                </TouchableOpacity>
-              </View>
+              <TouchableOpacity
+                style={[styles.btn, { backgroundColor: primary }]}
+                onPress={handleSendOtp}
+                disabled={loading}
+              >
+                {loading ? (
+                  <ActivityIndicator color="#fff" />
+                ) : (
+                  <Text style={styles.btnText}>Send OTP</Text>
+                )}
+              </TouchableOpacity>
+              <TouchableOpacity onPress={() => setStep(1)}>
+                <Text style={[styles.link, { color: sub }]}>← Back</Text>
+              </TouchableOpacity>
             </>
           )}
 
           {step === 3 && (
             <>
-              <View style={styles.centerBlock}>
-                <View
-                  style={[
-                    styles.iconCircle,
-                    { backgroundColor: isDark ? "rgba(13,148,136,0.25)" : "#CCFBF1" },
-                  ]}
-                >
-                  <Text style={{ fontSize: 28 }}>📱</Text>
-                </View>
-                <Text style={[styles.sectionTitle, { color: text, textAlign: "center" }]}>
-                  Verify Your Phone
-                </Text>
-                <Text style={{ color: sub, fontSize: 12, textAlign: "center" }}>
-                  Enter the 6-digit code sent to{"\n"}
-                  <Text style={{ fontWeight: "800", color: text }}>+251 {phoneNumber}</Text>
-                </Text>
-              </View>
-
+              <Text style={[styles.sub, { color: sub }]}>
+                Code sent to {phoneNumber}
+              </Text>
               <View style={styles.otpRow}>
                 {otp.map((d, i) => (
                   <TextInput
                     key={i}
                     value={d}
-                    onChangeText={(v) => setOtpDigit(i, v)}
+                    onChangeText={(v) => setDigit(i, v)}
                     keyboardType="number-pad"
                     maxLength={1}
                     style={[
@@ -322,31 +251,35 @@ export default function RegisterScreen() {
                   />
                 ))}
               </View>
-
-              <Text style={{ textAlign: "center", color: sub, fontSize: 12, marginBottom: 8 }}>
-                {countdown > 0 ? `Resend in ${countdown}s` : "You can request a new code"}
-              </Text>
-
               <TouchableOpacity
-                style={[styles.primaryBtn, { backgroundColor: primary }]}
+                style={[styles.btn, { backgroundColor: primary }]}
                 onPress={handleVerifyAndRegister}
                 disabled={loading}
               >
                 {loading ? (
                   <ActivityIndicator color="#fff" />
                 ) : (
-                  <Text style={styles.primaryBtnText}>Verify & Continue</Text>
+                  <Text style={styles.btnText}>Verify & create account</Text>
                 )}
               </TouchableOpacity>
-
+              <TouchableOpacity
+                disabled={countdown > 0 || loading}
+                onPress={handleSendOtp}
+              >
+                <Text style={[styles.link, { color: primary }]}>
+                  {countdown > 0 ? `Resend in ${countdown}s` : "Resend code"}
+                </Text>
+              </TouchableOpacity>
               <TouchableOpacity onPress={() => setStep(2)}>
-                <Text style={[styles.link, { color: sub }]}>← Change number</Text>
+                <Text style={[styles.link, { color: sub }]}>← Back</Text>
               </TouchableOpacity>
             </>
           )}
 
           <TouchableOpacity onPress={() => router.push("/(auth)/login")}>
-            <Text style={[styles.link, { color: primary }]}>Already have an account? Sign In</Text>
+            <Text style={[styles.link, { color: primary }]}>
+              Already have an account? Sign in
+            </Text>
           </TouchableOpacity>
         </ScrollView>
       </KeyboardAvoidingView>
@@ -356,30 +289,9 @@ export default function RegisterScreen() {
 
 const styles = StyleSheet.create({
   container: { flex: 1 },
-  header: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "space-between",
-    paddingHorizontal: 20,
-    paddingVertical: 14,
-    borderBottomWidth: 1,
-  },
-  headerTitle: { fontSize: 15, fontWeight: "800" },
-  progressRow: { flexDirection: "row", gap: 6, paddingHorizontal: 20, marginTop: 12 },
-  progressBar: { flex: 1, height: 4, borderRadius: 99 },
-  stepLabel: { fontSize: 10, paddingHorizontal: 20, marginTop: 8, marginBottom: 8 },
-  content: { padding: 20, paddingBottom: 40 },
-  sectionTitle: { fontSize: 15, fontWeight: "800", marginBottom: 14 },
-  roleCard: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 12,
-    borderWidth: 2,
-    borderRadius: 18,
-    padding: 16,
-    marginBottom: 12,
-  },
-  roleTitle: { fontSize: 14, fontWeight: "800", marginBottom: 2 },
+  content: { padding: 24 },
+  title: { fontSize: 24, fontWeight: "900", marginBottom: 6 },
+  sub: { fontSize: 13, marginBottom: 18 },
   label: { fontSize: 11, fontWeight: "700", marginBottom: 6, marginTop: 10 },
   input: {
     borderWidth: 1,
@@ -387,44 +299,26 @@ const styles = StyleSheet.create({
     paddingHorizontal: 14,
     paddingVertical: 12,
     fontSize: 15,
-    marginBottom: 4,
   },
-  phoneRow: {
+  roleCard: {
+    borderWidth: 2,
+    borderRadius: 16,
+    padding: 16,
+    marginBottom: 10,
+  },
+  btn: {
+    marginTop: 18,
+    borderRadius: 14,
+    paddingVertical: 14,
+    alignItems: "center",
+  },
+  btnText: { color: "#fff", fontWeight: "800" },
+  otpRow: {
     flexDirection: "row",
-    alignItems: "center",
-    gap: 10,
-    borderWidth: 1,
-    borderRadius: 14,
-    paddingHorizontal: 14,
-    paddingVertical: 12,
-    marginBottom: 4,
-  },
-  phoneDivider: { width: 1, height: 18 },
-  primaryBtn: {
-    marginTop: 16,
-    borderRadius: 14,
-    paddingVertical: 14,
-    alignItems: "center",
-  },
-  primaryBtnText: { color: "#fff", fontWeight: "800", fontSize: 14 },
-  secondaryBtn: {
-    borderWidth: 1,
-    borderRadius: 14,
-    paddingVertical: 14,
-    paddingHorizontal: 20,
-    alignItems: "center",
-  },
-  rowBtns: { flexDirection: "row", gap: 10, marginTop: 12, alignItems: "center" },
-  centerBlock: { alignItems: "center", marginBottom: 20, marginTop: 12 },
-  iconCircle: {
-    width: 56,
-    height: 56,
-    borderRadius: 20,
-    alignItems: "center",
     justifyContent: "center",
-    marginBottom: 12,
+    gap: 8,
+    marginVertical: 12,
   },
-  otpRow: { flexDirection: "row", justifyContent: "center", gap: 8, marginBottom: 8 },
   otpBox: {
     width: 44,
     height: 52,
@@ -434,5 +328,5 @@ const styles = StyleSheet.create({
     fontSize: 18,
     fontWeight: "800",
   },
-  link: { textAlign: "center", marginTop: 18, fontSize: 13, fontWeight: "600" },
+  link: { textAlign: "center", marginTop: 16, fontWeight: "600" },
 });
