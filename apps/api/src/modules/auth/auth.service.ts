@@ -15,6 +15,10 @@ import { RegisterDto } from "./dto/register.dto";
 import { GoogleAuthDto } from "./dto/google-auth.dto";
 import { redis } from "../../config/redis";
 
+/** Fallback when Upstash REST fails — works on single Render instance */
+const memOtp = new Map<string, { code: string; exp: number }>();
+const memVerify = new Map<string, { id: string; exp: number }>();
+
 @Injectable()
 export class AuthService {
   constructor(
@@ -36,9 +40,52 @@ export class AuthService {
     return cleaned.startsWith("+") ? cleaned : `+251${cleaned}`;
   }
 
-  // ─────────────────────────────────────────────
-  // OTP
-  // ─────────────────────────────────────────────
+  private async storeOtp(key: string, code: string, ttlSec = 300) {
+    let redisOk = false;
+    try {
+      if (
+        process.env.UPSTASH_REDIS_REST_URL &&
+        process.env.UPSTASH_REDIS_REST_TOKEN
+      ) {
+        await redis.set(key, code, { ex: ttlSec });
+        redisOk = true;
+      }
+    } catch (e) {
+      console.error("[OTP] Redis SET failed, using memory fallback", e);
+    }
+    memOtp.set(key, { code: String(code), exp: Date.now() + ttlSec * 1000 });
+    return redisOk;
+  }
+
+  private async readOtp(key: string): Promise<string | null> {
+    try {
+      if (
+        process.env.UPSTASH_REDIS_REST_URL &&
+        process.env.UPSTASH_REDIS_REST_TOKEN
+      ) {
+        const raw = await redis.get(key);
+        if (raw != null && raw !== "") return String(raw);
+      }
+    } catch (e) {
+      console.error("[OTP] Redis GET failed", e);
+    }
+    const row = memOtp.get(key);
+    if (!row) return null;
+    if (Date.now() > row.exp) {
+      memOtp.delete(key);
+      return null;
+    }
+    return row.code;
+  }
+
+  private async clearOtp(key: string) {
+    try {
+      await redis.del(key);
+    } catch {}
+    memOtp.delete(key);
+  }
+
+  // ─── OTP ───────────────────────────────────────
 
   async sendOtp(identifierRaw: string) {
     if (!identifierRaw) {
@@ -53,9 +100,8 @@ export class AuthService {
     const code = String(randomInt(100000, 999999));
     const key = `otp:${identifier}`;
 
-    if (redis) {
-      await redis.set(key, code, { ex: 300 });
-    }
+    await this.storeOtp(key, code, 300);
+    console.log(`[OTP] stored key=\( {key} redisEnv= \){!!process.env.UPSTASH_REDIS_REST_URL}`);
 
     if (!isEmail) {
       const sent = await this.smsService.sendOtp(identifier, code);
@@ -82,52 +128,50 @@ export class AuthService {
       ? identifierRaw.trim().toLowerCase()
       : this.normalizePhone(identifierRaw);
 
-    // Dev-only convenience code
     const allowDevCode = !this.isProd() && code === "123456";
     let valid = allowDevCode;
 
     if (!valid) {
       const key = `otp:${identifier}`;
-      const stored = redis ? await redis.get<string>(key) : null;
-      if (stored && stored === code) {
+      const stored = await this.readOtp(key);
+      if (stored && stored === String(code).trim()) {
         valid = true;
-        if (redis) await redis.del(key);
+        await this.clearOtp(key);
       }
     }
 
-    // Dev without Redis: accept any 6-digit after logging
-    if (!valid && !redis && !this.isProd() && /^\d{6}$/.test(code)) {
+    if (!valid && !this.isProd() && /^\d{6}$/.test(code)) {
+      // last-resort dev only
       valid = true;
-      console.log(
-        `[DEV] OTP accepted without Redis for \( {identifier} (code= \){code})`,
-      );
     }
 
     if (!valid) {
       throw new UnauthorizedException("Invalid or expired OTP");
     }
 
-    // Single-use verification token (10 minutes)
     const verificationToken = randomBytes(32).toString("hex");
     const tokenKey = `verify:${verificationToken}`;
-    if (redis) {
-      await redis.set(tokenKey, identifier, { ex: 600 });
+    try {
+      if (
+        process.env.UPSTASH_REDIS_REST_URL &&
+        process.env.UPSTASH_REDIS_REST_TOKEN
+      ) {
+        await redis.set(tokenKey, identifier, { ex: 600 });
+      }
+    } catch (e) {
+      console.error("[OTP] Redis verify token SET failed", e);
     }
+    memVerify.set(tokenKey, {
+      id: identifier,
+      exp: Date.now() + 600_000,
+    });
 
     return {
       verified: true,
       verificationToken,
-      // Dev helper when Redis is down so clients can still complete flows
-      ...(!redis && !this.isProd()
-        ? { verificationToken: "dev-verify", devNote: "Redis off — use dev-verify" }
-        : {}),
     };
   }
 
-  /**
-   * Hardened: works with Redis in prod; clear errors if store is down;
-   * allows "dev-verify" only when not in production and Redis is unavailable.
-   */
   private async consumeVerificationToken(
     token: string,
     expectedIdentifier: string,
@@ -136,68 +180,66 @@ export class AuthService {
       throw new UnauthorizedException("verificationToken is required");
     }
 
-    if (!redis) {
-      if (!this.isProd() && token === "dev-verify") {
-        return;
-      }
-      throw new UnauthorizedException(
-        "Verification store unavailable. Check Redis (UPSTASH) configuration.",
-      );
-    }
+    const expected = expectedIdentifier.includes("@")
+      ? expectedIdentifier.trim().toLowerCase()
+      : this.normalizePhone(expectedIdentifier);
 
     const tokenKey = `verify:${token}`;
-    const bound = await redis.get<string>(tokenKey);
+    let bound: string | null = null;
 
-    if (!bound || bound !== expectedIdentifier) {
+    try {
+      if (
+        process.env.UPSTASH_REDIS_REST_URL &&
+        process.env.UPSTASH_REDIS_REST_TOKEN
+      ) {
+        const raw = await redis.get(tokenKey);
+        if (raw != null) bound = String(raw);
+      }
+    } catch {}
+
+    if (!bound) {
+      const row = memVerify.get(tokenKey);
+      if (row && Date.now() <= row.exp) bound = row.id;
+    }
+
+    if (!this.isProd() && token === "dev-verify") {
+      return;
+    }
+
+    if (!bound || bound !== expected) {
       throw new UnauthorizedException("Invalid or expired verification token");
     }
 
-    await redis.del(tokenKey);
+    try {
+      await redis.del(tokenKey);
+    } catch {}
+    memVerify.delete(tokenKey);
   }
 
-  // ─────────────────────────────────────────────
-  // LOGIN
-  // ─────────────────────────────────────────────
+  // ─── LOGIN ─────────────────────────────────────
 
   async login(dto: LoginDto) {
-    // Path A: email + password (admin / email accounts)
     if (dto.email && dto.password) {
-      const email = dto.email.trim().toLowerCase();
-      const user = await this.usersService.findByEmail(email);
-
+      const user = await this.usersService.findByEmail(
+        dto.email.trim().toLowerCase(),
+      );
       if (!user || !user.passwordHash) {
         throw new UnauthorizedException("Invalid email or password");
       }
-
       const ok = await bcrypt.compare(dto.password, user.passwordHash);
-      if (!ok) {
-        throw new UnauthorizedException("Invalid email or password");
-      }
-
+      if (!ok) throw new UnauthorizedException("Invalid email or password");
       return this.authResponse(user);
     }
 
-    // Path B: phone + password + OTP verificationToken
     if (dto.phoneNumber && dto.password && dto.verificationToken) {
       const phone = this.normalizePhone(dto.phoneNumber);
       await this.consumeVerificationToken(dto.verificationToken, phone);
-
       const user = await this.usersService.findByPhone(phone);
       if (!user || !user.passwordHash) {
         throw new UnauthorizedException("Invalid phone or password");
       }
-
       const ok = await bcrypt.compare(dto.password, user.passwordHash);
-      if (!ok) {
-        throw new UnauthorizedException("Invalid phone or password");
-      }
-
-      if (!user.phoneVerified) {
-        await this.usersService.updateProfile(user.id, {
-          phoneVerified: true,
-        });
-      }
-
+      if (!ok) throw new UnauthorizedException("Invalid phone or password");
       return this.authResponse(user);
     }
 
@@ -206,30 +248,21 @@ export class AuthService {
     );
   }
 
-  // ─────────────────────────────────────────────
-  // REGISTER
-  // ─────────────────────────────────────────────
+  // ─── REGISTER ──────────────────────────────────
 
   async register(dto: RegisterDto) {
     const phone = this.normalizePhone(dto.phoneNumber);
-    const email = dto.email?.trim().toLowerCase();
-
     await this.consumeVerificationToken(dto.verificationToken, phone);
 
-    const existingPhone = await this.usersService.findByPhone(phone);
-    if (existingPhone) {
-      throw new ConflictException(
-        "An account with this phone number already exists",
-      );
+    const existing = await this.usersService.findByPhone(phone);
+    if (existing) {
+      throw new ConflictException("Phone number already registered");
     }
-
-    if (email) {
-      const existingEmail = await this.usersService.findByEmail(email);
-      if (existingEmail) {
-        throw new ConflictException(
-          "An account with this email already exists",
-        );
-      }
+    if (dto.email) {
+      const byEmail = await this.usersService.findByEmail(
+        dto.email.trim().toLowerCase(),
+      );
+      if (byEmail) throw new ConflictException("Email already registered");
     }
 
     if (!dto.password || dto.password.length < 6) {
@@ -237,12 +270,11 @@ export class AuthService {
     }
 
     const passwordHash = await bcrypt.hash(dto.password, 10);
-
     const user = await this.usersService.create({
       phoneNumber: phone,
-      fullName: dto.fullName,
+      email: dto.email?.trim().toLowerCase() || undefined,
+      fullName: dto.fullName.trim(),
       role: dto.role as any,
-      email,
       passwordHash,
       phoneVerified: true,
       emailVerified: false,
@@ -251,19 +283,11 @@ export class AuthService {
     return this.authResponse(user);
   }
 
-  // ─────────────────────────────────────────────
-  // PASSWORD RESET (OTP + verificationToken)
-  // ─────────────────────────────────────────────
-
   async passwordForgot(phoneRaw: string) {
-    if (!phoneRaw) {
-      throw new BadRequestException("phoneNumber is required");
-    }
     const phone = this.normalizePhone(phoneRaw);
     const user = await this.usersService.findByPhone(phone);
     if (!user) {
-      // Do not reveal whether phone exists
-      return { message: "If an account exists, a code was sent" };
+      return { message: "If the account exists, an OTP was sent" };
     }
     return this.sendOtp(phone);
   }
@@ -274,68 +298,48 @@ export class AuthService {
     newPassword: string;
   }) {
     const phone = this.normalizePhone(dto.phoneNumber);
+    await this.consumeVerificationToken(dto.verificationToken, phone);
     if (!dto.newPassword || dto.newPassword.length < 6) {
       throw new BadRequestException("Password must be at least 6 characters");
     }
-
-    await this.consumeVerificationToken(dto.verificationToken, phone);
-
     const user = await this.usersService.findByPhone(phone);
-    if (!user) {
-      throw new UnauthorizedException("Account not found");
-    }
-
+    if (!user) throw new UnauthorizedException("User not found");
     const passwordHash = await bcrypt.hash(dto.newPassword, 10);
     await this.usersService.updateProfile(user.id, { passwordHash });
-
-    return { message: "Password updated successfully" };
+    return { message: "Password updated" };
   }
 
-  // ─────────────────────────────────────────────
-  // GOOGLE
-  // ─────────────────────────────────────────────
-
   async googleAuth(dto: GoogleAuthDto) {
+    // Kept for future real OAuth — not used by UI (no idToken paste)
     const googleUser = await this.verifyGoogleIdToken(dto.idToken);
     const email = googleUser.email?.toLowerCase();
-
-    if (!email) {
-      throw new UnauthorizedException("Google account has no email");
-    }
+    if (!email) throw new UnauthorizedException("Google account has no email");
 
     let user = await this.usersService.findByGoogleId(googleUser.sub);
-
     if (!user) {
       user = await this.usersService.findByEmail(email);
-
       if (user) {
         await this.usersService.updateProfile(user.id, {
           googleId: googleUser.sub,
-          emailVerified: true,
           avatarUrl: googleUser.picture,
-        });
-        user = await this.usersService.findById(user.id);
+        } as any);
       } else {
         if (!dto.role) {
           throw new BadRequestException(
-            "role is required for first-time Google signup (PARENT or TEACHER)",
+            "role is required for first-time Google signup",
           );
         }
-
         const placeholderPhone = `+google-${googleUser.sub.slice(0, 18)}`;
-
         user = await this.usersService.create({
-          phoneNumber: placeholderPhone,
           email,
           fullName: googleUser.name || email.split("@")[0],
+          phoneNumber: placeholderPhone,
           role: dto.role as any,
           googleId: googleUser.sub,
           emailVerified: true,
-          phoneVerified: false,
-        });
+        } as any);
       }
     }
-
     return this.authResponse(user);
   }
 
@@ -343,72 +347,22 @@ export class AuthService {
     const res = await fetch(
       `https://oauth2.googleapis.com/tokeninfo?id_token=${encodeURIComponent(idToken)}`,
     );
-
-    if (!res.ok) {
-      throw new UnauthorizedException("Invalid Google token");
-    }
-
+    if (!res.ok) throw new UnauthorizedException("Invalid Google token");
     const data = await res.json();
     const allowedAud = process.env.GOOGLE_CLIENT_ID;
-
     if (allowedAud && data.aud !== allowedAud) {
       throw new UnauthorizedException("Google token audience mismatch");
     }
-
     return data as {
       sub: string;
       email?: string;
       name?: string;
       picture?: string;
-      email_verified?: string;
     };
   }
 
-  // ─────────────────────────────────────────────
-  // DEMO (development only)
-  // ─────────────────────────────────────────────
-
-  async demoLogin(role: "PARENT" | "TEACHER") {
-    if (this.isProd()) {
-      throw new ForbiddenException("Demo login is disabled in production");
-    }
-
-    const testEmail =
-      role === "TEACHER"
-        ? "teacher.demo@tutorbebetea.com"
-        : "parent.demo@tutorbebetea.com";
-
-    const testName =
-      role === "TEACHER"
-        ? "Yohannes Haile (Verified Tutor)"
-        : "Abebe Bikila (Parent)";
-
-    const testPhone =
-      role === "TEACHER" ? "+251911223344" : "+251988776655";
-
-    let user: any = await this.usersService.findByEmail(testEmail);
-
-    if (!user) {
-      user = await this.usersService.create({
-        email: testEmail,
-        fullName: testName,
-        phoneNumber: testPhone,
-        role: role as any,
-        phoneVerified: true,
-        emailVerified: true,
-      });
-    }
-
-    return this.authResponse(user);
-  }
-
-  // ─────────────────────────────────────────────
-  // HELPERS
-  // ─────────────────────────────────────────────
-
   private async authResponse(user: any) {
     const tokens = await this.generateTokens(user.id, user.role);
-
     return {
       user: {
         id: user.id,
@@ -426,12 +380,10 @@ export class AuthService {
 
   private async generateTokens(userId: string, role: string) {
     const payload = { sub: userId, role };
-
     const [accessToken, refreshToken] = await Promise.all([
       this.jwtService.signAsync(payload, { expiresIn: "15m" }),
       this.jwtService.signAsync(payload, { expiresIn: "7d" }),
     ]);
-
     return { accessToken, refreshToken };
   }
 }
