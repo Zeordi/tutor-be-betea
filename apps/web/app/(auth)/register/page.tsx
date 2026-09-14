@@ -5,7 +5,12 @@ import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { setSession } from "@/lib/auth";
 
+const API_URL =
+  process.env.NEXT_PUBLIC_API_URL ||
+  "https://tutor-be-betea.onrender.com";
+
 const LANGS = ["EN", "አማ", "ORO", "ትግ"] as const;
+type Role = "PARENT" | "TEACHER";
 
 function passwordStrength(pw: string) {
   let score = 0;
@@ -22,20 +27,19 @@ function passwordStrength(pw: string) {
 export default function RegisterPage() {
   const router = useRouter();
   const [step, setStep] = useState<1 | 2 | 3>(1);
+  const [role, setRole] = useState<Role>("PARENT");
   const [fullName, setFullName] = useState("");
-  const [email, setEmail] = useState("");
   const [phoneNumber, setPhoneNumber] = useState("");
+  const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
-  const [role, setRole] = useState<"PARENT" | "TEACHER">("PARENT");
   const [otp, setOtp] = useState("");
+  const [googleIdToken, setGoogleIdToken] = useState("");
+  const [tab, setTab] = useState<"phone" | "google">("phone");
   const [loading, setLoading] = useState(false);
   const [message, setMessage] = useState("");
-  const [lang, setLang] = useState<(typeof LANGS)[number]>("EN");
   const [countdown, setCountdown] = useState(0);
+  const [lang, setLang] = useState<(typeof LANGS)[number]>("EN");
 
-  const API_URL =
-  process.env.NEXT_PUBLIC_API_URL ||
-  "https://tutor-be-betea.onrender.com";
   const strength = passwordStrength(password);
 
   useEffect(() => {
@@ -44,26 +48,30 @@ export default function RegisterPage() {
     return () => clearTimeout(t);
   }, [countdown]);
 
-  const handleSendOtp = async () => {
+  const sendOtp = async () => {
+    const res = await fetch(`${API_URL}/auth/otp/send`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ phoneNumber: phoneNumber.trim() }),
+    });
+    if (!res.ok) {
+      const err = await res.json().catch(() => ({}));
+      throw new Error((err as any).message || "Failed to send OTP");
+    }
+  };
+
+  const handleDetailsContinue = async (e: React.FormEvent) => {
+    e.preventDefault();
     setLoading(true);
     setMessage("");
     try {
       if (!fullName.trim() || !phoneNumber.trim() || password.length < 6) {
-        setMessage("Fill name, phone, and password (min 6 characters).");
-        return;
+        throw new Error("Name, phone, and password (min 6) are required");
       }
-      const res = await fetch(`${api}/auth/otp/send`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ phoneNumber: phoneNumber.trim() }),
-      });
-      if (!res.ok) {
-        const err = await res.json().catch(() => ({}));
-        throw new Error(err.message || "Failed to send OTP");
-      }
+      await sendOtp();
       setStep(3);
       setCountdown(60);
-      setMessage("OTP sent");
+      setMessage("OTP sent to your phone");
     } catch (err: any) {
       setMessage(err.message || "Could not send OTP");
     } finally {
@@ -76,18 +84,20 @@ export default function RegisterPage() {
     setLoading(true);
     setMessage("");
     try {
-      const verifyRes = await fetch(`${api}/auth/otp/verify`, {
+      const verifyRes = await fetch(`${API_URL}/auth/otp/verify`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ phoneNumber: phoneNumber.trim(), code: otp.trim() }),
+        body: JSON.stringify({
+          phoneNumber: phoneNumber.trim(),
+          code: otp.trim(),
+        }),
       });
+      const verifyData = await verifyRes.json().catch(() => ({}));
       if (!verifyRes.ok) {
-        const err = await verifyRes.json().catch(() => ({}));
-        throw new Error(err.message || "Invalid OTP");
+        throw new Error((verifyData as any).message || "Invalid OTP");
       }
-      const verifyData = await verifyRes.json();
 
-      const registerRes = await fetch(`${api}/auth/register`, {
+      const registerRes = await fetch(`${API_URL}/auth/register`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
@@ -96,16 +106,15 @@ export default function RegisterPage() {
           phoneNumber: phoneNumber.trim(),
           password,
           role,
-          verificationToken: verifyData.verificationToken,
+          verificationToken: (verifyData as any).verificationToken,
         }),
       });
+      const data = await registerRes.json().catch(() => ({}));
       if (!registerRes.ok) {
-        const err = await registerRes.json().catch(() => ({}));
-        throw new Error(err.message || "Registration failed");
+        throw new Error((data as any).message || "Registration failed");
       }
-      const data = await registerRes.json();
-      if (data.accessToken) {
-        setSession(data.accessToken, data.user?.role);
+      if ((data as any).accessToken) {
+        setSession((data as any).accessToken, (data as any).user?.role || role);
       }
       router.push(role === "TEACHER" ? "/teacher" : "/parent");
     } catch (err: any) {
@@ -115,234 +124,274 @@ export default function RegisterPage() {
     }
   };
 
+  const handleGoogleRegister = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setLoading(true);
+    setMessage("");
+    try {
+      if (!googleIdToken.trim()) {
+        throw new Error("Paste Google idToken (or wire GIS button)");
+      }
+      const res = await fetch(`${API_URL}/auth/google`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          idToken: googleIdToken.trim(),
+          role,
+        }),
+      });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) {
+        throw new Error((data as any).message || "Google signup failed");
+      }
+      if ((data as any).accessToken) {
+        setSession((data as any).accessToken, (data as any).user?.role || role);
+      }
+      router.push(
+        ((data as any).user?.role || role) === "TEACHER"
+          ? "/teacher"
+          : "/parent",
+      );
+    } catch (err: any) {
+      setMessage(err.message || "Google signup failed");
+    } finally {
+      setLoading(false);
+    }
+  };
+
   return (
     <main className="min-h-screen flex bg-[var(--background)]">
       <aside className="hidden md:flex flex-col justify-between w-[420px] flex-shrink-0 bg-gradient-to-br from-teal-800 via-teal-900 to-blue-950 p-10 text-white">
         <div>
-          <div className="flex items-center gap-3 mb-10">
-            <div className="w-11 h-11 bg-white/15 rounded-2xl flex items-center justify-center text-2xl">
-              🎓
-            </div>
-            <div>
-              <p className="text-[10px] text-teal-300 font-extrabold tracking-widest uppercase">
-                Tutor Be
-              </p>
-              <p className="text-xl font-extrabold">BETEA</p>
-            </div>
-          </div>
-          <h2 className="text-3xl font-extrabold mb-3">
+          <p className="text-[10px] text-teal-300 font-extrabold tracking-widest uppercase">
+            Tutor Be Betea
+          </p>
+          <h2 className="text-3xl font-extrabold mt-6 mb-3">
             Join Ethiopia&apos;s trusted tutoring network
           </h2>
           <p className="text-teal-200/80 text-sm">
             Parents and verified tutors · Escrow · Safety first
           </p>
         </div>
-        <div className="flex gap-1">
-          <div className="h-1 w-10 bg-green-500 rounded-full" />
-          <div className="h-1 w-10 bg-yellow-400 rounded-full" />
-          <div className="h-1 w-10 bg-red-500 rounded-full" />
-        </div>
+        <p className="text-xs text-teal-200/60">Step {step} of 3</p>
       </aside>
 
-      <div className="flex-1 flex items-center justify-center p-6 md:p-10">
-        <div className="w-full max-w-sm">
-          <div className="flex justify-between items-center mb-4">
-            <div>
-              <p className="text-2xl font-extrabold text-[var(--foreground)]">Create Account</p>
-              <p className="text-sm text-[var(--muted-foreground)]">
-                Step {step} of 3 — {["Role", "Details", "Verify"][step - 1]}
-              </p>
-            </div>
-            <div className="flex gap-1">
-              {LANGS.map((l) => (
-                <button
-                  key={l}
-                  type="button"
-                  onClick={() => setLang(l)}
-                  className={`text-[10px] font-bold px-2 py-1 rounded-full ${
-                    lang === l ? "bg-teal-600 text-white" : "text-[var(--muted-foreground)]"
-                  }`}
-                >
-                  {l}
-                </button>
-              ))}
-            </div>
-          </div>
-
-          <div className="flex gap-1.5 mb-5">
-            {[1, 2, 3].map((n) => (
-              <div
-                key={n}
-                className={`h-1 flex-1 rounded-full ${n <= step ? "bg-teal-600" : "bg-[var(--muted)]"}`}
-              />
+      <div className="flex-1 flex items-center justify-center p-6">
+        <div className="w-full max-w-md rounded-2xl border border-[var(--border)] bg-[var(--card)] p-6 shadow-sm">
+          <div className="mb-4 flex justify-end gap-2">
+            {LANGS.map((l) => (
+              <button
+                key={l}
+                type="button"
+                onClick={() => setLang(l)}
+                className={`rounded-lg px-2 py-1 text-xs font-bold ${
+                  lang === l
+                    ? "bg-[var(--primary)] text-white"
+                    : "border border-[var(--border)] text-[var(--muted-foreground)]"
+                }`}
+              >
+                {l}
+              </button>
             ))}
           </div>
 
-          {step === 1 && (
-            <div className="space-y-3">
-              {(["PARENT", "TEACHER"] as const).map((r) => (
-                <button
-                  key={r}
-                  type="button"
-                  onClick={() => setRole(r)}
-                  className={`w-full flex items-center gap-3 p-4 rounded-2xl border-2 text-left transition ${
-                    role === r
-                      ? "border-teal-600 bg-teal-50 dark:bg-teal-900/20"
-                      : "border-[var(--border)] bg-[var(--card)]"
-                  }`}
-                >
-                  <span className="text-2xl">{r === "PARENT" ? "👨‍👩‍👧" : "🧑‍🏫"}</span>
-                  <div className="flex-1">
-                    <p className="text-sm font-extrabold text-[var(--foreground)]">
-                      {r === "PARENT" ? "Parent / Guardian" : "Tutor / Teacher"}
-                    </p>
-                    <p className="text-xs text-[var(--muted-foreground)]">
-                      {r === "PARENT"
-                        ? "Find verified tutors for your children"
-                        : "Earn teaching students near you"}
-                    </p>
-                  </div>
-                  {role === r && <span className="text-teal-600 font-bold">✓</span>}
-                </button>
-              ))}
-              <button
-                type="button"
-                onClick={() => setStep(2)}
-                className="w-full bg-teal-600 text-white font-bold py-3 rounded-xl text-sm"
-              >
-                Continue as {role === "PARENT" ? "Parent" : "Tutor"} →
-              </button>
-            </div>
-          )}
+          <h1 className="text-2xl font-extrabold mb-2">Create account</h1>
+          <p className="text-sm text-[var(--muted-foreground)] mb-4">
+            API: {API_URL}
+          </p>
 
-          {step === 2 && (
-            <div className="space-y-3">
-              <div>
-                <label className="text-xs font-semibold text-[var(--muted-foreground)] block mb-1">
-                  Full name *
-                </label>
-                <input
-                  required
-                  value={fullName}
-                  onChange={(e) => setFullName(e.target.value)}
-                  className="w-full rounded-xl px-4 py-2.5 border border-[var(--border)] bg-[var(--card)] text-sm outline-none"
-                />
-              </div>
-              <div>
-                <label className="text-xs font-semibold text-[var(--muted-foreground)] block mb-1">
-                  Phone *
-                </label>
-                <div className="flex items-center gap-2 rounded-xl px-4 py-2.5 border border-[var(--border)] bg-[var(--card)]">
-                  <span className="text-sm font-extrabold text-teal-600">+251</span>
-                  <div className="w-px h-5 bg-[var(--border)]" />
-                  <input
-                    required
-                    type="tel"
-                    value={phoneNumber}
-                    onChange={(e) => setPhoneNumber(e.target.value)}
-                    placeholder="91 234 5678"
-                    className="bg-transparent text-sm flex-1 outline-none"
-                  />
-                </div>
-              </div>
-              <div>
-                <label className="text-xs font-semibold text-[var(--muted-foreground)] block mb-1">
-                  Email (optional)
-                </label>
-                <input
-                  type="email"
-                  value={email}
-                  onChange={(e) => setEmail(e.target.value)}
-                  className="w-full rounded-xl px-4 py-2.5 border border-[var(--border)] bg-[var(--card)] text-sm outline-none"
-                />
-              </div>
-              <div>
-                <label className="text-xs font-semibold text-[var(--muted-foreground)] block mb-1">
-                  Password *
-                </label>
-                <input
-                  required
-                  type="password"
-                  minLength={6}
-                  value={password}
-                  onChange={(e) => setPassword(e.target.value)}
-                  className="w-full rounded-xl px-4 py-2.5 border border-[var(--border)] bg-[var(--card)] text-sm outline-none"
-                />
-                {password.length > 0 && (
-                  <div className="mt-2">
-                    <div className="flex gap-1 mb-1">
-                      {[1, 2, 3, 4].map((i) => (
-                        <div
-                          key={i}
-                          className={`h-1 flex-1 rounded-full ${
-                            strength.score >= i ? strength.color : "bg-[var(--muted)]"
-                          }`}
-                        />
-                      ))}
-                    </div>
-                    <p className="text-[10px] font-bold text-[var(--muted-foreground)]">
-                      {strength.label}
-                    </p>
-                  </div>
-                )}
-              </div>
-              <p className="text-[10px] text-[var(--muted-foreground)]">
-                By continuing you agree to Terms, Privacy, and Escrow Agreement.
-              </p>
-              {message && <p className="text-xs text-red-500 text-center">{message}</p>}
-              <div className="flex gap-2">
-                <button
-                  type="button"
-                  onClick={() => setStep(1)}
-                  className="px-4 py-3 rounded-xl border border-[var(--border)] text-sm font-bold text-[var(--muted-foreground)]"
-                >
-                  Back
-                </button>
-                <button
-                  type="button"
-                  disabled={loading}
-                  onClick={handleSendOtp}
-                  className="flex-1 bg-teal-600 text-white font-bold py-3 rounded-xl text-sm"
-                >
-                  {loading ? "Sending OTP..." : "Next — Verify Phone →"}
-                </button>
-              </div>
-            </div>
-          )}
+          <div className="mb-4 flex rounded-xl border border-[var(--border)] p-1">
+            <button
+              type="button"
+              onClick={() => setTab("phone")}
+              className={`flex-1 rounded-lg py-2 text-sm font-bold ${
+                tab === "phone"
+                  ? "bg-[var(--primary)] text-white"
+                  : "text-[var(--muted-foreground)]"
+              }`}
+            >
+              Phone
+            </button>
+            <button
+              type="button"
+              onClick={() => setTab("google")}
+              className={`flex-1 rounded-lg py-2 text-sm font-bold ${
+                tab === "google"
+                  ? "bg-[var(--primary)] text-white"
+                  : "text-[var(--muted-foreground)]"
+              }`}
+            >
+              Google / Gmail
+            </button>
+          </div>
 
-          {step === 3 && (
-            <form onSubmit={handleVerifyAndRegister} className="space-y-4">
-              <p className="text-xs text-[var(--muted-foreground)] text-center">
-                Enter OTP sent to <strong>{phoneNumber}</strong>
+          {tab === "google" ? (
+            <form onSubmit={handleGoogleRegister} className="space-y-4">
+              <p className="text-sm text-[var(--muted-foreground)]">
+                First-time Google signup requires role in body.
               </p>
-              <input
-                required
-                type="text"
-                inputMode="numeric"
-                maxLength={6}
-                value={otp}
-                onChange={(e) => setOtp(e.target.value)}
-                className="w-full rounded-xl border-2 border-teal-500 px-4 py-3 text-center tracking-[0.4em] text-lg font-extrabold outline-none bg-[var(--card)]"
+              <div className="grid grid-cols-2 gap-2">
+                {(["PARENT", "TEACHER"] as Role[]).map((r) => (
+                  <button
+                    key={r}
+                    type="button"
+                    onClick={() => setRole(r)}
+                    className={`rounded-xl border p-3 text-sm font-bold ${
+                      role === r
+                        ? "border-[var(--primary)] bg-teal-50 dark:bg-teal-950"
+                        : "border-[var(--border)]"
+                    }`}
+                  >
+                    {r}
+                  </button>
+                ))}
+              </div>
+              <textarea
+                value={googleIdToken}
+                onChange={(e) => setGoogleIdToken(e.target.value)}
+                rows={3}
+                className="w-full rounded-xl border border-[var(--border)] bg-[var(--background)] px-3 py-3 text-sm"
+                placeholder="Google idToken"
               />
-              <p className="text-center text-xs text-[var(--muted-foreground)]">
-                {countdown > 0 ? `Resend in ${countdown}s` : "You can request a new code"}
-              </p>
-              {message && <p className="text-xs text-red-500 text-center">{message}</p>}
               <button
                 type="submit"
                 disabled={loading}
-                className="w-full bg-teal-600 text-white font-bold py-3 rounded-xl text-sm"
+                className="w-full rounded-xl bg-[var(--primary)] py-3 text-sm font-bold text-white"
               >
-                {loading ? "Creating..." : "Verify & Create account"}
-              </button>
-              <button
-                type="button"
-                className="w-full text-xs text-[var(--muted-foreground)]"
-                onClick={() => setStep(2)}
-              >
-                ← Back
+                {loading ? "Creating…" : "Continue with Google"}
               </button>
             </form>
+          ) : (
+            <>
+              {step === 1 && (
+                <div className="space-y-3">
+                  <p className="text-sm font-semibold">I am a…</p>
+                  {(["PARENT", "TEACHER"] as Role[]).map((r) => (
+                    <button
+                      key={r}
+                      type="button"
+                      onClick={() => setRole(r)}
+                      className={`w-full rounded-xl border p-4 text-left font-bold ${
+                        role === r
+                          ? "border-[var(--primary)] bg-teal-50 dark:bg-teal-950"
+                          : "border-[var(--border)]"
+                      }`}
+                    >
+                      {r === "PARENT" ? "👨‍👩‍👧 Parent" : "📚 Teacher"}
+                    </button>
+                  ))}
+                  <button
+                    type="button"
+                    onClick={() => setStep(2)}
+                    className="w-full rounded-xl bg-[var(--primary)] py-3 text-sm font-bold text-white"
+                  >
+                    Continue
+                  </button>
+                </div>
+              )}
+
+              {step === 2 && (
+                <form onSubmit={handleDetailsContinue} className="space-y-3">
+                  <input
+                    value={fullName}
+                    onChange={(e) => setFullName(e.target.value)}
+                    placeholder="Full name"
+                    className="w-full rounded-xl border border-[var(--border)] bg-[var(--background)] px-3 py-3 text-sm"
+                  />
+                  <input
+                    value={phoneNumber}
+                    onChange={(e) => setPhoneNumber(e.target.value)}
+                    placeholder="Phone 09… / 07… / +251"
+                    className="w-full rounded-xl border border-[var(--border)] bg-[var(--background)] px-3 py-3 text-sm"
+                  />
+                  <input
+                    value={email}
+                    onChange={(e) => setEmail(e.target.value)}
+                    placeholder="Email (optional)"
+                    className="w-full rounded-xl border border-[var(--border)] bg-[var(--background)] px-3 py-3 text-sm"
+                  />
+                  <input
+                    type="password"
+                    value={password}
+                    onChange={(e) => setPassword(e.target.value)}
+                    placeholder="Password"
+                    className="w-full rounded-xl border border-[var(--border)] bg-[var(--background)] px-3 py-3 text-sm"
+                  />
+                  <div className="flex items-center gap-2 text-xs">
+                    <div className={`h-1.5 flex-1 rounded ${strength.color}`} />
+                    <span>{strength.label}</span>
+                  </div>
+                  <button
+                    type="submit"
+                    disabled={loading}
+                    className="w-full rounded-xl bg-[var(--primary)] py-3 text-sm font-bold text-white"
+                  >
+                    {loading ? "Sending OTP…" : "Send OTP"}
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setStep(1)}
+                    className="w-full text-xs text-[var(--muted-foreground)]"
+                  >
+                    ← Back
+                  </button>
+                </form>
+              )}
+
+              {step === 3 && (
+                <form onSubmit={handleVerifyAndRegister} className="space-y-3">
+                  <p className="text-sm text-[var(--muted-foreground)]">
+                    Enter OTP sent to {phoneNumber}
+                  </p>
+                  <input
+                    value={otp}
+                    onChange={(e) =>
+                      setOtp(e.target.value.replace(/\D/g, "").slice(0, 6))
+                    }
+                    placeholder="6-digit code"
+                    className="w-full rounded-xl border border-[var(--border)] bg-[var(--background)] px-3 py-3 text-sm tracking-widest"
+                  />
+                  <button
+                    type="submit"
+                    disabled={loading}
+                    className="w-full rounded-xl bg-[var(--primary)] py-3 text-sm font-bold text-white"
+                  >
+                    {loading ? "Creating…" : "Verify & Create account"}
+                  </button>
+                  <button
+                    type="button"
+                    disabled={countdown > 0 || loading}
+                    onClick={async () => {
+                      try {
+                        setLoading(true);
+                        await sendOtp();
+                        setCountdown(60);
+                      } catch (err: any) {
+                        setMessage(err.message);
+                      } finally {
+                        setLoading(false);
+                      }
+                    }}
+                    className="w-full text-sm font-semibold text-[var(--primary)]"
+                  >
+                    {countdown > 0 ? `Resend in ${countdown}s` : "Resend code"}
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setStep(2)}
+                    className="w-full text-xs text-[var(--muted-foreground)]"
+                  >
+                    ← Back
+                  </button>
+                </form>
+              )}
+            </>
+          )}
+
+          {message && (
+            <p className="mt-4 text-center text-sm text-[var(--warning)]">
+              {message}
+            </p>
           )}
 
           <p className="text-center text-xs text-[var(--muted-foreground)] mt-6">
