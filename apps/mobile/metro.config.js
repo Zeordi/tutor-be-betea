@@ -6,12 +6,10 @@ const monorepoRoot = path.resolve(projectRoot, "../..");
 
 const config = getDefaultConfig(projectRoot);
 
-// 1. Monorepo watch folders (limit to root & packages)
-config.watchFolders = [
-  monorepoRoot,
-];
+// 1. Monorepo watch folders (combine default Expo folders + monorepo root)
+config.watchFolders = [...(config.watchFolders || [projectRoot]), monorepoRoot];
 
-// 2. Resolve module paths correctly in pnpm
+// 2. Resolve module paths correctly in pnpm monorepo
 config.resolver.nodeModulesPaths = [
   path.resolve(projectRoot, "node_modules"),
   path.resolve(monorepoRoot, "node_modules"),
