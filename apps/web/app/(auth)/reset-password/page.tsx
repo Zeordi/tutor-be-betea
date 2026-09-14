@@ -4,12 +4,13 @@ import { Suspense, useMemo, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
 
+const api =
+  process.env.NEXT_PUBLIC_API_URL ||
+  "https://tutor-be-betea.onrender.com";
+
 function ResetForm() {
   const router = useRouter();
   const params = useSearchParams();
-  const API_URL =
-  process.env.NEXT_PUBLIC_API_URL ||
-  "https://tutor-be-betea.onrender.com";
 
   const initialPhone = useMemo(
     () =>
@@ -45,12 +46,8 @@ function ResetForm() {
     setLoading(true);
     setMessage("");
     try {
-      if (newPassword !== confirm) {
-        throw new Error("Passwords do not match");
-      }
-      if (newPassword.length < 6) {
-        throw new Error("Password min 6 characters");
-      }
+      if (newPassword !== confirm) throw new Error("Passwords do not match");
+      if (newPassword.length < 6) throw new Error("Password min 6 characters");
       const code = otpDigits.join("");
       if (code.length !== 6) throw new Error("Enter 6-digit OTP");
 
