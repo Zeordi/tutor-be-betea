@@ -1,162 +1,187 @@
-"use client";
+import { useState } from "react";
+import {
+  View,
+  Text,
+  TextInput,
+  TouchableOpacity,
+  StyleSheet,
+  Alert,
+  ActivityIndicator,
+} from "react-native";
+import { useLocalSearchParams, useRouter } from "expo-router";
+import { SafeAreaView } from "react-native-safe-area-context";
+import { useTheme } from "@/hooks/useTheme";
+import { api } from "@/lib/api";
 
-import { Suspense, useMemo, useState } from "react";
-import { useRouter, useSearchParams } from "next/navigation";
-import Link from "next/link";
-
-const API_URL =
-  process.env.NEXT_PUBLIC_API_URL ||
-  "https://tutor-be-betea.onrender.com";
-
-function ResetForm() {
+export default function ResetPasswordScreen() {
   const router = useRouter();
-  const params = useSearchParams();
+  const params = useLocalSearchParams<{
+    phone?: string;
+    verificationToken?: string;
+  }>();
+  const { isDark } = useTheme();
 
-  const initialPhone = useMemo(
-    () =>
-      params.get("phone") ||
-      (typeof window !== "undefined"
-        ? sessionStorage.getItem("resetPhone") || ""
-        : ""),
-    [params],
-  );
-
-  const [phoneNumber, setPhoneNumber] = useState(initialPhone);
-  const [otpDigits, setOtpDigits] = useState(["", "", "", "", "", ""]);
+  const [phone, setPhone] = useState((params.phone as string) || "");
+  const [otp, setOtp] = useState(["", "", "", "", "", ""]);
   const [newPassword, setNewPassword] = useState("");
   const [confirm, setConfirm] = useState("");
   const [loading, setLoading] = useState(false);
-  const [message, setMessage] = useState("");
 
-  const strength =
-    newPassword.length >= 10
-      ? "Strong"
-      : newPassword.length >= 6
-        ? "OK"
-        : "Too short";
+  const bg = isDark ? "#0A1628" : "#FFFFFF";
+  const card = isDark ? "#112240" : "#FFFFFF";
+  const border = isDark ? "#1E3A5F" : "#E2E8F0";
+  const text = isDark ? "#F0FAFA" : "#0D2B2A";
+  const sub = isDark ? "#94A3B8" : "#64748B";
+  const primary = "#0D9488";
 
   const setDigit = (i: number, v: string) => {
-    const next = [...otpDigits];
+    const next = [...otp];
     next[i] = v.replace(/\D/g, "").slice(-1);
-    setOtpDigits(next);
+    setOtp(next);
   };
 
-  const onSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
+  const submit = async () => {
+    if (newPassword.length < 6) {
+      Alert.alert("Weak password", "Min 6 characters");
+      return;
+    }
+    if (newPassword !== confirm) {
+      Alert.alert("Mismatch", "Passwords do not match");
+      return;
+    }
     setLoading(true);
-    setMessage("");
     try {
-      if (newPassword !== confirm) {
-        throw new Error("Passwords do not match");
-      }
-      if (newPassword.length < 6) {
-        throw new Error("Password min 6 characters");
-      }
-      const code = otpDigits.join("");
-      if (code.length !== 6) throw new Error("Enter 6-digit OTP");
-
-      const verifyRes = await fetch(`${API_URL}/auth/otp/verify`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ phoneNumber: phoneNumber.trim(), code }),
-      });
-      const verifyData = await verifyRes.json().catch(() => ({}));
-      if (!verifyRes.ok) {
-        throw new Error((verifyData as any).message || "Invalid OTP");
+      let verificationToken = params.verificationToken as string | undefined;
+      if (!verificationToken) {
+        const code = otp.join("");
+        if (code.length !== 6) {
+          throw new Error("Enter the 6-digit OTP");
+        }
+        const verify = await api.post<{ verificationToken: string }>(
+          "/auth/otp/verify",
+          { phoneNumber: phone.trim(), code },
+        );
+        verificationToken = verify.verificationToken;
       }
 
-      const res = await fetch(`${API_URL}/auth/password/reset`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          phoneNumber: phoneNumber.trim(),
-          verificationToken: (verifyData as any).verificationToken,
-          newPassword,
-        }),
+      await api.post("/auth/password/reset", {
+        phoneNumber: phone.trim(),
+        verificationToken,
+        newPassword,
       });
-      const data = await res.json().catch(() => ({}));
-      if (!res.ok) {
-        throw new Error((data as any).message || "Reset failed");
-      }
-      router.push("/login");
-    } catch (err: any) {
-      setMessage(err.message || "Reset failed");
+
+      Alert.alert("Success", "Password updated. Please sign in.");
+      router.replace("/(auth)/login");
+    } catch (e: any) {
+      Alert.alert("Reset failed", e.message || "Try again");
     } finally {
       setLoading(false);
     }
   };
 
   return (
-    <form
-      onSubmit={onSubmit}
-      className="w-full max-w-md space-y-4 rounded-2xl border border-[var(--border)] bg-[var(--card)] p-6"
-    >
-      <h1 className="text-xl font-extrabold text-[var(--foreground)]">
-        Reset password
-      </h1>
-      <p className="text-xs text-[var(--muted-foreground)]">
-        API: {API_URL}
-      </p>
-      <input
-        value={phoneNumber}
-        onChange={(e) => setPhoneNumber(e.target.value)}
-        className="w-full rounded-xl border border-[var(--border)] bg-[var(--background)] px-3 py-3 text-sm text-[var(--foreground)]"
-        placeholder="Phone"
-      />
-      <div className="flex justify-between gap-2">
-        {otpDigits.map((d, i) => (
-          <input
-            key={i}
-            value={d}
-            onChange={(e) => setDigit(i, e.target.value)}
-            maxLength={1}
-            className="h-12 w-10 rounded-lg border border-[var(--border)] bg-[var(--background)] text-center font-bold text-[var(--foreground)]"
-          />
-        ))}
-      </div>
-      <input
-        type="password"
-        value={newPassword}
-        onChange={(e) => setNewPassword(e.target.value)}
-        className="w-full rounded-xl border border-[var(--border)] bg-[var(--background)] px-3 py-3 text-sm text-[var(--foreground)]"
-        placeholder="New password"
-      />
-      <p className="text-xs text-[var(--muted-foreground)]">
-        Strength: {strength}
-      </p>
-      <input
-        type="password"
-        value={confirm}
-        onChange={(e) => setConfirm(e.target.value)}
-        className="w-full rounded-xl border border-[var(--border)] bg-[var(--background)] px-3 py-3 text-sm text-[var(--foreground)]"
-        placeholder="Confirm password"
-      />
-      <button
-        type="submit"
-        disabled={loading}
-        className="w-full rounded-xl bg-[var(--primary)] py-3 text-sm font-bold text-white disabled:opacity-60"
-      >
-        {loading ? "Updating…" : "Update password"}
-      </button>
-      {message && (
-        <p className="text-sm text-[var(--warning)]">{message}</p>
-      )}
-      <Link
-        href="/login"
-        className="block text-center text-sm text-[var(--primary)]"
-      >
-        Back to login
-      </Link>
-    </form>
+    <SafeAreaView style={[styles.container, { backgroundColor: bg }]}>
+      <View style={{ padding: 24 }}>
+        <Text style={[styles.title, { color: text }]}>Reset password</Text>
+        <TextInput
+          value={phone}
+          onChangeText={setPhone}
+          placeholder="Phone"
+          placeholderTextColor={sub}
+          style={[
+            styles.input,
+            { borderColor: border, color: text, backgroundColor: card },
+          ]}
+        />
+        {!params.verificationToken && (
+          <View style={styles.otpRow}>
+            {otp.map((d, i) => (
+              <TextInput
+                key={i}
+                value={d}
+                onChangeText={(v) => setDigit(i, v)}
+                maxLength={1}
+                keyboardType="number-pad"
+                style={[
+                  styles.otpBox,
+                  {
+                    borderColor: d ? primary : border,
+                    backgroundColor: card,
+                    color: text,
+                  },
+                ]}
+              />
+            ))}
+          </View>
+        )}
+        <TextInput
+          value={newPassword}
+          onChangeText={setNewPassword}
+          placeholder="New password"
+          placeholderTextColor={sub}
+          secureTextEntry
+          style={[
+            styles.input,
+            { borderColor: border, color: text, backgroundColor: card },
+          ]}
+        />
+        <TextInput
+          value={confirm}
+          onChangeText={setConfirm}
+          placeholder="Confirm password"
+          placeholderTextColor={sub}
+          secureTextEntry
+          style={[
+            styles.input,
+            { borderColor: border, color: text, backgroundColor: card },
+          ]}
+        />
+        <TouchableOpacity
+          style={[styles.btn, { backgroundColor: primary }]}
+          onPress={submit}
+          disabled={loading}
+        >
+          {loading ? (
+            <ActivityIndicator color="#fff" />
+          ) : (
+            <Text style={styles.btnText}>Update password</Text>
+          )}
+        </TouchableOpacity>
+      </View>
+    </SafeAreaView>
   );
 }
 
-export default function ResetPasswordPage() {
-  return (
-    <main className="flex min-h-screen items-center justify-center bg-[var(--background)] px-4">
-      <Suspense fallback={<p className="text-[var(--muted-foreground)]">Loading…</p>}>
-        <ResetForm />
-      </Suspense>
-    </main>
-  );
-}
+const styles = StyleSheet.create({
+  container: { flex: 1 },
+  title: { fontSize: 22, fontWeight: "900", marginBottom: 16 },
+  input: {
+    borderWidth: 1,
+    borderRadius: 14,
+    paddingHorizontal: 14,
+    paddingVertical: 12,
+    marginBottom: 12,
+  },
+  otpRow: {
+    flexDirection: "row",
+    justifyContent: "center",
+    gap: 8,
+    marginBottom: 12,
+  },
+  otpBox: {
+    width: 44,
+    height: 52,
+    borderWidth: 2,
+    borderRadius: 12,
+    textAlign: "center",
+    fontSize: 18,
+    fontWeight: "800",
+  },
+  btn: {
+    borderRadius: 14,
+    paddingVertical: 14,
+    alignItems: "center",
+    marginTop: 8,
+  },
+  btnText: { color: "#fff", fontWeight: "800" },
+});
