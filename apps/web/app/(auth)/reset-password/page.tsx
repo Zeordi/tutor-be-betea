@@ -4,7 +4,7 @@ import { Suspense, useMemo, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
 
-const api =
+const API_URL =
   process.env.NEXT_PUBLIC_API_URL ||
   "https://tutor-be-betea.onrender.com";
 
@@ -51,7 +51,7 @@ function ResetForm() {
       const code = otpDigits.join("");
       if (code.length !== 6) throw new Error("Enter 6-digit OTP");
 
-      const verifyRes = await fetch(`${api}/auth/otp/verify`, {
+      const verifyRes = await fetch(`${API_URL}/auth/otp/verify`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ phoneNumber: phoneNumber.trim(), code }),
@@ -61,7 +61,7 @@ function ResetForm() {
         throw new Error((verifyData as any).message || "Invalid OTP");
       }
 
-      const res = await fetch(`${api}/auth/password/reset`, {
+      const res = await fetch(`${API_URL}/auth/password/reset`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
@@ -112,7 +112,9 @@ function ResetForm() {
         className="w-full rounded-xl border border-[var(--border)] bg-[var(--background)] px-3 py-3 text-sm"
         placeholder="New password"
       />
-      <p className="text-xs text-[var(--muted-foreground)]">Strength: {strength}</p>
+      <p className="text-xs text-[var(--muted-foreground)]">
+        Strength: {strength}
+      </p>
       <input
         type="password"
         value={confirm}
@@ -127,8 +129,13 @@ function ResetForm() {
       >
         {loading ? "Updating…" : "Update password"}
       </button>
-      {message && <p className="text-sm text-[var(--warning)]">{message}</p>}
-      <Link href="/login" className="block text-center text-sm text-[var(--primary)]">
+      {message && (
+        <p className="text-sm text-[var(--warning)]">{message}</p>
+      )}
+      <Link
+        href="/login"
+        className="block text-center text-sm text-[var(--primary)]"
+      >
         Back to login
       </Link>
     </form>
