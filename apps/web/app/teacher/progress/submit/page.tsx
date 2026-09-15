@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { apiFetch, getToken } from "@/lib/api";
+import { apiFetch, paths } from "@/lib/api";
 
 export default function SubmitProgressPage() {
   const router = useRouter();
@@ -21,15 +21,15 @@ export default function SubmitProgressPage() {
     setMessage("");
 
     try {
-      const token = localStorage.getItem("token");
-      const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/progress`, {
+      const id = contractId.trim();
+      if (!id) {
+        throw new Error("Contract ID is required");
+      }
+
+      // POST /progress/:contractId  (not POST /progress)
+      await apiFetch(paths.progressSubmit(id), {
         method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${token}`,
-        },
         body: JSON.stringify({
-          contractId,
           weekNumber: Number(weekNumber),
           topicsCovered,
           quizScore: quizScore ? Number(quizScore) : null,
@@ -37,11 +37,6 @@ export default function SubmitProgressPage() {
           improvementAreas,
         }),
       });
-
-      if (!res.ok) {
-        const err = await res.json().catch(() => ({}));
-        throw new Error(err.message || "Failed to submit report");
-      }
 
       setMessage("Progress report submitted successfully.");
       router.push("/teacher");
@@ -62,7 +57,9 @@ export default function SubmitProgressPage() {
 
         <form onSubmit={handleSubmit} className="card space-y-5">
           <div>
-            <label className="block text-sm font-semibold mb-2">Contract ID</label>
+            <label className="block text-sm font-semibold mb-2">
+              Contract ID
+            </label>
             <input
               value={contractId}
               onChange={(e) => setContractId(e.target.value)}
@@ -72,9 +69,12 @@ export default function SubmitProgressPage() {
           </div>
 
           <div>
-            <label className="block text-sm font-semibold mb-2">Week Number</label>
+            <label className="block text-sm font-semibold mb-2">
+              Week number
+            </label>
             <input
               type="number"
+              min={1}
               value={weekNumber}
               onChange={(e) => setWeekNumber(e.target.value)}
               required
@@ -83,20 +83,26 @@ export default function SubmitProgressPage() {
           </div>
 
           <div>
-            <label className="block text-sm font-semibold mb-2">Topics Covered</label>
+            <label className="block text-sm font-semibold mb-2">
+              Topics covered
+            </label>
             <textarea
               value={topicsCovered}
               onChange={(e) => setTopicsCovered(e.target.value)}
-              rows={3}
               required
+              rows={3}
               className="w-full rounded-xl border border-[var(--border)] px-4 py-3 bg-[var(--surface)] outline-none"
             />
           </div>
 
           <div>
-            <label className="block text-sm font-semibold mb-2">Quiz Score (optional)</label>
+            <label className="block text-sm font-semibold mb-2">
+              Quiz score (optional)
+            </label>
             <input
               type="number"
+              min={0}
+              max={100}
               value={quizScore}
               onChange={(e) => setQuizScore(e.target.value)}
               className="w-full rounded-xl border border-[var(--border)] px-4 py-3 bg-[var(--surface)] outline-none"
@@ -114,7 +120,9 @@ export default function SubmitProgressPage() {
           </div>
 
           <div>
-            <label className="block text-sm font-semibold mb-2">Areas to Improve</label>
+            <label className="block text-sm font-semibold mb-2">
+              Areas to improve
+            </label>
             <textarea
               value={improvementAreas}
               onChange={(e) => setImprovementAreas(e.target.value)}
@@ -123,10 +131,16 @@ export default function SubmitProgressPage() {
             />
           </div>
 
-          {message && <p className="text-sm text-[var(--secondary)]">{message}</p>}
+          {message && (
+            <p className="text-sm text-[var(--secondary)]">{message}</p>
+          )}
 
-          <button type="submit" disabled={loading} className="btn btn-primary w-full">
-            {loading ? "Submitting..." : "Submit Report"}
+          <button
+            type="submit"
+            disabled={loading}
+            className="btn btn-primary w-full"
+          >
+            {loading ? "Submitting…" : "Submit report"}
           </button>
         </form>
       </section>
