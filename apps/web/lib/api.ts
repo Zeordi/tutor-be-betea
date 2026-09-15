@@ -10,23 +10,50 @@ export function getApiUrl() {
   return API_URL;
 }
 
-/** Canonical API paths (Phase B) */
+/** Canonical API paths (Phase B + Parent web) */
 export const paths = {
+  // contracts / escrow
   contractsParent: "/contracts/mine/parent",
   contractsTeacher: "/contracts/mine/teacher",
   contract: (id: string) => `/contracts/${id}`,
   contractsCreate: "/contracts",
   escrowHold: (contractId: string) => `/escrow/${contractId}/hold`,
   escrowRelease: (contractId: string) => `/escrow/${contractId}/release`,
+
+  // attendance
   attendanceCheckIn: "/attendance/check-in",
   attendanceCheckOut: "/attendance/check-out",
   attendanceByContract: (contractId: string) =>
     `/attendance/contract/${contractId}`,
   attendanceConfirm: (id: string) => `/attendance/${id}/confirm`,
+
+  // progress
   progressMine: "/progress/mine",
   progressSubmit: (contractId: string) => `/progress/${contractId}`,
   progressGet: (contractId: string) => `/progress/${contractId}`,
+
+  // users
   usersMe: "/users/me",
+
+  // teachers
+  teachers: "/teachers",
+  teacher: (id: string) => `/teachers/${id}`,
+
+  // jobs
+  jobsMine: "/jobs/mine",
+  jobsCreate: "/jobs",
+  job: (id: string) => `/jobs/${id}`,
+
+  // children
+  children: "/parents/children",
+  child: (id: string) => `/parents/children/${id}`,
+
+  // favorites
+  favorites: "/favorites",
+  favorite: (teacherId: string) => `/favorites/${teacherId}`,
+
+  // wallet
+  wallet: "/payments/wallet",
 } as const;
 
 export async function apiFetch<T = any>(
