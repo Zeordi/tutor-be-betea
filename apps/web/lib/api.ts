@@ -47,13 +47,12 @@ export async function apiFetch<T = any>(
     (headers as any)["Authorization"] = `Bearer ${token}`;
   }
 
-  const res = await fetch(
-    `\( {API_URL} \){path.startsWith("/") ? path : `/${path}`}`,
-    {
-      ...options,
-      headers,
-    },
-  );
+  const url = API_URL + (path.startsWith("/") ? path : "/" + path);
+
+  const res = await fetch(url, {
+    ...options,
+    headers,
+  });
 
   const data = await res.json().catch(() => ({}));
 
