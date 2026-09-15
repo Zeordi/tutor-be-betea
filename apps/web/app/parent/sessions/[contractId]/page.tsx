@@ -1,107 +1,112 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { useParams } from "next/navigation";
-import { apiFetch } from "@/lib/api";
+import { apiFetch, paths } from "@/lib/api";
 
 type AttendanceLog = {
   id: string;
   checkInTime: string;
   checkOutTime?: string | null;
-  distanceMeters?: number;
+  distanceMeters?: number | null;
   isVerifiedGeofence?: boolean;
   parentConfirmed?: boolean;
 };
 
-export default function ParentSessionsPage() {
-  const { contractId } = useParams<{ contractId: string }>();
+export default function ParentSessionPage() {
+  const params = useParams();
+  const contractId = String(params.contractId || "");
+
   const [logs, setLogs] = useState<AttendanceLog[]>([]);
   const [loading, setLoading] = useState(true);
   const [message, setMessage] = useState("");
+  const [confirmingId, setConfirmingId] = useState<string | null>(null);
 
-  const loadLogs = async () => {
+  const load = useCallback(async () => {
+    if (!contractId) return;
+    setLoading(true);
     try {
-      setLoading(true);
-      const data = await apiFetch(`/attendance/contract/${contractId}`);
-      setLogs(Array.isArray(data) ? data : []);
-    } catch {
+      const data = await apiFetch(paths.attendanceByContract(contractId));
+      setLogs(Array.isArray(data) ? data : data?.logs || []);
+    } catch (e: any) {
+      setMessage(e.message || "Failed to load sessions");
       setLogs([]);
     } finally {
       setLoading(false);
     }
-  };
-
-  useEffect(() => {
-    if (contractId) loadLogs();
   }, [contractId]);
 
-  const confirmSession = async (attendanceId: string) => {
+  useEffect(() => {
+    load();
+  }, [load]);
+
+  const confirmAttendance = async (attendanceId: string) => {
+    setConfirmingId(attendanceId);
+    setMessage("");
     try {
-      await apiFetch(`/attendance/${attendanceId}/confirm`, {
+      await apiFetch(paths.attendanceConfirm(attendanceId), {
         method: "POST",
+        body: JSON.stringify({}),
       });
-      setMessage("Session confirmed successfully.");
-      loadLogs();
-    } catch (error: any) {
-      setMessage(error.message || "Failed to confirm session");
+      setMessage("Session confirmed.");
+      await load();
+    } catch (e: any) {
+      setMessage(e.message || "Confirm failed");
+    } finally {
+      setConfirmingId(null);
     }
   };
 
   return (
     <div>
-      <h1 className="text-3xl font-bold mb-2">Sessions & Attendance</h1>
+      <h1 className="text-3xl font-bold mb-2">Session attendance</h1>
       <p className="text-[var(--secondary)] mb-8">
-        Review geofenced check-ins and confirm completed sessions.
+        Review tutor check-ins and confirm completed sessions.
       </p>
 
       {message && (
-        <div className="card mb-5 text-sm text-[var(--secondary)]">{message}</div>
+        <p className="mb-4 text-sm text-[var(--secondary)]">{message}</p>
       )}
 
       {loading ? (
-        <p className="text-[var(--secondary)]">Loading sessions...</p>
+        <p className="text-[var(--secondary)]">Loading...</p>
       ) : logs.length === 0 ? (
         <div className="card text-center py-12">
           <h3 className="text-xl font-bold mb-2">No sessions yet</h3>
           <p className="text-[var(--secondary)]">
-            Attendance logs will appear after the tutor checks in.
+            Attendance will show here after the tutor checks in.
           </p>
         </div>
       ) : (
         <div className="space-y-4">
           {logs.map((log) => (
             <div key={log.id} className="card">
-              <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-3">
-                <div>
-                  <h3 className="font-bold text-lg">
-                    Check-in: {new Date(log.checkInTime).toLocaleString()}
-                  </h3>
-                  <p className="text-sm text-[var(--secondary)] mt-1">
-                    Check-out:{" "}
-                    {log.checkOutTime
-                      ? new Date(log.checkOutTime).toLocaleString()
-                      : "In progress"}
-                  </p>
-                  <p className="text-sm text-[var(--secondary)]">
-                    Distance: {Number(log.distanceMeters || 0).toFixed(1)} m
-                  </p>
-                  <p className="text-sm text-[var(--secondary)]">
-                    Geofence: {log.isVerifiedGeofence ? "Verified ✅" : "Not verified"}
-                  </p>
-                  <p className="text-sm text-[var(--secondary)]">
-                    Parent confirmation: {log.parentConfirmed ? "Confirmed ✅" : "Pending"}
-                  </p>
-                </div>
-
-                {!log.parentConfirmed && log.checkOutTime && (
-                  <button
-                    onClick={() => confirmSession(log.id)}
-                    className="btn btn-primary"
-                  >
-                    Confirm Session
-                  </button>
-                )}
-              </div>
+              <h3 className="font-bold">
+                {new Date(log.checkInTime).toLocaleString()}
+              </h3>
+              <p className="text-sm text-[var(--secondary)] mt-1">
+                Checkout:{" "}
+                {log.checkOutTime
+                  ? new Date(log.checkOutTime).toLocaleString()
+                  : "In progress"}
+              </p>
+              <p className="text-sm text-[var(--secondary)]">
+                Geofence:{" "}
+                {log.isVerifiedGeofence ? "Verified ✅" : "Not verified"}
+              </p>
+              <p className="text-sm text-[var(--secondary)]">
+                Parent confirmed: {log.parentConfirmed ? "Yes ✅" : "No"}
+              </p>
+              {!log.parentConfirmed && log.checkOutTime && (
+                <button
+                  type="button"
+                  className="btn btn-primary mt-3"
+                  disabled={confirmingId === log.id}
+                  onClick={() => confirmAttendance(log.id)}
+                >
+                  {confirmingId === log.id ? "Confirming…" : "Confirm session"}
+                </button>
+              )}
             </div>
           ))}
         </div>
