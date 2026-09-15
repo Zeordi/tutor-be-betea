@@ -1,110 +1,120 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { useParams } from "next/navigation";
-import { apiFetch, getToken } from "@/lib/api";
+import { apiFetch, paths } from "@/lib/api";
 
 type AttendanceLog = {
   id: string;
   checkInTime: string;
   checkOutTime?: string | null;
-  distanceMeters?: number;
+  distanceMeters?: number | null;
   isVerifiedGeofence?: boolean;
   parentConfirmed?: boolean;
 };
 
+async function getBrowserPosition(): Promise<{
+  latitude: number;
+  longitude: number;
+}> {
+  return new Promise((resolve, reject) => {
+    if (!navigator.geolocation) {
+      reject(new Error("Geolocation not supported"));
+      return;
+    }
+    navigator.geolocation.getCurrentPosition(
+      (pos) =>
+        resolve({
+          latitude: pos.coords.latitude,
+          longitude: pos.coords.longitude,
+        }),
+      (err) => reject(new Error(err.message || "Location denied")),
+      { enableHighAccuracy: true, timeout: 15000 },
+    );
+  });
+}
+
 export default function TeacherSessionPage() {
-  const { contractId } = useParams<{ contractId: string }>();
+  const params = useParams();
+  const contractId = String(params.contractId || "");
+
   const [logs, setLogs] = useState<AttendanceLog[]>([]);
   const [loading, setLoading] = useState(true);
   const [actionLoading, setActionLoading] = useState(false);
   const [message, setMessage] = useState("");
 
-  const loadLogs = async () => {
+  const load = useCallback(async () => {
+    if (!contractId) return;
+    setLoading(true);
     try {
-      setLoading(true);
-      const data = await apiFetch(`/attendance/contract/${contractId}`);
-      setLogs(Array.isArray(data) ? data : []);
-    } catch {
+      const data = await apiFetch(paths.attendanceByContract(contractId));
+      setLogs(Array.isArray(data) ? data : data?.logs || []);
+    } catch (e: any) {
+      setMessage(e.message || "Failed to load attendance");
       setLogs([]);
     } finally {
       setLoading(false);
     }
-  };
-
-  useEffect(() => {
-    if (contractId) loadLogs();
   }, [contractId]);
 
-  const getLocation = (): Promise<{ latitude: number; longitude: number }> => {
-    return new Promise((resolve, reject) => {
-      if (!navigator.geolocation) {
-        reject(new Error("Geolocation is not supported on this browser"));
-        return;
-      }
+  useEffect(() => {
+    load();
+  }, [load]);
 
-      navigator.geolocation.getCurrentPosition(
-        (pos) => {
-          resolve({
-            latitude: pos.coords.latitude,
-            longitude: pos.coords.longitude,
-          });
-        },
-        () => reject(new Error("Unable to get your location")),
-        { enableHighAccuracy: true, timeout: 15000 }
-      );
-    });
-  };
+  const activeSession = logs.find((l) => !l.checkOutTime);
 
   const handleCheckIn = async () => {
+    setActionLoading(true);
+    setMessage("");
     try {
-      setActionLoading(true);
-      setMessage("");
-      const location = await getLocation();
-
-      await apiFetch("/attendance/check-in", {
+      const { latitude, longitude } = await getBrowserPosition();
+      // Required shape: contractId, latitude, longitude, offlineId?
+      await apiFetch(paths.attendanceCheckIn, {
         method: "POST",
         body: JSON.stringify({
           contractId,
-          latitude: location.latitude,
-          longitude: location.longitude,
+          latitude,
+          longitude,
         }),
       });
-
       setMessage("Checked in successfully.");
-      loadLogs();
-    } catch (error: any) {
-      setMessage(error.message || "Check-in failed");
+      await load();
+    } catch (e: any) {
+      setMessage(e.message || "Check-in failed");
     } finally {
       setActionLoading(false);
     }
   };
 
   const handleCheckOut = async () => {
+    setActionLoading(true);
+    setMessage("");
     try {
-      setActionLoading(true);
-      setMessage("");
-      const location = await getLocation();
-
-      await apiFetch("/attendance/check-out", {
+      let latitude: number | undefined;
+      let longitude: number | undefined;
+      try {
+        const pos = await getBrowserPosition();
+        latitude = pos.latitude;
+        longitude = pos.longitude;
+      } catch {
+        /* optional on checkout */
+      }
+      // Required shape: contractId, latitude?, longitude?, offlineId?
+      await apiFetch(paths.attendanceCheckOut, {
         method: "POST",
         body: JSON.stringify({
           contractId,
-          latitude: location.latitude,
-          longitude: location.longitude,
+          ...(latitude != null ? { latitude, longitude } : {}),
         }),
       });
-
       setMessage("Checked out successfully.");
-      loadLogs();
-    } catch (error: any) {
-      setMessage(error.message || "Check-out failed");
+      await load();
+    } catch (e: any) {
+      setMessage(e.message || "Check-out failed");
     } finally {
       setActionLoading(false);
     }
   };
-
-  const activeSession = logs.find((l) => !l.checkOutTime);
 
   return (
     <div>
@@ -117,6 +127,7 @@ export default function TeacherSessionPage() {
         <h3 className="font-bold text-lg mb-3">Current Action</h3>
         <div className="flex flex-wrap gap-3">
           <button
+            type="button"
             onClick={handleCheckIn}
             disabled={actionLoading || !!activeSession}
             className="btn btn-primary"
@@ -124,6 +135,7 @@ export default function TeacherSessionPage() {
             {actionLoading ? "Please wait..." : "Check In"}
           </button>
           <button
+            type="button"
             onClick={handleCheckOut}
             disabled={actionLoading || !activeSession}
             className="btn btn-secondary"
@@ -164,7 +176,8 @@ export default function TeacherSessionPage() {
                 Distance: {Number(log.distanceMeters || 0).toFixed(1)} m
               </p>
               <p className="text-sm text-[var(--secondary)]">
-                Geofence: {log.isVerifiedGeofence ? "Verified ✅" : "Not verified"}
+                Geofence:{" "}
+                {log.isVerifiedGeofence ? "Verified ✅" : "Not verified"}
               </p>
               <p className="text-sm text-[var(--secondary)]">
                 Parent confirmed: {log.parentConfirmed ? "Yes ✅" : "No"}
