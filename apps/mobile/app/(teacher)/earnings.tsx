@@ -58,7 +58,7 @@ export default function EarningsScreen() {
     if (!earnings?.payouts?.length) return [30, 45, 40, 60, 55, 70, 65];
     const buckets = Array(7).fill(0);
     earnings.payouts.forEach((p, i) => {
-      const v = parseInt(p.amount.replace(/[^0-9]/g, ""), 10) || 0;
+      const v = parseInt(String(p.amount).replace(/[^0-9]/g, ""), 10) || 0;
       buckets[i % 7] = Math.max(buckets[i % 7], v / 100);
     });
     return buckets.map((v) => Math.min(100, Math.max(20, v)));

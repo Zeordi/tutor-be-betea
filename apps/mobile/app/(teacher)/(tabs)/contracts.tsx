@@ -39,7 +39,7 @@ export default function ActiveContractsScreen() {
     setLoading(true);
     setError("");
 
-    apiRequest<Contract[]>(paths.contractsMineTeacher)
+    apiRequest<Contract[]>(paths.contractsTeacher)
       .then((data) => {
         if (!cancelled) setContracts(Array.isArray(data) ? data : []);
       })
@@ -84,7 +84,7 @@ export default function ActiveContractsScreen() {
             onPress={() => {
               setError("");
               setLoading(true);
-              apiRequest<Contract[]>(paths.contractsMineTeacher)
+    apiRequest<Contract[]>(paths.contractsTeacher)
                 .then((data) => setContracts(Array.isArray(data) ? data : []))
                 .catch((e) => setError(e.message))
                 .finally(() => setLoading(false));

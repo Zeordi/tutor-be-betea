@@ -1,3 +1,10 @@
+import { useState, useEffect } from "react";
+import { View, Text, ScrollView, TouchableOpacity, StyleSheet, ActivityIndicator } from "react-native";
+import { useRouter } from "expo-router";
+import { useTheme } from "@/hooks/useTheme";
+import { SafeAreaView } from "react-native-safe-area-context";
+import { apiRequest, paths } from "@/lib/api";
+
 type Badge = {
   id: string;
   badgeType: string;

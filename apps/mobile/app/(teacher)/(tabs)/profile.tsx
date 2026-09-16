@@ -15,7 +15,7 @@ type User = {
 
 export default function TeacherProfileScreen() {
   const { isDark } = useTheme();
-  const { user, setUser } = useAuth();
+  const { user } = useAuth();
   const router = useRouter();
   const [loading, setLoading] = useState(true);
   const [profile, setProfile] = useState<User | null>(null);
@@ -33,7 +33,6 @@ export default function TeacherProfileScreen() {
       .then((data) => {
         if (!cancelled) {
           setProfile(data);
-          setUser({ ...user, ...data } as any);
         }
       })
       .catch(() => {})

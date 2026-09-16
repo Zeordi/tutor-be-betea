@@ -40,6 +40,15 @@ export default function TeacherJobDetailScreen() {
   const [cover, setCover] = useState(
     "Hello! I'm an MSc Mathematics graduate with 7 years of tutoring experience. Fayda ID verified and degree certified."
   );
+  const [connects, setConnects] = useState<number | null>(null);
+
+  useEffect(() => {
+    let cancelled = false;
+    apiRequest<{ balance: number }>(paths.connectsBalance)
+      .then((data) => { if (!cancelled) setConnects(data.balance); })
+      .catch(() => {});
+    return () => { cancelled = true; };
+  }, []);
 
   useEffect(() => {
     if (!id) return;
@@ -77,8 +86,8 @@ export default function TeacherJobDetailScreen() {
   const bg = colors.background ?? (isDark ? "#0A1628" : "#F8FAFC");
   const card = colors.card ?? (isDark ? "#112240" : "#FFFFFF");
   const text = colors.text ?? colors.foreground ?? (isDark ? "#F0FAFA" : "#0D2B2A");
-  const sub = colors.subtext ?? colors.mutedForeground ?? "#64748B");
-  const primary = colors.primary ?? "#0D9488");
+  const sub = colors.subtext ?? colors.mutedForeground ?? "#64748B";
+  const primary = colors.primary ?? "#0D9488";
   const border = colors.border ?? (isDark ? "#1E3A5F" : "#E2E8F0");
   const surface = isDark ? "#1E293B" : "#F8FAFC";
 
@@ -170,7 +179,7 @@ export default function TeacherJobDetailScreen() {
             🔗 Apply with Connects
           </Text>
           <Text style={{ color: sub, fontSize: 12, marginTop: 4 }}>
-            Costs 2 Connects · You have {tp?.connectsBalance ?? 0}
+            Costs 2 Connects · You have {connects ?? 0}
           </Text>
         </View>
 

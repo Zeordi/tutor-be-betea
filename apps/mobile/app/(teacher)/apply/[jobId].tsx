@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { View, Text, ScrollView, TouchableOpacity, TextInput, Alert, ActivityIndicator } from "react-native";
+import { View, Text, ScrollView, TouchableOpacity, TextInput, Alert, ActivityIndicator, StyleSheet } from "react-native";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import { useTheme } from "@/hooks/useTheme";
 import { SafeAreaView } from "react-native-safe-area-context";

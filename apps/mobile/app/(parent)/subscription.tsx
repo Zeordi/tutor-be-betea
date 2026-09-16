@@ -29,7 +29,7 @@ export default function SubscriptionScreen() {
   const { colors, isDark } = useTheme();
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
-  const [sub, setSub] = useState<Subscription | null>(null);
+  const [subscription, setSubscription] = useState<Subscription | null>(null);
   const [plans, setPlans] = useState<SubscriptionPlan[]>([]);
 
   useEffect(() => {
@@ -43,7 +43,7 @@ export default function SubscriptionScreen() {
     ])
       .then(([s, p]) => {
         if (!cancelled) {
-          setSub(s || null);
+          setSubscription(s || null);
           setPlans(Array.isArray(p) ? p : []);
         }
       })
@@ -60,7 +60,7 @@ export default function SubscriptionScreen() {
   const bg = colors.background ?? (isDark ? "#0A1628" : "#F8FAFC");
   const card = colors.card ?? (isDark ? "#112240" : "#FFFFFF");
   const text = colors.text ?? colors.foreground;
-  const sub = colors.subtext ?? colors.mutedForeground ?? "#64748B";
+  const subColor = colors.subtext ?? colors.mutedForeground ?? "#64748B";
   const primary = colors.primary ?? "#0D9488";
   const border = colors.border ?? (isDark ? "#1E3A5F" : "#E2E8F0");
 
@@ -69,7 +69,7 @@ export default function SubscriptionScreen() {
       <SafeAreaView style={[styles.container, { backgroundColor: bg }]} edges={["top"]}>
         <View style={[styles.header, { borderBottomColor: border }]}>
           <TouchableOpacity onPress={() => router.back()}>
-            <Text style={{ color: sub, fontSize: 16 }}>←</Text>
+            <Text style={{ color: subColor, fontSize: 16 }}>←</Text>
           </TouchableOpacity>
           <Text style={[styles.title, { color: text }]}>Choose Your Plan</Text>
         </View>
@@ -85,7 +85,7 @@ export default function SubscriptionScreen() {
       <SafeAreaView style={[styles.container, { backgroundColor: bg }]} edges={["top"]}>
         <View style={[styles.header, { borderBottomColor: border }]}>
           <TouchableOpacity onPress={() => router.back()}>
-            <Text style={{ color: sub, fontSize: 16 }}>←</Text>
+            <Text style={{ color: subColor, fontSize: 16 }}>←</Text>
           </TouchableOpacity>
           <Text style={[styles.title, { color: text }]}>Choose Your Plan</Text>
         </View>
@@ -100,7 +100,7 @@ export default function SubscriptionScreen() {
                 apiRequest<SubscriptionPlan[]>(paths.subscriptionsPlans),
               ])
                 .then(([s, p]) => {
-                  setSub(s || null);
+                  setSubscription(s || null);
                   setPlans(Array.isArray(p) ? p : []);
                 })
                 .catch((e) => setError(e.message))
@@ -115,32 +115,32 @@ export default function SubscriptionScreen() {
     );
   }
 
-  const currentPlanName = sub?.currentPlan?.name || "";
+  const currentPlanName = subscription?.currentPlan?.name || "";
 
   return (
     <SafeAreaView style={[styles.container, { backgroundColor: bg }]} edges={["top"]}>
       <View style={[styles.header, { borderBottomColor: border }]}>
         <TouchableOpacity onPress={() => router.back()}>
-          <Text style={{ color: sub, fontSize: 16 }}>←</Text>
+          <Text style={{ color: subColor, fontSize: 16 }}>←</Text>
         </TouchableOpacity>
         <Text style={[styles.title, { color: text }]}>Choose Your Plan</Text>
       </View>
       <ScrollView contentContainerStyle={styles.content}>
-        {sub && (
+        {subscription && (
           <View style={[styles.currentPlan, { backgroundColor: card, borderColor: primary }]}>
             <Text style={{ color: text, fontWeight: "800", fontSize: 13 }}>CURRENT PLAN</Text>
             <Text style={{ color: text, fontWeight: "900", fontSize: 18, marginTop: 4 }}>
-              {sub.currentPlan.name}
+              {subscription.currentPlan.name}
             </Text>
-            <Text style={{ color: sub, fontSize: 12 }}>
-              {sub.currentPlan.price.toLocaleString()} {sub.currentPlan.currency}/mo · Next billing:{" "}
-              {new Date(sub.nextBillingDate).toLocaleDateString()}
+            <Text style={{ color: subColor, fontSize: 12 }}>
+              {subscription.currentPlan.price.toLocaleString()} {subscription.currentPlan.currency}/mo · Next billing:{" "}
+              {new Date(subscription.nextBillingDate).toLocaleDateString()}
             </Text>
           </View>
         )}
 
         {plans.length === 0 && (
-          <Text style={{ color: sub, textAlign: "center", marginTop: 24 }}>
+          <Text style={{ color: subColor, textAlign: "center", marginTop: 24 }}>
             No plans available.
           </Text>
         )}
@@ -165,14 +165,14 @@ export default function SubscriptionScreen() {
                   <Text style={{ color: primary, fontWeight: "900", fontSize: 20 }}>
                     {plan.price.toLocaleString()}
                   </Text>
-                  <Text style={{ color: sub, fontSize: 10 }}>
+                  <Text style={{ color: subColor, fontSize: 10 }}>
                     {plan.currency}/{plan.billingCycle === "yearly" ? "yr" : "mo"}
                   </Text>
                 </View>
               </View>
-              <Text style={{ color: sub, fontSize: 11, marginTop: 2 }}>Up to {plan.maxChildren} children</Text>
+              <Text style={{ color: subColor, fontSize: 11, marginTop: 2 }}>Up to {plan.maxChildren} children</Text>
               {plan.features.map((f) => (
-                <Text key={f} style={{ color: sub, fontSize: 12, marginTop: 4 }}>
+                <Text key={f} style={{ color: subColor, fontSize: 12, marginTop: 4 }}>
                   ✓ {f}
                 </Text>
               ))}

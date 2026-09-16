@@ -30,7 +30,7 @@ export default function TeacherCalendarScreen() {
     let cancelled = false;
     setLoading(true);
     setError("");
-    apiRequest<any[]>(paths.contractsMineTeacher)
+    apiRequest<any[]>(paths.contractsTeacher)
       .then((data) => {
         if (!cancelled) setContracts(Array.isArray(data) ? data : []);
       })
@@ -82,7 +82,7 @@ export default function TeacherCalendarScreen() {
         </View>
         <View style={{ padding: 24, alignItems: "center" }}>
           <Text style={{ color: text, marginBottom: 12 }}>{error}</Text>
-          <TouchableOpacity onPress={() => { setError(""); setLoading(true); apiRequest<any[]>(paths.contractsMineTeacher).then((data) => setContracts(Array.isArray(data) ? data : [])).catch((e) => setError(e.message)).finally(() => setLoading(false)); }} style={{ backgroundColor: primary, paddingVertical: 12, paddingHorizontal: 24, borderRadius: 12 }}>
+          <TouchableOpacity onPress={() => { setError(""); setLoading(true); apiRequest<any[]>(paths.contractsTeacher).then((data) => setContracts(Array.isArray(data) ? data : [])).catch((e) => setError(e.message)).finally(() => setLoading(false)); }} style={{ backgroundColor: primary, paddingVertical: 12, paddingHorizontal: 24, borderRadius: 12 }}>
             <Text style={{ color: "#fff", fontWeight: "700", fontSize: 13 }}>Retry</Text>
           </TouchableOpacity>
         </View>

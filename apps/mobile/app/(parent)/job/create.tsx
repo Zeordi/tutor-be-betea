@@ -83,7 +83,7 @@ export default function PostJobScreen() {
               onChangeText={f.set}
               placeholder={f.placeholder}
               placeholderTextColor={sub}
-              keyboardType={f.keyboardType}
+              keyboardType={f.keyboardType as any}
               style={[styles.input, { color: text, backgroundColor: inputBg, borderColor: border }]}
             />
           </View>
