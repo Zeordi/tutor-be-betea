@@ -8,7 +8,7 @@ export function getApiUrl() {
   return API_URL;
 }
 
-/** Canonical API paths (Phase B) */
+/** Canonical API paths (Phase B + Phase E) */
 export const paths = {
   contractsParent: "/contracts/mine/parent",
   contractsTeacher: "/contracts/mine/teacher",
@@ -19,9 +19,21 @@ export const paths = {
   attendanceCheckOut: "/attendance/check-out",
   attendanceByContract: (contractId: string) =>
     `/attendance/contract/${contractId}`,
+  attendanceConfirm: (id: string) => `/attendance/${id}/confirm`,
+  progressMine: "/progress/mine",
   progressSubmit: (contractId: string) => `/progress/${contractId}`,
   progressGet: (contractId: string) => `/progress/${contractId}`,
   usersMe: "/users/me",
+  teachers: "/teachers",
+  teacher: (id: string) => `/teachers/${id}`,
+  jobsMine: "/jobs/mine",
+  jobsCreate: "/jobs",
+  job: (id: string) => `/jobs/${id}`,
+  children: "/parents/children",
+  child: (id: string) => `/parents/children/${id}`,
+  favorites: "/favorites",
+  favorite: (teacherId: string) => `/favorites/${teacherId}`,
+  wallet: "/payments/wallet",
 } as const;
 
 export async function getToken(): Promise<string | null> {
