@@ -54,6 +54,25 @@ export const paths = {
 
   // wallet
   wallet: "/payments/wallet",
+
+  // notifications
+  notifications: "/notifications",
+  notificationRead: (id: string) => `/notifications/${id}/read`,
+  notificationsReadAll: "/notifications/read-all",
+
+  // subscriptions
+  subscriptionMine: "/subscriptions/mine",
+
+  // referrals
+  referralsCode: "/referrals/code",
+  referralsMine: "/referrals/mine",
+
+  // support
+  supportMine: "/support/mine",
+  supportCreate: "/support",
+
+  // matching
+  matchingTutors: "/matching/tutors",
 } as const;
 
 export async function apiFetch<T = any>(

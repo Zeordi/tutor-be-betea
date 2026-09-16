@@ -3,6 +3,13 @@
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
+import { apiFetch, paths } from "@/lib/api";
+
+type CurrentUser = {
+  fullName: string;
+  phoneNumber: string;
+  email: string | null;
+};
 
 const SECTIONS = [
   // Core (already in your app)
@@ -38,6 +45,8 @@ export default function ParentLayout({
   const pathname = usePathname();
   const router = useRouter();
   const [ready, setReady] = useState(false);
+  const [user, setUser] = useState<CurrentUser | null>(null);
+  const [profileLoading, setProfileLoading] = useState(true);
 
   useEffect(() => {
     const token = localStorage.getItem("token");
@@ -47,6 +56,31 @@ export default function ParentLayout({
     }
     setReady(true);
   }, [router]);
+
+  useEffect(() => {
+    if (!ready) return;
+
+    let cancelled = false;
+    setProfileLoading(true);
+
+    apiFetch<CurrentUser>(paths.usersMe)
+      .then((data) => {
+        if (!cancelled) setUser(data);
+      })
+      .catch(() => {
+        if (!cancelled) {
+          localStorage.removeItem("token");
+          router.replace("/login");
+        }
+      })
+      .finally(() => {
+        if (!cancelled) setProfileLoading(false);
+      });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [ready, router]);
 
   if (!ready) {
     return (
@@ -86,6 +120,9 @@ export default function ParentLayout({
     }
     return pathname === href || pathname.startsWith(`${href}/`);
   };
+
+  const displayName = user?.fullName || "Loading…";
+  const displayContact = user?.phoneNumber || user?.email || "";
 
   return (
     <div className="flex min-h-screen bg-[var(--background)]">
@@ -127,8 +164,10 @@ export default function ParentLayout({
               👩🏾
             </div>
             <div className="min-w-0 flex-1">
-              <p className="truncate text-[13px] font-bold">Hana Mulugeta</p>
-              <p className="truncate text-[11px] text-white/50">hana@email.com</p>
+              <p className="truncate text-[13px] font-bold">{displayName}</p>
+              <p className="truncate text-[11px] text-white/50">
+                {profileLoading ? "Loading…" : displayContact}
+              </p>
             </div>
             <Link
               href="/parent/settings"
