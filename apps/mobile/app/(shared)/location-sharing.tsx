@@ -97,11 +97,11 @@ export default function LocationSharingScreen() {
           <View style={[styles.card, { backgroundColor: card, borderColor: border }]}>
             <View style={{ flexDirection: "row", alignItems: "center", gap: 12 }}>
               <View style={[styles.avatar, { backgroundColor: primary }]}>
-                <Text style={{ color: "#fff", fontWeight: "800" }}>HB</Text>
+                <Text style={{ color: "#fff", fontWeight: "800" }}>TU</Text>
               </View>
               <View style={{ flex: 1 }}>
-                <Text style={{ color: text, fontWeight: "800" }}>Hana Bekele</Text>
-                <Text style={{ color: sub, fontSize: 12 }}>Tutor · Mathematics · Grade 9</Text>
+                <Text style={{ color: text, fontWeight: "800" }}>Tutor</Text>
+                <Text style={{ color: sub, fontSize: 12 }}>Session in progress</Text>
               </View>
               <View
                 style={{
@@ -115,7 +115,7 @@ export default function LocationSharingScreen() {
               </View>
             </View>
             <Text style={{ color: sub, fontSize: 12, marginTop: 10 }}>
-              Sarbet, Addis Ababa · Home geofence · Parent notified on enter/exit
+              Live location shared during session · Parent notified on enter/exit
             </Text>
           </View>
 

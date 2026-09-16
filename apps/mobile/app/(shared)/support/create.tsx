@@ -6,13 +6,15 @@ import {
   TouchableOpacity,
   StyleSheet,
   Alert,
+  ActivityIndicator,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useRouter } from "expo-router";
-import { useTheme } from "../../../hooks/useTheme";
+import { useTheme } from "@/hooks/useTheme";
+import { apiRequest, paths } from "@/lib/api";
 
 const ISSUE_TYPES = [
-  { id: "no-show", icon: "🚫", label: "Tutor No-Show", desc: "Tutor didn’t arrive for session" },
+  { id: "no-show", icon: "🚫", label: "Tutor No-Show", desc: "Tutor didn't arrive for session" },
   { id: "late", icon: "⏰", label: "Consistently Late", desc: "Arrived 30+ min late multiple times" },
   { id: "quality", icon: "📉", label: "Poor Quality", desc: "Teaching not matching promises" },
   { id: "escrow", icon: "💰", label: "Payment Dispute", desc: "Milestone issue or unauthorized charge" },
@@ -25,6 +27,28 @@ export default function ReportProblemScreen() {
   const { colors, isDark } = useTheme();
   const [step, setStep] = useState(1);
   const [issueType, setIssueType] = useState<string | null>(null);
+  const [submitting, setSubmitting] = useState(false);
+
+  const submit = async () => {
+    if (!issueType) return;
+    try {
+      setSubmitting(true);
+      await apiRequest(paths.supportCreate, {
+        method: "POST",
+        body: JSON.stringify({
+          reasonType: issueType,
+          explanation: "Tutor arrived 45 minutes late without advance notice. This has now happened 3 times in the past month.",
+          contractId: null,
+          evidenceAttachmentUrls: [],
+        }),
+      });
+      setStep(3);
+    } catch (e: any) {
+      Alert.alert("Error", e.message || "Failed to submit report");
+    } finally {
+      setSubmitting(false);
+    }
+  };
 
   return (
     <SafeAreaView style={[styles.safe, { backgroundColor: colors.bg }]} edges={["top"]}>
@@ -54,7 +78,7 @@ export default function ReportProblemScreen() {
       <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
         {step === 1 && (
           <>
-            <Text style={{ color: colors.text, fontWeight: "800", fontSize: 16 }}>What’s the issue?</Text>
+            <Text style={{ color: colors.text, fontWeight: "800", fontSize: 16 }}>What's the issue?</Text>
             <Text style={{ color: colors.sub, fontSize: 12, marginBottom: 12, marginTop: 4 }}>
               Select the category that best describes your problem.
             </Text>
@@ -113,31 +137,6 @@ export default function ReportProblemScreen() {
 
             <View style={[styles.card, { backgroundColor: colors.card, borderColor: colors.border }]}>
               <Text style={{ color: colors.sub, fontSize: 10, fontWeight: "600", marginBottom: 6 }}>
-                Contract / Tutor
-              </Text>
-              <View style={[styles.tutorBox, { backgroundColor: isDark ? "#1e293b" : "#f8fafc" }]}>
-                <View style={[styles.avatar, { backgroundColor: colors.primary }]}>
-                  <Text style={{ color: "#fff", fontWeight: "700" }}>H</Text>
-                </View>
-                <Text style={{ color: colors.text, fontWeight: "700", fontSize: 12 }}>
-                  Hana Bekele · Mathematics
-                </Text>
-              </View>
-
-              <Text style={{ color: colors.sub, fontSize: 10, fontWeight: "600", marginTop: 12, marginBottom: 6 }}>
-                Date of Incident *
-              </Text>
-              <View
-                style={[
-                  styles.inputBox,
-                  { backgroundColor: isDark ? "#1e293b" : "#f8fafc", borderColor: colors.border },
-                ]}
-              >
-                <Text style={{ color: colors.text, fontSize: 12 }}>Oct 12, 2024</Text>
-                <Text>📅</Text>
-              </View>
-
-              <Text style={{ color: colors.sub, fontSize: 10, fontWeight: "600", marginTop: 12, marginBottom: 6 }}>
                 Description *
               </Text>
               <View
@@ -172,9 +171,14 @@ export default function ReportProblemScreen() {
 
             <TouchableOpacity
               style={[styles.cta, { backgroundColor: colors.primary }]}
-              onPress={() => setStep(3)}
+              onPress={submit}
+              disabled={submitting}
             >
-              <Text style={styles.ctaText}>Submit Report →</Text>
+              {submitting ? (
+                <ActivityIndicator color="#fff" />
+              ) : (
+                <Text style={styles.ctaText}>Submit Report →</Text>
+              )}
             </TouchableOpacity>
           </>
         )}
@@ -197,7 +201,7 @@ export default function ReportProblemScreen() {
                 maxWidth: 280,
               }}
             >
-              Our Safety Team will review your case within 24 hours. You’ll receive updates via
+              Our Safety Team will review your case within 24 hours. You'll receive updates via
               notification.
             </Text>
             <Text style={{ color: colors.primary, fontSize: 11, fontWeight: "600", marginTop: 6 }}>
@@ -213,9 +217,8 @@ export default function ReportProblemScreen() {
               <Text style={[styles.label, { color: colors.sub }]}>CASE SUMMARY</Text>
               {[
                 ["Ticket", "#TBB-28471"],
-                ["Issue Type", "Consistently Late"],
-                ["Tutor", "Hana Bekele"],
-                ["Submitted", "Oct 12, 2024, 3:47 PM"],
+                ["Issue Type", issueType || "—"],
+                ["Submitted", new Date().toLocaleString()],
                 ["Expected Response", "< 24 hours"],
               ].map(([k, v]) => (
                 <View key={k} style={[styles.summaryRow, { borderBottomColor: colors.border }]}>
@@ -272,30 +275,7 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "center",
   },
-  card: { borderRadius: 16, padding: 14, borderWidth: 1 },
-  tutorBox: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 10,
-    padding: 10,
-    borderRadius: 12,
-  },
-  avatar: {
-    width: 32,
-    height: 32,
-    borderRadius: 16,
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  inputBox: {
-    borderRadius: 12,
-    borderWidth: 1,
-    paddingHorizontal: 12,
-    paddingVertical: 10,
-    flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "center",
-  },
+  card: { borderRadius: 16, borderWidth: 1, padding: 14 },
   descBox: { borderRadius: 12, borderWidth: 1, padding: 12, minHeight: 80 },
   uploadBtn: {
     flex: 1,

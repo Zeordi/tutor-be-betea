@@ -1,66 +1,27 @@
-import { useState } from "react";
-import { View, Text, StyleSheet, ScrollView, TouchableOpacity } from "react-native";
+import { useState, useEffect } from "react";
+import { View, Text, StyleSheet, ScrollView, TouchableOpacity, ActivityIndicator } from "react-native";
 import { useRouter } from "expo-router";
 import { useTheme } from "@/hooks/useTheme";
 import { SafeAreaView } from "react-native-safe-area-context";
+import { apiRequest, paths } from "@/lib/api";
 
 const TABS = ["All", "Sessions", "Escrow", "Chat", "System"] as const;
 
-const ITEMS = [
-  {
-    title: "Tutor checked in",
-    body: "Hana Bekele is inside your Sarbet geofence",
-    time: "2m",
-    tab: "Sessions" as const,
-    unread: true,
-    icon: "📍",
-  },
-  {
-    title: "Escrow released",
-    body: "675 ETB milestone confirmed · Telebirr",
-    time: "1h",
-    tab: "Escrow" as const,
-    unread: true,
-    icon: "💰",
-  },
-  {
-    title: "New message",
-    body: "Yes, I'm available for algebra this week",
-    time: "2h",
-    tab: "Chat" as const,
-    unread: false,
-    icon: "💬",
-  },
-  {
-    title: "New application",
-    body: "3 tutors applied to your Grade 10 job",
-    time: "3h",
-    tab: "System" as const,
-    unread: false,
-    icon: "📋",
-  },
-  {
-    title: "Session reminder",
-    body: "Tomorrow 4:00 PM · Mathematics with Hana",
-    time: "5h",
-    tab: "Sessions" as const,
-    unread: false,
-    icon: "🗓️",
-  },
-  {
-    title: "Verification update",
-    body: "Degree document approved by board",
-    time: "1d",
-    tab: "System" as const,
-    unread: false,
-    icon: "🛡️",
-  },
-];
+type Notification = {
+  id: string;
+  title: string;
+  body: string;
+  createdAt: string;
+  read: boolean;
+  type: string;
+};
 
 export default function NotificationCenterScreen() {
   const { isDark } = useTheme();
   const router = useRouter();
   const [tab, setTab] = useState<(typeof TABS)[number]>("All");
+  const [loading, setLoading] = useState(true);
+  const [notifications, setNotifications] = useState<Notification[]>([]);
 
   const bg = isDark ? "#0A1628" : "#F8FAFC";
   const card = isDark ? "#112240" : "#FFFFFF";
@@ -69,8 +30,36 @@ export default function NotificationCenterScreen() {
   const border = isDark ? "#1E3A5F" : "#E2E8F0";
   const primary = "#0D9488";
 
-  const filtered = ITEMS.filter((n) => tab === "All" || n.tab === tab);
-  const unreadCount = ITEMS.filter((n) => n.unread).length;
+  const load = async () => {
+    let cancelled = false;
+    setLoading(true);
+    try {
+      const data = await apiRequest<Notification[]>(paths.notifications);
+      if (!cancelled) setNotifications(Array.isArray(data) ? data : []);
+    } catch {
+      // keep UI
+    } finally {
+      if (!cancelled) setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    load();
+  }, []);
+
+  const filtered = notifications.filter((n) => {
+    if (tab === "All") return true;
+    return n.type === tab.toUpperCase();
+  });
+  const unreadCount = notifications.filter((n) => !n.read).length;
+
+  const iconFor = (type: string) => {
+    if (type === "SESSIONS") return "📍";
+    if (type === "ESCROW") return "💰";
+    if (type === "CHAT") return "💬";
+    if (type === "SYSTEM") return "📋";
+    return "🔔";
+  };
 
   return (
     <SafeAreaView style={[styles.container, { backgroundColor: bg }]} edges={["top"]}>
@@ -103,48 +92,54 @@ export default function NotificationCenterScreen() {
         ))}
       </ScrollView>
 
-      <ScrollView contentContainerStyle={{ padding: 16, gap: 8, paddingBottom: 40 }}>
-        {filtered.map((n, i) => (
-          <View
-            key={i}
-            style={[
-              styles.card,
-              {
-                backgroundColor: card,
-                borderColor: n.unread ? primary + "55" : border,
-              },
-            ]}
-          >
-            <View style={styles.rowBetween}>
-              <View style={{ flexDirection: "row", alignItems: "center", gap: 10, flex: 1 }}>
-                <View
-                  style={[
-                    styles.iconBox,
-                    { backgroundColor: isDark ? "#1E3A5F" : "#F1F5F9" },
-                  ]}
-                >
-                  <Text style={{ fontSize: 16 }}>{n.icon}</Text>
-                </View>
-                <View style={{ flex: 1 }}>
-                  <View style={{ flexDirection: "row", alignItems: "center", gap: 6 }}>
-                    {n.unread && <View style={[styles.dot, { backgroundColor: primary }]} />}
-                    <Text style={{ color: text, fontWeight: "800", fontSize: 13, flex: 1 }}>
-                      {n.title}
-                    </Text>
+      {loading ? (
+        <View style={{ flex: 1, alignItems: "center", justifyContent: "center", padding: 40 }}>
+          <ActivityIndicator size="large" color={primary} />
+        </View>
+      ) : (
+        <ScrollView contentContainerStyle={{ padding: 16, gap: 8, paddingBottom: 40 }}>
+          {filtered.map((n) => (
+            <View
+              key={n.id}
+              style={[
+                styles.card,
+                {
+                  backgroundColor: card,
+                  borderColor: n.read ? border : primary + "55",
+                },
+              ]}
+            >
+              <View style={styles.rowBetween}>
+                <View style={{ flexDirection: "row", alignItems: "center", gap: 10, flex: 1 }}>
+                  <View
+                    style={[
+                      styles.iconBox,
+                      { backgroundColor: isDark ? "#1E3A5F" : "#F1F5F9" },
+                    ]}
+                  >
+                    <Text style={{ fontSize: 16 }}>{iconFor(n.type)}</Text>
                   </View>
-                  <Text style={{ color: sub, fontSize: 12, marginTop: 3 }}>{n.body}</Text>
+                  <View style={{ flex: 1 }}>
+                    <View style={{ flexDirection: "row", alignItems: "center", gap: 6 }}>
+                      {!n.read && <View style={[styles.dot, { backgroundColor: primary }]} />}
+                      <Text style={{ color: text, fontWeight: "800", fontSize: 13, flex: 1 }}>
+                        {n.title}
+                      </Text>
+                    </View>
+                    <Text style={{ color: sub, fontSize: 12, marginTop: 3 }}>{n.body}</Text>
+                  </View>
                 </View>
+                <Text style={{ color: sub, fontSize: 11 }}>{new Date(n.createdAt).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}</Text>
               </View>
-              <Text style={{ color: sub, fontSize: 11 }}>{n.time}</Text>
             </View>
-          </View>
-        ))}
-        {filtered.length === 0 && (
-          <Text style={{ color: sub, textAlign: "center", marginTop: 40 }}>
-            No notifications in this category
-          </Text>
-        )}
-      </ScrollView>
+          ))}
+          {filtered.length === 0 && (
+            <Text style={{ color: sub, textAlign: "center", marginTop: 40 }}>
+              No notifications in this category
+            </Text>
+          )}
+        </ScrollView>
+      )}
     </SafeAreaView>
   );
 }

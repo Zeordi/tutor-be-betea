@@ -57,6 +57,15 @@ export const paths = {
   availabilityMine: "/availability/mine",
   availabilitySlots: "/availability/slots",
   availabilityPackages: "/availability/packages",
+  chatMessages: (roomId: string) => `/chat/${roomId}/messages`,
+  chatSendMessage: (roomId: string) => `/chat/${roomId}/messages`,
+  supportCreate: "/support",
+  supportMine: "/support/mine",
+  supportTicket: (id: string) => `/support/ticket/${id}`,
+  supportByContract: (contractId: string) => `/support/contract/${contractId}`,
+  offlineSyncAttendance: "/offline/attendance",
+  offlineSyncProgress: "/offline/progress",
+  offlineSyncSupport: "/offline/support",
 } as const;
 
 export async function getToken(): Promise<string | null> {
