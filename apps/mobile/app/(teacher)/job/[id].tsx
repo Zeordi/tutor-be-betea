@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import {
   View,
   Text,
@@ -7,55 +7,130 @@ import {
   TextInput,
   Alert,
   StyleSheet,
+  ActivityIndicator,
 } from "react-native";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import { useTheme } from "@/hooks/useTheme";
 import { SafeAreaView } from "react-native-safe-area-context";
+import { apiRequest, paths } from "@/lib/api";
+
+type Job = {
+  id: string;
+  title: string;
+  family: string;
+  loc: string;
+  cur: string;
+  hrs: string;
+  budget: string;
+  children: number;
+  urgency: string;
+  posted: string;
+  description: string;
+  requirements: string[];
+};
 
 export default function TeacherJobDetailScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const router = useRouter();
   const { colors, isDark } = useTheme();
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState("");
+  const [job, setJob] = useState<Job | null>(null);
   const [applied, setApplied] = useState(false);
   const [cover, setCover] = useState(
     "Hello! I'm an MSc Mathematics graduate with 7 years of tutoring experience. Fayda ID verified and degree certified."
   );
 
+  useEffect(() => {
+    if (!id) return;
+    let cancelled = false;
+    setLoading(true);
+    setError("");
+
+    apiRequest<Job>(paths.job(id))
+      .then((data) => {
+        if (!cancelled) setJob(data);
+      })
+      .catch((err) => {
+        if (!cancelled) setError(err.message || "Failed to load job");
+      })
+      .finally(() => {
+        if (!cancelled) setLoading(false);
+      });
+
+    return () => { cancelled = true; };
+  }, [id]);
+
+  const onApply = async () => {
+    try {
+      await apiRequest(paths.applicationsCreate, {
+        method: "POST",
+        body: JSON.stringify({ jobId: id }),
+      });
+      setApplied(true);
+      Alert.alert("Application submitted", "2 Connects used");
+    } catch (err: any) {
+      Alert.alert("Error", err.message || "Failed to apply");
+    }
+  };
+
   const bg = colors.background ?? (isDark ? "#0A1628" : "#F8FAFC");
   const card = colors.card ?? (isDark ? "#112240" : "#FFFFFF");
   const text = colors.text ?? colors.foreground ?? (isDark ? "#F0FAFA" : "#0D2B2A");
-  const sub = colors.subtext ?? colors.mutedForeground ?? "#64748B";
-  const primary = colors.primary ?? "#0D9488";
+  const sub = colors.subtext ?? colors.mutedForeground ?? "#64748B");
+  const primary = colors.primary ?? "#0D9488");
   const border = colors.border ?? (isDark ? "#1E3A5F" : "#E2E8F0");
   const surface = isDark ? "#1E293B" : "#F8FAFC";
 
-  const onApply = () => {
-    setApplied(true);
-    Alert.alert("Application submitted", "2 Connects used · 22 remaining");
-  };
+  if (loading) {
+    return (
+      <SafeAreaView style={[styles.safe, { backgroundColor: bg }]} edges={["top"]}>
+        <View style={[styles.header, { backgroundColor: card, borderBottomColor: border }]}>
+          <TouchableOpacity onPress={() => router.back()}><Text style={{ color: sub }}>←</Text></TouchableOpacity>
+          <Text style={[styles.headerTitle, { color: text }]}>Job Detail</Text>
+        </View>
+        <View style={{ flex: 1, alignItems: "center", justifyContent: "center" }}>
+          <ActivityIndicator size="large" color={primary} />
+        </View>
+      </SafeAreaView>
+    );
+  }
+
+  if (error || !job) {
+    return (
+      <SafeAreaView style={[styles.safe, { backgroundColor: bg }]} edges={["top"]}>
+        <View style={[styles.header, { backgroundColor: card, borderBottomColor: border }]}>
+          <TouchableOpacity onPress={() => router.back()}><Text style={{ color: sub }}>←</Text></TouchableOpacity>
+          <Text style={[styles.headerTitle, { color: text }]}>Job Detail</Text>
+        </View>
+        <View style={{ flex: 1, alignItems: "center", justifyContent: "center", padding: 24 }}>
+          <Text style={{ color: text, marginBottom: 12 }}>{error || "Job not found"}</Text>
+          <TouchableOpacity onPress={() => router.back()} style={[styles.retryBtn, { backgroundColor: primary }]}>
+            <Text style={{ color: "#fff", fontWeight: "700" }}>Go Back</Text>
+          </TouchableOpacity>
+        </View>
+      </SafeAreaView>
+    );
+  }
 
   return (
     <SafeAreaView style={[styles.safe, { backgroundColor: bg }]} edges={["top"]}>
       <View style={[styles.header, { backgroundColor: card, borderBottomColor: border }]}>
-        <TouchableOpacity onPress={() => router.back()}>
-          <Text style={{ color: sub, fontSize: 16 }}>←</Text>
-        </TouchableOpacity>
+        <TouchableOpacity onPress={() => router.back()}><Text style={{ color: sub }}>←</Text></TouchableOpacity>
         <Text style={[styles.headerTitle, { color: text }]}>Job Detail</Text>
-        <View style={styles.urgent}>
-          <Text style={styles.urgentText}>🔥 Urgent</Text>
-        </View>
+        {job.urgency === "Urgent" && (
+          <View style={styles.urgent}><Text style={styles.urgentText}>🔥 Urgent</Text></View>
+        )}
       </View>
 
       <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
         <View style={[styles.card, { backgroundColor: card, borderColor: border }]}>
-          <Text style={{ color: text, fontSize: 17, fontWeight: "900" }}>
-            Grade 12 Physics Tutor Needed
-          </Text>
+          <Text style={{ color: text, fontSize: 17, fontWeight: "900" }}>{job.title}</Text>
           <Text style={{ color: sub, fontSize: 12, marginTop: 4 }}>
-            📍 Bole, Addis Ababa · 1.5 km · Posted 2h ago · #{id}
+            📍 {job.loc} · {job.posted} · #{job.id}
           </Text>
           <View style={styles.chipRow}>
-            {["Physics", "Grade 12", "Matric Prep", "Home Visit", "Online OK"].map((t) => (
+            {(job.requirements || []).slice(0, 4).map((t) => (
               <View key={t} style={[styles.chip, { backgroundColor: surface }]}>
                 <Text style={{ color: sub, fontSize: 10 }}>{t}</Text>
               </View>
@@ -63,23 +138,22 @@ export default function TeacherJobDetailScreen() {
           </View>
           <View style={styles.grid}>
             {[
-              ["500 ETB/hr", "💰", "Rate"],
-              ["2–3x/week", "📅", "Frequency"],
-              ["3 months", "⏱️", "Duration"],
-              ["12", "👥", "Applicants"],
+              [job.budget, "💰", "Budget"],
+              [job.hrs, "📅", "Hours"],
+              [String(job.children), "👥", "Children"],
+              [job.cur, "💱", "Currency"],
             ].map(([v, icon, l]) => (
-              <View key={l} style={[styles.gridItem, { backgroundColor: surface }]}>
+              <View key={String(l)} style={[styles.gridItem, { backgroundColor: surface }]}>
                 <Text style={{ fontSize: 14 }}>{icon}</Text>
                 <View>
-                  <Text style={{ color: text, fontWeight: "800", fontSize: 11 }}>{v}</Text>
+                  <Text style={{ color: text, fontWeight: "800", fontSize: 11 }}>{String(v)}</Text>
                   <Text style={{ color: sub, fontSize: 8 }}>{l}</Text>
                 </View>
               </View>
             ))}
           </View>
           <Text style={{ color: text, fontSize: 12, lineHeight: 18, marginTop: 10 }}>
-            Looking for an experienced Physics tutor for Grade 12 National Exam prep. Must be
-            patient, punctual, and Fayda ID verified. Home visits in Bole preferred; online OK.
+            {job.description || "No description provided."}
           </Text>
         </View>
 
@@ -96,7 +170,7 @@ export default function TeacherJobDetailScreen() {
             🔗 Apply with Connects
           </Text>
           <Text style={{ color: sub, fontSize: 12, marginTop: 4 }}>
-            Costs 2 Connects · You have 24
+            Costs 2 Connects · You have {tp?.connectsBalance ?? 0}
           </Text>
         </View>
 
@@ -132,19 +206,10 @@ export default function TeacherJobDetailScreen() {
               Application Submitted!
             </Text>
             <Text style={{ color: sub, fontSize: 12, marginTop: 4 }}>
-              2 Connects used · 22 remaining
+              2 Connects used
             </Text>
           </View>
         )}
-
-        <TouchableOpacity
-          style={[styles.secondaryBtn, { borderColor: primary }]}
-          onPress={() => router.push(`/(teacher)/apply/${id}`)}
-        >
-          <Text style={{ color: primary, fontWeight: "700", fontSize: 12 }}>
-            Open full apply flow →
-          </Text>
-        </TouchableOpacity>
       </ScrollView>
 
       {!applied && (
@@ -198,12 +263,6 @@ const styles = StyleSheet.create({
     letterSpacing: 0.5,
     marginBottom: 8,
   },
-  secondaryBtn: {
-    borderWidth: 1,
-    borderRadius: 12,
-    paddingVertical: 12,
-    alignItems: "center",
-  },
   footer: {
     padding: 16,
     borderTopWidth: 1,
@@ -214,4 +273,5 @@ const styles = StyleSheet.create({
     alignItems: "center",
   },
   applyText: { color: "#fff", fontWeight: "800", fontSize: 14 },
+  retryBtn: { paddingVertical: 12, paddingHorizontal: 24, borderRadius: 12, alignItems: "center" },
 });

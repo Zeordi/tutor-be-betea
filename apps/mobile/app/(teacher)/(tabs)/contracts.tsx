@@ -1,88 +1,123 @@
-import { View, Text, ScrollView, TouchableOpacity, StyleSheet } from "react-native";
+import { useState, useEffect, useMemo } from "react";
+import { View, Text, ScrollView, TouchableOpacity, StyleSheet, ActivityIndicator } from "react-native";
 import { useRouter } from "expo-router";
 import { useTheme } from "@/hooks/useTheme";
 import { SafeAreaView } from "react-native-safe-area-context";
+import { apiRequest, paths } from "@/lib/api";
 
-const CONTRACTS = [
-  {
-    id: "c1",
-    parent: "Yeshi Haile",
-    student: "Kidane M.",
-    subject: "Mathematics",
-    grade: "10",
-    sessions: "24 done / 40 total",
-    monthly: "9,000",
-    next: "Today 4:00 PM",
-    milestone: "3/4",
-    status: "Active",
-  },
-  {
-    id: "c2",
-    parent: "Abebe Girma",
-    student: "Liya A.",
-    subject: "Physics",
-    grade: "11",
-    sessions: "6 done / 20 total",
-    monthly: "10,000",
-    next: "Thu 3:00 PM",
-    milestone: "1/3",
-    status: "Active",
-  },
-  {
-    id: "c3",
-    parent: "Hanna Bekele",
-    student: "Yonatan T.",
-    subject: "Chemistry",
-    grade: "12",
-    sessions: "0 done / 16 total",
-    monthly: "11,000",
-    next: "Mon 5:00 PM",
-    milestone: "0/2",
-    status: "Pending",
-  },
-];
+type Contract = {
+  id: string;
+  studentName: string;
+  parentName: string;
+  subject: string;
+  grade: string;
+  sessionsDone: number;
+  sessionsTotal: number;
+  monthly: number;
+  nextSessionAt: string | null;
+  milestone: string;
+  status: "Active" | "Pending";
+};
 
 export default function ActiveContractsScreen() {
-  const { colors, isDark } = useTheme();
   const router = useRouter();
+  const { isDark } = useTheme();
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState("");
+  const [contracts, setContracts] = useState<Contract[]>([]);
 
-  const bg = colors.background ?? (isDark ? "#0A1628" : "#F8FAFC");
-  const card = colors.card ?? (isDark ? "#112240" : "#FFFFFF");
-  const text = colors.text ?? colors.foreground ?? (isDark ? "#F0FAFA" : "#0D2B2A");
-  const sub = colors.subtext ?? colors.mutedForeground ?? "#64748B";
-  const primary = colors.primary ?? "#0D9488";
-  const border = colors.border ?? (isDark ? "#1E3A5F" : "#E2E8F0");
+  const bg = isDark ? "#0A1628" : "#F8FAFC";
+  const card = isDark ? "#112240" : "#FFFFFF";
+  const text = isDark ? "#F0FAFA" : "#0D2B2A";
+  const sub = isDark ? "#94A3B8" : "#64748B";
+  const primary = "#0D9488";
+  const border = isDark ? "#1E3A5F" : "#E2E8F0";
   const surface = isDark ? "#1E293B" : "#F8FAFC";
+
+  useEffect(() => {
+    let cancelled = false;
+    setLoading(true);
+    setError("");
+
+    apiRequest<Contract[]>(paths.contractsMineTeacher)
+      .then((data) => {
+        if (!cancelled) setContracts(Array.isArray(data) ? data : []);
+      })
+      .catch((err) => {
+        if (!cancelled) setError(err.message || "Failed to load contracts");
+      })
+      .finally(() => {
+        if (!cancelled) setLoading(false);
+      });
+
+    return () => { cancelled = true; };
+  }, []);
+
+  const summary = useMemo(() => {
+    const active = contracts.filter((c) => c.status === "Active").length;
+    const pending = contracts.filter((c) => c.status === "Pending").length;
+    return `${active} active · ${pending} pending start`;
+  }, [contracts]);
+
+  if (loading) {
+    return (
+      <SafeAreaView style={{ flex: 1, backgroundColor: bg }} edges={["top"]}>
+        <View style={[styles.header, { borderBottomColor: border }]}>
+          <Text style={{ color: text, fontSize: 18, fontWeight: "800" }}>Active Contracts</Text>
+        </View>
+        <View style={{ flex: 1, alignItems: "center", justifyContent: "center" }}>
+          <ActivityIndicator size="large" color={primary} />
+        </View>
+      </SafeAreaView>
+    );
+  }
+
+  if (error) {
+    return (
+      <SafeAreaView style={{ flex: 1, backgroundColor: bg }} edges={["top"]}>
+        <View style={[styles.header, { borderBottomColor: border }]}>
+          <Text style={{ color: text, fontSize: 18, fontWeight: "800" }}>Active Contracts</Text>
+        </View>
+        <View style={{ padding: 24, alignItems: "center" }}>
+          <Text style={{ color: text, marginBottom: 12 }}>{error}</Text>
+          <TouchableOpacity
+            onPress={() => {
+              setError("");
+              setLoading(true);
+              apiRequest<Contract[]>(paths.contractsMineTeacher)
+                .then((data) => setContracts(Array.isArray(data) ? data : []))
+                .catch((e) => setError(e.message))
+                .finally(() => setLoading(false));
+            }}
+            style={[styles.retryBtn, { backgroundColor: primary }]}
+          >
+            <Text style={{ color: "#fff", fontWeight: "700", fontSize: 13 }}>Retry</Text>
+          </TouchableOpacity>
+        </View>
+      </SafeAreaView>
+    );
+  }
 
   return (
     <SafeAreaView style={{ flex: 1, backgroundColor: bg }} edges={["top"]}>
       <View style={[styles.header, { borderBottomColor: border }]}>
-        <Text style={{ color: text, fontSize: 18, fontWeight: "800" }}>
-          Active Contracts
-        </Text>
-        <Text style={{ color: sub, fontSize: 11, marginTop: 2 }}>
-          3 active · 2 pending start
-        </Text>
+        <Text style={{ color: text, fontSize: 18, fontWeight: "800" }}>Active Contracts</Text>
+        <Text style={{ color: sub, fontSize: 11, marginTop: 2 }}>{summary}</Text>
       </View>
 
       <ScrollView contentContainerStyle={{ padding: 12, gap: 10, paddingBottom: 100 }}>
-        {CONTRACTS.map((c) => (
-          <View
-            key={c.id}
-            style={[styles.card, { backgroundColor: card, borderColor: border }]}
-          >
+        {contracts.map((c) => (
+          <View key={c.id} style={[styles.card, { backgroundColor: card, borderColor: border }]}>
             <View style={styles.row}>
               <View style={[styles.avatar, { backgroundColor: primary }]}>
-                <Text style={{ color: "#fff", fontWeight: "800" }}>
-                  {c.student[0]}
-                </Text>
+                <Text style={{ color: "#fff", fontWeight: "800" }}>{c.studentName?.[0] ?? "?"}</Text>
               </View>
               <View style={{ flex: 1 }}>
                 <Text style={{ color: text, fontWeight: "800", fontSize: 13 }}>
-                  {c.student} (Gr.{c.grade})
+                  {c.studentName} (Gr.{c.grade})
                 </Text>
                 <Text style={{ color: sub, fontSize: 11 }}>
-                  {c.subject} · Parent: {c.parent}
+                  {c.subject} · Parent: {c.parentName}
                 </Text>
               </View>
               <View
@@ -109,14 +144,11 @@ export default function ActiveContractsScreen() {
             <View style={styles.grid}>
               {[
                 [`${c.monthly} ETB/mo`, "💰"],
-                [c.sessions, "📚"],
+                [`${c.sessionsDone} done / ${c.sessionsTotal} total`, "📚"],
                 [`Milestone ${c.milestone}`, "⏳"],
-                [c.next, "📅"],
+                [c.nextSessionAt || "—", "📅"],
               ].map(([v, icon]) => (
-                <View
-                  key={String(v)}
-                  style={[styles.gridItem, { backgroundColor: surface }]}
-                >
+                <View key={String(v)} style={[styles.gridItem, { backgroundColor: surface }]}>
                   <Text style={{ fontSize: 13 }}>{icon}</Text>
                   <Text
                     style={{
@@ -144,21 +176,20 @@ export default function ActiveContractsScreen() {
                 style={[styles.outlineBtn, { borderColor: border }]}
                 onPress={() => router.push(`/(shared)/chat/${c.id}`)}
               >
-                <Text style={{ color: sub, fontWeight: "700", fontSize: 12 }}>
-                  Message
-                </Text>
+                <Text style={{ color: sub, fontWeight: "700", fontSize: 12 }}>Message</Text>
               </TouchableOpacity>
               <TouchableOpacity
                 style={[styles.outlineBtn, { borderColor: primary }]}
                 onPress={() => router.push(`/(teacher)/contract/${c.id}`)}
               >
-                <Text style={{ color: primary, fontWeight: "700", fontSize: 12 }}>
-                  Details
-                </Text>
+                <Text style={{ color: primary, fontWeight: "700", fontSize: 12 }}>Details</Text>
               </TouchableOpacity>
             </View>
           </View>
         ))}
+        {contracts.length === 0 && (
+          <Text style={{ color: sub, textAlign: "center", marginTop: 40 }}>No contracts yet</Text>
+        )}
       </ScrollView>
     </SafeAreaView>
   );
@@ -223,4 +254,5 @@ const styles = StyleSheet.create({
     alignItems: "center",
     borderWidth: 1,
   },
+  retryBtn: { paddingVertical: 12, paddingHorizontal: 24, borderRadius: 12, alignItems: "center" },
 });

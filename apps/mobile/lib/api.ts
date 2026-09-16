@@ -42,6 +42,9 @@ export const paths = {
   subscriptionsPlans: "/subscriptions/plans",
   referralsCode: "/referrals/code",
   referralsMine: "/referrals/mine",
+  applicationsMine: "/applications/mine",
+  applicationsAction: (id: string) => `/applications/${id}/action`,
+  applicationsCreate: "/applications",
 } as const;
 
 export async function getToken(): Promise<string | null> {

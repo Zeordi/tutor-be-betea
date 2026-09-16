@@ -1,32 +1,120 @@
-import { View, Text, ScrollView, TouchableOpacity, StyleSheet, Alert } from "react-native";
+import { useState, useEffect, useMemo } from "react";
+import { View, Text, ScrollView, TouchableOpacity, StyleSheet, ActivityIndicator, Alert } from "react-native";
 import { useRouter } from "expo-router";
 import { useTheme } from "@/hooks/useTheme";
 import { SafeAreaView } from "react-native-safe-area-context";
+import { apiRequest, paths } from "@/lib/api";
 
-const WEEK = [45, 60, 52, 78, 85, 90, 88];
-const TX = [
-  { t: "Session · Kidane Math", a: "+675 ETB", d: "Today", plus: true },
-  { t: "Payout to Telebirr", a: "−3,000 ETB", d: "Mon", plus: false },
-  { t: "Session · Liya Physics", a: "+500 ETB", d: "Sun", plus: true },
-  { t: "Session · Yonatan Chem", a: "+550 ETB", d: "Sat", plus: true },
-];
-const PAYOUTS = [
-  { date: "May 31", amount: "5,400 ETB", via: "Telebirr", status: "Received" },
-  { date: "May 15", amount: "3,600 ETB", via: "Telebirr", status: "Received" },
-  { date: "Apr 30", amount: "4,500 ETB", via: "CBE Bank", status: "Received" },
-];
+type Transaction = {
+  title: string;
+  amount: string;
+  date: string;
+  plus: boolean;
+};
+
+type Payout = {
+  date: string;
+  amount: string;
+  via: string;
+  status: string;
+};
+
+type Wallet = {
+  available: number;
+  monthEarned: number;
+  monthWithdrawn: number;
+  transactions: Transaction[];
+  payouts: Payout[];
+};
 
 export default function EarningsScreen() {
-  const { colors, isDark } = useTheme();
   const router = useRouter();
+  const { isDark } = useTheme();
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState("");
+  const [wallet, setWallet] = useState<Wallet | null>(null);
 
-  const bg = colors.background ?? (isDark ? "#0A1628" : "#F8FAFC");
-  const card = colors.card ?? (isDark ? "#112240" : "#FFFFFF");
-  const text = colors.text ?? colors.foreground ?? (isDark ? "#F0FAFA" : "#0D2B2A");
-  const sub = colors.subtext ?? colors.mutedForeground ?? "#64748B";
-  const primary = colors.primary ?? "#0D9488";
-  const border = colors.border ?? (isDark ? "#1E3A5F" : "#E2E8F0");
+  const bg = isDark ? "#0A1628" : "#F8FAFC";
+  const card = isDark ? "#112240" : "#FFFFFF";
+  const text = isDark ? "#F0FAFA" : "#0D2B2A";
+  const sub = isDark ? "#94A3B8" : "#64748B";
+  const primary = "#0D9488";
+  const border = isDark ? "#1E3A5F" : "#E2E8F0";
   const surface = isDark ? "#1E293B" : "#F8FAFC";
+
+  useEffect(() => {
+    let cancelled = false;
+    setLoading(true);
+    setError("");
+
+    apiRequest<Wallet>(paths.wallet)
+      .then((data) => {
+        if (!cancelled) setWallet(data);
+      })
+      .catch((err) => {
+        if (!cancelled) setError(err.message || "Failed to load earnings");
+      })
+      .finally(() => {
+        if (!cancelled) setLoading(false);
+      });
+
+    return () => { cancelled = true; };
+  }, []);
+
+  const WEEK = useMemo(() => {
+    if (!wallet?.transactions?.length) return [30, 45, 40, 60, 55, 70, 65];
+    const buckets = Array(7).fill(0);
+    wallet.transactions.forEach((tx, i) => {
+      const v = parseInt(tx.amount.replace(/[^0-9]/g, ""), 10) || 0;
+      buckets[i % 7] = Math.max(buckets[i % 7], v / 100);
+    });
+    return buckets.map((v) => Math.min(100, Math.max(20, v)));
+  }, [wallet]);
+
+  const available = wallet ? `${wallet.available.toLocaleString()} ETB` : "0 ETB";
+  const monthEarned = wallet ? `${wallet.monthEarned.toLocaleString()} ETB` : "0 ETB";
+  const monthWithdrawn = wallet ? `${wallet.monthWithdrawn.toLocaleString()} ETB` : "0 ETB";
+  const transactions: Transaction[] = wallet?.transactions?.length ? wallet.transactions : [];
+  const payouts: Payout[] = wallet?.payouts?.length ? wallet.payouts : [];
+
+  if (loading) {
+    return (
+      <SafeAreaView style={{ flex: 1, backgroundColor: bg }} edges={["top"]}>
+        <View style={[styles.header, { borderBottomColor: border }]}>
+          <Text style={{ color: text, fontSize: 16, fontWeight: "800" }}>Earnings & Payout</Text>
+        </View>
+        <View style={{ flex: 1, alignItems: "center", justifyContent: "center" }}>
+          <ActivityIndicator size="large" color={primary} />
+        </View>
+      </SafeAreaView>
+    );
+  }
+
+  if (error) {
+    return (
+      <SafeAreaView style={{ flex: 1, backgroundColor: bg }} edges={["top"]}>
+        <View style={[styles.header, { borderBottomColor: border }]}>
+          <Text style={{ color: text, fontSize: 16, fontWeight: "800" }}>Earnings & Payout</Text>
+        </View>
+        <View style={{ padding: 24, alignItems: "center" }}>
+          <Text style={{ color: text, marginBottom: 12 }}>{error}</Text>
+          <TouchableOpacity
+            onPress={() => {
+              setError("");
+              setLoading(true);
+              apiRequest<Wallet>(paths.wallet)
+                .then((data) => setWallet(data))
+                .catch((e) => setError(e.message))
+                .finally(() => setLoading(false));
+            }}
+            style={[styles.retryBtn, { backgroundColor: primary }]}
+          >
+            <Text style={{ color: "#fff", fontWeight: "700", fontSize: 13 }}>Retry</Text>
+          </TouchableOpacity>
+        </View>
+      </SafeAreaView>
+    );
+  }
 
   return (
     <SafeAreaView style={{ flex: 1, backgroundColor: bg }} edges={["top"]}>
@@ -43,11 +131,11 @@ export default function EarningsScreen() {
         <View style={styles.hero}>
           <Text style={styles.heroLabel}>Available to Withdraw</Text>
           <Text style={styles.heroAmount}>
-            8,450 <Text style={{ fontSize: 16, opacity: 0.8 }}>ETB</Text>
+            {available.split(" ")[0]} <Text style={{ fontSize: 16, opacity: 0.8 }}>ETB</Text>
           </Text>
           <View style={styles.heroMeta}>
-            <Text style={styles.heroMetaText}>+12,800 this month</Text>
-            <Text style={styles.heroMetaText}>−4,350 withdrawn</Text>
+            <Text style={styles.heroMetaText}>+{monthEarned} this month</Text>
+            <Text style={styles.heroMetaText}>−{monthWithdrawn} withdrawn</Text>
           </View>
           <View style={{ flexDirection: "row", gap: 8, marginTop: 14 }}>
             <TouchableOpacity
@@ -82,7 +170,7 @@ export default function EarningsScreen() {
           <View style={styles.statsRow}>
             {[
               ["32", "📚", "Sessions"],
-              ["12,800", "💰", "ETB Earned"],
+              [monthEarned.replace(" ETB", ""), "💰", "ETB Earned"],
               ["4.9", "⭐", "Avg Rating"],
             ].map(([v, icon, l]) => (
               <View key={l} style={[styles.stat, { backgroundColor: surface }]}>
@@ -125,7 +213,7 @@ export default function EarningsScreen() {
 
         <View style={[styles.card, { backgroundColor: card, borderColor: border }]}>
           <Text style={[styles.section, { color: sub }]}>PAYOUT HISTORY</Text>
-          {PAYOUTS.map((p) => (
+          {payouts.map((p) => (
             <View key={p.date} style={[styles.methodRow, { borderBottomColor: border }]}>
               <View style={{ flex: 1 }}>
                 <Text style={{ color: text, fontWeight: "800", fontSize: 12 }}>{p.amount}</Text>
@@ -140,17 +228,20 @@ export default function EarningsScreen() {
               </View>
             </View>
           ))}
+          {payouts.length === 0 && (
+            <Text style={{ color: sub, fontSize: 12 }}>No payouts yet</Text>
+          )}
         </View>
 
         <Text style={[styles.section, { color: sub }]}>RECENT ACTIVITY</Text>
-        {TX.map((x) => (
+        {transactions.map((x) => (
           <View
-            key={x.t}
+            key={x.title}
             style={[styles.tx, { backgroundColor: card, borderColor: border }]}
           >
             <View style={{ flex: 1 }}>
-              <Text style={{ color: text, fontWeight: "700", fontSize: 12 }}>{x.t}</Text>
-              <Text style={{ color: sub, fontSize: 10 }}>{x.d}</Text>
+              <Text style={{ color: text, fontWeight: "700", fontSize: 12 }}>{x.title}</Text>
+              <Text style={{ color: sub, fontSize: 10 }}>{x.date}</Text>
             </View>
             <Text
               style={{
@@ -159,10 +250,13 @@ export default function EarningsScreen() {
                 fontSize: 13,
               }}
             >
-              {x.a}
+              {x.amount}
             </Text>
           </View>
         ))}
+        {transactions.length === 0 && (
+          <Text style={{ color: sub, textAlign: "center", marginTop: 20 }}>No recent activity</Text>
+        )}
       </ScrollView>
     </SafeAreaView>
   );
@@ -232,4 +326,5 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
   },
+  retryBtn: { paddingVertical: 12, paddingHorizontal: 24, borderRadius: 12, alignItems: "center" },
 });
