@@ -1,24 +1,118 @@
 "use client";
 
-const CODE = "TBB-YESHI24";
-const MILESTONES = [
-  { label: "Invite 1 friend", reward: "200 ETB", done: true, current: false },
-  { label: "Invite 3 friends", reward: "500 ETB", done: true, current: false },
-  { label: "Invite 5 friends", reward: "1,000 ETB", done: false, current: true },
-  { label: "Invite 10 friends", reward: "2,500 ETB", done: false, current: false },
-];
-const INVITED = [
-  { name: "Meron Abebe", date: "Oct 2", status: "Joined", earned: "+200 ETB" },
-  { name: "Dawit Lemma", date: "Oct 8", status: "Joined", earned: "+200 ETB" },
-  { name: "Sara Kebede", date: "Oct 11", status: "Pending", earned: "—" },
-];
+import { useEffect, useState } from "react";
+import { apiFetch, paths } from "@/lib/api";
+
+type ReferralCode = {
+  code: string;
+  totalEarnings: number;
+  referredCount: number;
+  milestones: { label: string; reward: string; threshold: number; done: boolean; current: boolean }[];
+};
+
+type ReferredFriend = {
+  id: string;
+  name: string;
+  date: string;
+  status: "Joined" | "Pending";
+  earned: string;
+};
 
 export default function ParentReferralPage() {
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState("");
+  const [code, setCode] = useState<ReferralCode | null>(null);
+  const [friends, setFriends] = useState<ReferredFriend[]>([]);
+
+  const [copied, setCopied] = useState(false);
+
+  useEffect(() => {
+    let cancelled = false;
+    setLoading(true);
+    setError("");
+
+    apiFetch<ReferralCode>(paths.referralsCode)
+      .then((data) => {
+        if (!cancelled) setCode(data);
+      })
+      .catch((err) => {
+        if (!cancelled) setError(err.message || "Failed to load referral code");
+      })
+      .finally(() => {
+        if (!cancelled) setLoading(false);
+      });
+
+    apiFetch<ReferredFriend[]>(paths.referralsMine)
+      .then((data) => {
+        if (!cancelled) setFriends(data || []);
+      })
+      .catch(() => {
+        // best-effort
+      });
+
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  const copy = () => {
+    if (code?.code) {
+      navigator.clipboard?.writeText(code.code);
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2000);
+    }
+  };
+
+  if (loading) {
+    return (
+      <div className="mx-auto max-w-3xl space-y-5">
+        <div>
+          <div className="h-6 w-56 animate-pulse rounded bg-slate-200 dark:bg-slate-800" />
+          <div className="mt-1 h-4 w-32 animate-pulse rounded bg-slate-200 dark:bg-slate-800" />
+        </div>
+        <div className="h-32 animate-pulse rounded-2xl bg-slate-100 dark:bg-slate-800" />
+        <div className="space-y-3">
+          {[1, 2].map((i) => (
+            <div key={i} className="h-16 animate-pulse rounded-2xl bg-slate-100 dark:bg-slate-800" />
+          ))}
+        </div>
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="p-6">
+        <p className="text-sm text-red-600">{error}</p>
+        <button
+          type="button"
+          onClick={() => window.location.reload()}
+          className="mt-3 rounded-xl bg-teal-600 px-4 py-2 text-sm font-bold text-white"
+        >
+          Retry
+        </button>
+      </div>
+    );
+  }
+
+  if (!code) {
+    return (
+      <div className="p-6">
+        <p className="text-sm text-[var(--secondary)]">No referral data available.</p>
+      </div>
+    );
+  }
+
+  const milestoneCount = friends.filter((f) => f.status === "Joined").length;
+  const progressText = `${milestoneCount} / ${code.milestones[code.milestones.length - 1]?.threshold || 10} friends`;
+
   return (
     <div className="mx-auto max-w-3xl space-y-5">
       <div>
         <h1 className="text-2xl font-extrabold text-[var(--foreground)]">Referral Program</h1>
-        <p className="text-sm text-[var(--secondary)]">Invite friends. Earn ETB credit after first verified session.</p>
+        <p className="text-sm text-[var(--secondary)]">
+          Invite friends. Earn ETB credit after first verified session.
+        </p>
       </div>
 
       <div className="rounded-2xl bg-[var(--primary)] p-6 text-white">
@@ -32,15 +126,18 @@ export default function ParentReferralPage() {
       <div className="rounded-2xl border border-[var(--border)] bg-[var(--card)] p-5">
         <p className="mb-2 text-[10px] font-bold tracking-wide text-[var(--secondary)]">YOUR INVITE CODE</p>
         <div className="flex items-center justify-between gap-3">
-          <p className="text-2xl font-extrabold tracking-wide text-[var(--foreground)]">{CODE}</p>
+          <p className="text-2xl font-extrabold tracking-wide text-[var(--foreground)]">{code.code}</p>
           <button
             type="button"
-            onClick={() => navigator.clipboard?.writeText(CODE)}
+            onClick={copy}
             className="rounded-xl bg-[var(--primary)] px-4 py-2 text-sm font-bold text-white"
           >
-            Copy
+            {copied ? "Copied!" : "Copy"}
           </button>
         </div>
+        <p className="mt-2 text-xs text-[var(--secondary)]">
+          Earned so far: {code.totalEarnings.toLocaleString()} ETB · {code.referredCount} confirmed
+        </p>
       </div>
 
       <div className="grid grid-cols-4 gap-2">
@@ -51,7 +148,7 @@ export default function ParentReferralPage() {
           ["🔗", "Link"],
         ].map(([icon, label]) => (
           <button
-            key={label}
+            key={label as string}
             type="button"
             className="rounded-xl bg-[var(--muted)] py-3 text-center text-xs font-semibold text-[var(--secondary)]"
           >
@@ -64,20 +161,28 @@ export default function ParentReferralPage() {
       <div className="rounded-2xl border border-[var(--border)] bg-[var(--card)] p-5">
         <div className="mb-3 flex justify-between">
           <p className="text-[10px] font-bold tracking-wide text-[var(--secondary)]">REWARD MILESTONES</p>
-          <p className="text-xs font-bold text-[var(--primary)]">2 / 5 friends</p>
+          <p className="text-xs font-bold text-[var(--primary)]">{progressText}</p>
         </div>
         <div className="space-y-3">
-          {MILESTONES.map((m, i) => (
+          {code.milestones.map((m, i) => (
             <div key={m.label} className="flex items-center gap-3">
               <div
                 className={`flex h-6 w-6 items-center justify-center rounded-full text-[10px] font-extrabold text-white ${
-                  m.done ? "bg-[var(--primary)]" : m.current ? "bg-amber-500" : "bg-slate-300 dark:bg-slate-600"
+                  m.done
+                    ? "bg-[var(--primary)]"
+                    : m.current
+                      ? "bg-amber-500"
+                      : "bg-slate-300 dark:bg-slate-600"
                 }`}
               >
                 {m.done ? "✓" : i + 1}
               </div>
               <p className="flex-1 text-sm font-semibold text-[var(--foreground)]">{m.label}</p>
-              <p className={`text-sm font-extrabold ${m.done ? "text-emerald-500" : m.current ? "text-amber-500" : "text-[var(--secondary)]"}`}>
+              <p
+                className={`text-sm font-extrabold ${
+                  m.done ? "text-emerald-500" : m.current ? "text-amber-500" : "text-[var(--secondary)]"
+                }`}
+              >
                 {m.reward}
               </p>
             </div>
@@ -88,8 +193,8 @@ export default function ParentReferralPage() {
       <div className="rounded-2xl border border-[var(--border)] bg-[var(--card)] p-5">
         <p className="mb-3 text-[10px] font-bold tracking-wide text-[var(--secondary)]">INVITED FRIENDS</p>
         <div className="space-y-2">
-          {INVITED.map((f) => (
-            <div key={f.name} className="flex items-center gap-3 rounded-xl bg-[var(--muted)] p-3">
+          {friends.map((f) => (
+            <div key={f.id} className="flex items-center gap-3 rounded-xl bg-[var(--muted)] p-3">
               <div className="flex h-9 w-9 items-center justify-center rounded-full bg-[var(--primary)] font-bold text-white">
                 {f.name[0]}
               </div>
@@ -111,6 +216,11 @@ export default function ParentReferralPage() {
               </div>
             </div>
           ))}
+          {friends.length === 0 && (
+            <p className="text-center text-sm text-[var(--secondary)]">
+              You haven't invited anyone yet. Share your code to start earning.
+            </p>
+          )}
         </div>
       </div>
     </div>
