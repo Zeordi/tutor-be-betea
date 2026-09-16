@@ -27,10 +27,16 @@ export const paths = {
     `/attendance/contract/${contractId}`,
   attendanceConfirm: (id: string) => `/attendance/${id}/confirm`,
 
-  // progress
-  progressMine: "/progress/mine",
-  progressSubmit: (contractId: string) => `/progress/${contractId}`,
-  progressGet: (contractId: string) => `/progress/${contractId}`,
+   // progress
+   progressMine: "/progress/mine",
+   progressSubmit: (contractId: string) => `/progress/${contractId}`,
+   progressGet: (contractId: string) => `/progress/${contractId}`,
+
+   // contracts (alias for parent contracts used by calendar)
+   contractsMine: "/contracts/mine/parent",
+
+   // sessions
+   sessionDetail: (id: string) => `/sessions/${id}`,
 
   // users
   usersMe: "/users/me",
@@ -63,8 +69,9 @@ export const paths = {
   notificationRead: (id: string) => `/notifications/${id}/read`,
   notificationsReadAll: "/notifications/read-all",
 
-  // subscriptions
-  subscriptionMine: "/subscriptions/mine",
+   // subscriptions
+   subscriptionMine: "/subscriptions/mine",
+   subscriptionUpgrade: "/subscriptions/upgrade",
 
   // referrals
   referralsCode: "/referrals/code",
