@@ -1,13 +1,39 @@
 import { useState } from "react";
-import { View, Text, TextInput, ScrollView, Pressable, StyleSheet, Alert } from "react-native";
-import { useRouter } from "expo-router";
+import { View, Text, TextInput, ScrollView, Pressable, StyleSheet, Alert, ActivityIndicator } from "react-native";
+import { useRouter, useLocalSearchParams } from "expo-router";
 import { useTheme } from "@/hooks/useTheme";
+import { apiRequest, paths } from "@/lib/api";
 
 export default function ProgressSubmitScreen() {
   const router = useRouter();
   const { colors, isDark } = useTheme();
+  const { contractId } = useLocalSearchParams<{ contractId: string }>();
   const [mastery, setMastery] = useState("82");
   const [notes, setNotes] = useState("");
+  const [loading, setLoading] = useState(false);
+
+  const onSubmit = async () => {
+    if (!contractId) {
+      Alert.alert("Error", "Missing contract ID");
+      return;
+    }
+    try {
+      setLoading(true);
+      await apiRequest(paths.progressSubmit(contractId), {
+        method: "POST",
+        body: JSON.stringify({
+          mastery: Number(mastery),
+          notes,
+        }),
+      });
+      Alert.alert("Submitted", "Progress report sent to parent.");
+      router.back();
+    } catch (e: any) {
+      Alert.alert("Error", e.message || "Failed to submit progress");
+    } finally {
+      setLoading(false);
+    }
+  };
 
   return (
     <ScrollView style={{ flex: 1, backgroundColor: colors.background }} contentContainerStyle={{ paddingBottom: 40 }}>
@@ -54,12 +80,14 @@ export default function ProgressSubmitScreen() {
 
         <Pressable
           style={[styles.cta, { backgroundColor: colors.primary }]}
-          onPress={() => {
-            Alert.alert("Submitted", "Progress report sent to parent.");
-            router.back();
-          }}
+          onPress={onSubmit}
+          disabled={loading}
         >
-          <Text style={styles.ctaText}>Submit report to parent</Text>
+          {loading ? (
+            <ActivityIndicator color="#fff" />
+          ) : (
+            <Text style={styles.ctaText}>Submit report to parent</Text>
+          )}
         </Pressable>
       </View>
     </ScrollView>

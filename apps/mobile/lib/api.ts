@@ -34,6 +34,9 @@ export const paths = {
   favorites: "/favorites",
   favorite: (teacherId: string) => `/favorites/${teacherId}`,
   wallet: "/payments/wallet",
+  teacherEarnings: "/payments/earnings",
+  paymentsInitiate: "/payments/initiate",
+  payoutRequest: "/payments/payout",
   notifications: "/notifications",
   notificationRead: (id: string) => `/notifications/${id}/read`,
   notificationsReadAll: "/notifications/read-all",
@@ -45,6 +48,15 @@ export const paths = {
   applicationsMine: "/applications/mine",
   applicationsAction: (id: string) => `/applications/${id}/action`,
   applicationsCreate: "/applications",
+  connectsBalance: "/connects/balance",
+  connectsTopUp: "/connects/top-up",
+  vaultUpload: "/vault/upload",
+  vaultTeacherDocuments: (teacherId: string) =>
+    `/vault/teacher/${teacherId}`,
+  badgesTeacher: (teacherId: string) => `/badges/teacher/${teacherId}`,
+  availabilityMine: "/availability/mine",
+  availabilitySlots: "/availability/slots",
+  availabilityPackages: "/availability/packages",
 } as const;
 
 export async function getToken(): Promise<string | null> {

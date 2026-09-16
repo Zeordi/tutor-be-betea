@@ -1,68 +1,92 @@
-import { View, Text, ScrollView, TouchableOpacity, StyleSheet } from "react-native";
-import { useRouter } from "expo-router";
-import { useTheme } from "@/hooks/useTheme";
-import { SafeAreaView } from "react-native-safe-area-context";
+type Badge = {
+  id: string;
+  badgeType: string;
+  issuedAt: string;
+};
 
-const BADGES = [
-  {
-    icon: "🛡️",
-    title: "National ID Verified",
-    sub: "Fayda ID checked by TBB board",
-    earned: true,
-    color: "#0D9488",
-  },
-  {
-    icon: "🎓",
-    title: "Degree Verified by Board",
-    sub: "University certificate approved",
-    earned: true,
-    color: "#0284C7",
-  },
-  {
-    icon: "🥇",
-    title: "Gold Top 1%",
-    sub: "Top rated in your subject this quarter",
-    earned: true,
-    color: "#D97706",
-  },
-  {
-    icon: "⭐",
-    title: "Elite Tutor",
-    sub: "50+ completed sessions with 4.8+",
-    earned: false,
-    color: "#7C3AED",
-  },
-  {
-    icon: "📍",
-    title: "Local Hero",
-    sub: "Most sessions in your sub-city",
-    earned: false,
-    color: "#059669",
-  },
-];
+const BADGE_META: Record<string, { title: string; description: string; color: string; icon: string }> = {
+  NATIONAL_ID: { title: "National ID Verified", description: "Fayda ID checked by TBB board", color: "#0D9488", icon: "🛡️" },
+  DEGREE: { title: "Degree Verified by Board", description: "University certificate approved", color: "#0284C7", icon: "🎓" },
+  GOLD: { title: "Gold Top 1%", description: "Top rated in your subject this quarter", color: "#D97706", icon: "🥇" },
+  ELITE: { title: "Elite Tutor", description: "50+ completed sessions with 4.8+", color: "#7C3AED", icon: "⭐" },
+};
 
 export default function BadgesScreen() {
-  const { colors, isDark } = useTheme();
   const router = useRouter();
+  const { isDark } = useTheme();
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState("");
+  const [badges, setBadges] = useState<Badge[]>([]);
 
-  const bg = colors.background ?? (isDark ? "#0A1628" : "#F8FAFC");
-  const card = colors.card ?? (isDark ? "#112240" : "#FFFFFF");
-  const text = colors.text ?? colors.foreground ?? (isDark ? "#F0FAFA" : "#0D2B2A");
-  const sub = colors.subtext ?? colors.mutedForeground ?? "#64748B";
-  const primary = colors.primary ?? "#0D9488";
-  const border = colors.border ?? (isDark ? "#1E3A5F" : "#E2E8F0");
+  const bg = isDark ? "#0A1628" : "#F8FAFC";
+  const card = isDark ? "#112240" : "#FFFFFF";
+  const text = isDark ? "#F0FAFA" : "#0D2B2A";
+  const sub = isDark ? "#94A3B8" : "#64748B";
+  const primary = "#0D9488";
+  const border = isDark ? "#1E3A5F" : "#E2E8F0";
 
-  const earned = BADGES.filter((b) => b.earned).length;
+  useEffect(() => {
+    let cancelled = false;
+    setLoading(true);
+    setError("");
+    apiRequest<Badge[]>(paths.badgesTeacher("me"))
+      .then((data) => {
+        if (!cancelled) setBadges(Array.isArray(data) ? data : []);
+      })
+      .catch((err) => {
+        if (!cancelled) setError(err.message || "Failed to load badges");
+      })
+      .finally(() => {
+        if (!cancelled) setLoading(false);
+      });
+    return () => { cancelled = true; };
+  }, []);
+
+  const earned = badges.length;
+  const total = Object.keys(BADGE_META).length;
+
+  if (loading) {
+    return (
+      <SafeAreaView style={{ flex: 1, backgroundColor: bg }} edges={["top"]}>
+        <View style={{ flexDirection: "row", alignItems: "center", gap: 12, padding: 14, borderBottomWidth: 1, borderBottomColor: border }}>
+          <TouchableOpacity onPress={() => router.back()}><Text style={{ color: sub }}>←</Text></TouchableOpacity>
+          <Text style={{ color: text, fontSize: 16, fontWeight: "800", flex: 1 }}>My Trust Badges</Text>
+        </View>
+        <View style={{ flex: 1, alignItems: "center", justifyContent: "center" }}>
+          <ActivityIndicator size="large" color={primary} />
+        </View>
+      </SafeAreaView>
+    );
+  }
+
+  if (error) {
+    return (
+      <SafeAreaView style={{ flex: 1, backgroundColor: bg }} edges={["top"]}>
+        <View style={{ flexDirection: "row", alignItems: "center", gap: 12, padding: 14, borderBottomWidth: 1, borderBottomColor: border }}>
+          <TouchableOpacity onPress={() => router.back()}><Text style={{ color: sub }}>←</Text></TouchableOpacity>
+          <Text style={{ color: text, fontSize: 16, fontWeight: "800", flex: 1 }}>My Trust Badges</Text>
+        </View>
+        <View style={{ padding: 24, alignItems: "center" }}>
+          <Text style={{ color: text, marginBottom: 12 }}>{error}</Text>
+          <TouchableOpacity onPress={() => { setError(""); setLoading(true); apiRequest<Badge[]>(paths.badgesTeacher("me")).then((data) => setBadges(Array.isArray(data) ? data : [])).catch((e) => setError(e.message)).finally(() => setLoading(false)); }} style={{ backgroundColor: primary, paddingVertical: 12, paddingHorizontal: 24, borderRadius: 12 }}>
+            <Text style={{ color: "#fff", fontWeight: "700", fontSize: 13 }}>Retry</Text>
+          </TouchableOpacity>
+        </View>
+      </SafeAreaView>
+    );
+  }
+
+  const allBadges = Object.entries(BADGE_META).map(([type, meta]) => ({
+    id: type,
+    ...meta,
+    earned: badges.some((b) => b.badgeType === type),
+  }));
 
   return (
     <SafeAreaView style={{ flex: 1, backgroundColor: bg }} edges={["top"]}>
-      <View style={[styles.header, { borderBottomColor: border }]}>
-        <TouchableOpacity onPress={() => router.back()}>
-          <Text style={{ color: sub }}>←</Text>
-        </TouchableOpacity>
-        <Text style={{ color: text, fontSize: 16, fontWeight: "800", flex: 1 }}>
-          My Trust Badges
-        </Text>
+      <View style={{ flexDirection: "row", alignItems: "center", gap: 12, padding: 14, borderBottomWidth: 1, borderBottomColor: border }}>
+        <TouchableOpacity onPress={() => router.back()}><Text style={{ color: sub }}>←</Text></TouchableOpacity>
+        <Text style={{ color: text, fontSize: 16, fontWeight: "800", flex: 1 }}>My Trust Badges</Text>
       </View>
 
       <ScrollView contentContainerStyle={{ padding: 16, gap: 12, paddingBottom: 40 }}>
@@ -71,16 +95,16 @@ export default function BadgesScreen() {
             Public profile shows
           </Text>
           <Text style={{ color: "#fff", fontSize: 28, fontWeight: "900", marginTop: 4 }}>
-            {earned} / {BADGES.length}
+            {earned} / {total}
           </Text>
           <Text style={{ color: "rgba(255,255,255,0.85)", fontSize: 12, marginTop: 4 }}>
             Badges only — never raw ID or degree documents
           </Text>
         </View>
 
-        {BADGES.map((b) => (
+        {allBadges.map((b) => (
           <View
-            key={b.title}
+            key={b.id}
             style={[
               styles.card,
               {
@@ -102,7 +126,7 @@ export default function BadgesScreen() {
               <Text style={{ color: text, fontWeight: "800", fontSize: 13 }}>
                 {b.title}
               </Text>
-              <Text style={{ color: sub, fontSize: 11, marginTop: 2 }}>{b.sub}</Text>
+              <Text style={{ color: sub, fontSize: 11, marginTop: 2 }}>{b.description}</Text>
               <Text
                 style={{
                   color: b.earned ? "#059669" : "#D97706",

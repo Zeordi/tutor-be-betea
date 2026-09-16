@@ -5,25 +5,18 @@ import { useTheme } from "@/hooks/useTheme";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { apiRequest, paths } from "@/lib/api";
 
-type Transaction = {
-  title: string;
-  amount: string;
-  date: string;
-  plus: boolean;
-};
-
 type Payout = {
-  date: string;
-  amount: string;
-  via: string;
+  id: string;
+  amount: string | number;
+  provider: string;
   status: string;
+  createdAt: string;
+  paidAt?: string;
 };
 
-type Wallet = {
-  available: number;
-  monthEarned: number;
-  monthWithdrawn: number;
-  transactions: Transaction[];
+type TeacherEarnings = {
+  totalEarned: number;
+  pendingPayout: number;
   payouts: Payout[];
 };
 
@@ -32,7 +25,7 @@ export default function EarningsScreen() {
   const { isDark } = useTheme();
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
-  const [wallet, setWallet] = useState<Wallet | null>(null);
+  const [earnings, setEarnings] = useState<TeacherEarnings | null>(null);
 
   const bg = isDark ? "#0A1628" : "#F8FAFC";
   const card = isDark ? "#112240" : "#FFFFFF";
@@ -47,9 +40,9 @@ export default function EarningsScreen() {
     setLoading(true);
     setError("");
 
-    apiRequest<Wallet>(paths.wallet)
+              apiRequest<TeacherEarnings>(paths.teacherEarnings)
       .then((data) => {
-        if (!cancelled) setWallet(data);
+        if (!cancelled) setEarnings(data);
       })
       .catch((err) => {
         if (!cancelled) setError(err.message || "Failed to load earnings");
@@ -62,20 +55,18 @@ export default function EarningsScreen() {
   }, []);
 
   const WEEK = useMemo(() => {
-    if (!wallet?.transactions?.length) return [30, 45, 40, 60, 55, 70, 65];
+    if (!earnings?.payouts?.length) return [30, 45, 40, 60, 55, 70, 65];
     const buckets = Array(7).fill(0);
-    wallet.transactions.forEach((tx, i) => {
-      const v = parseInt(tx.amount.replace(/[^0-9]/g, ""), 10) || 0;
+    earnings.payouts.forEach((p, i) => {
+      const v = parseInt(p.amount.replace(/[^0-9]/g, ""), 10) || 0;
       buckets[i % 7] = Math.max(buckets[i % 7], v / 100);
     });
     return buckets.map((v) => Math.min(100, Math.max(20, v)));
-  }, [wallet]);
+  }, [earnings]);
 
-  const available = wallet ? `${wallet.available.toLocaleString()} ETB` : "0 ETB";
-  const monthEarned = wallet ? `${wallet.monthEarned.toLocaleString()} ETB` : "0 ETB";
-  const monthWithdrawn = wallet ? `${wallet.monthWithdrawn.toLocaleString()} ETB` : "0 ETB";
-  const transactions: Transaction[] = wallet?.transactions?.length ? wallet.transactions : [];
-  const payouts: Payout[] = wallet?.payouts?.length ? wallet.payouts : [];
+  const available = earnings ? `${earnings.pendingPayout.toLocaleString()} ETB` : "0 ETB";
+  const monthEarned = earnings ? `${earnings.totalEarned.toLocaleString()} ETB` : "0 ETB";
+  const payouts: Payout[] = earnings?.payouts?.length ? earnings.payouts : [];
 
   if (loading) {
     return (
@@ -102,8 +93,8 @@ export default function EarningsScreen() {
             onPress={() => {
               setError("");
               setLoading(true);
-              apiRequest<Wallet>(paths.wallet)
-                .then((data) => setWallet(data))
+              apiRequest<TeacherEarnings>(paths.teacherEarnings)
+                .then((data) => setEarnings(data))
                 .catch((e) => setError(e.message))
                 .finally(() => setLoading(false));
             }}
@@ -135,7 +126,7 @@ export default function EarningsScreen() {
           </Text>
           <View style={styles.heroMeta}>
             <Text style={styles.heroMetaText}>+{monthEarned} this month</Text>
-            <Text style={styles.heroMetaText}>−{monthWithdrawn} withdrawn</Text>
+            <Text style={styles.heroMetaText}>Pending: {available}</Text>
           </View>
           <View style={{ flexDirection: "row", gap: 8, marginTop: 14 }}>
             <TouchableOpacity
@@ -214,11 +205,11 @@ export default function EarningsScreen() {
         <View style={[styles.card, { backgroundColor: card, borderColor: border }]}>
           <Text style={[styles.section, { color: sub }]}>PAYOUT HISTORY</Text>
           {payouts.map((p) => (
-            <View key={p.date} style={[styles.methodRow, { borderBottomColor: border }]}>
+            <View key={p.id} style={[styles.methodRow, { borderBottomColor: border }]}>
               <View style={{ flex: 1 }}>
-                <Text style={{ color: text, fontWeight: "800", fontSize: 12 }}>{p.amount}</Text>
+                <Text style={{ color: text, fontWeight: "800", fontSize: 12 }}>{Number(p.amount).toLocaleString()} ETB</Text>
                 <Text style={{ color: sub, fontSize: 10 }}>
-                  {p.date} · via {p.via}
+                  {new Date(p.createdAt).toLocaleDateString()} · via {p.provider}
                 </Text>
               </View>
               <View style={[styles.pill, { backgroundColor: "#D1FAE5" }]}>
@@ -232,31 +223,6 @@ export default function EarningsScreen() {
             <Text style={{ color: sub, fontSize: 12 }}>No payouts yet</Text>
           )}
         </View>
-
-        <Text style={[styles.section, { color: sub }]}>RECENT ACTIVITY</Text>
-        {transactions.map((x) => (
-          <View
-            key={x.title}
-            style={[styles.tx, { backgroundColor: card, borderColor: border }]}
-          >
-            <View style={{ flex: 1 }}>
-              <Text style={{ color: text, fontWeight: "700", fontSize: 12 }}>{x.title}</Text>
-              <Text style={{ color: sub, fontSize: 10 }}>{x.date}</Text>
-            </View>
-            <Text
-              style={{
-                color: x.plus ? "#10B981" : text,
-                fontWeight: "800",
-                fontSize: 13,
-              }}
-            >
-              {x.amount}
-            </Text>
-          </View>
-        ))}
-        {transactions.length === 0 && (
-          <Text style={{ color: sub, textAlign: "center", marginTop: 20 }}>No recent activity</Text>
-        )}
       </ScrollView>
     </SafeAreaView>
   );

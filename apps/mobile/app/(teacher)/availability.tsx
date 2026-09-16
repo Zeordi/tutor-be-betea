@@ -1,35 +1,85 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import {
   View,
   Text,
   ScrollView,
   TouchableOpacity,
   StyleSheet,
+  ActivityIndicator,
+  Alert,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useRouter } from "expo-router";
-import { useTheme } from "../../hooks/useTheme";
+import { useTheme } from "@/hooks/useTheme";
+import { apiRequest, paths } from "@/lib/api";
 
-const SCHEDULE = [
-  { day: "Mon", slots: ["09:00–11:00", "16:00–19:00"] },
-  { day: "Tue", slots: ["14:00–18:00"] },
-  { day: "Wed", slots: [] as string[] },
-  { day: "Thu", slots: ["09:00–11:00", "16:00–19:00"] },
-  { day: "Fri", slots: ["16:00–20:00"] },
-  { day: "Sat", slots: ["09:00–13:00", "14:00–17:00"] },
-  { day: "Sun", slots: [] as string[] },
-];
+type ApiSlot = { dayOfWeek: number; startTime: string; endTime: string; active: boolean; blockedDates?: string[] };
+type ApiPackage = { id: string; name: string; sessions: number; priceEtb: number | string; description?: string; active: boolean };
 
-const PACKAGES = [
-  { name: "Standard", sessions: 8, hrs: 1, total: 3600, popular: false },
-  { name: "Intensive", sessions: 12, hrs: 1.5, total: 8100, popular: true },
-  { name: "Weekend Boost", sessions: 6, hrs: 2, total: 5040, popular: false },
-];
+const DAY_NAMES = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
 
 export default function AvailabilityPackagesScreen() {
   const router = useRouter();
   const { colors, isDark } = useTheme();
   const [tab, setTab] = useState<"weekly" | "packages">("weekly");
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState("");
+  const [slots, setSlots] = useState<ApiSlot[]>([]);
+  const [packages, setPackages] = useState<ApiPackage[]>([]);
+
+  const load = async () => {
+    let cancelled = false;
+    setLoading(true);
+    setError("");
+    try {
+      const data: any = await apiRequest<any>(paths.availabilityMine);
+      if (!cancelled) {
+        setSlots(Array.isArray(data?.availability) ? data.availability : []);
+        setPackages(Array.isArray(data?.packages) ? data.packages : []);
+      }
+    } catch (e: any) {
+      if (!cancelled) setError(e.message || "Failed to load availability");
+    } finally {
+      if (!cancelled) setLoading(false);
+    }
+    return () => { cancelled = true; };
+  };
+
+  useEffect(() => {
+    load();
+  }, []);
+
+  const handleSaveSlots = async () => {
+    try {
+      await apiRequest(paths.availabilitySlots, {
+        method: "PUT",
+        body: JSON.stringify({ slots }),
+      });
+      Alert.alert("Saved", "Weekly slots updated");
+    } catch (e: any) {
+      Alert.alert("Error", e.message || "Failed to save slots");
+    }
+  };
+
+  const handleSavePackage = async (pkg: ApiPackage) => {
+    try {
+      await apiRequest(paths.availabilityPackages, {
+        method: "POST",
+        body: JSON.stringify({
+          id: pkg.id,
+          name: pkg.name,
+          sessions: pkg.sessions,
+          priceEtb: Number(pkg.priceEtb),
+          description: pkg.description,
+          active: pkg.active,
+        }),
+      });
+      Alert.alert("Saved", "Package updated");
+      load();
+    } catch (e: any) {
+      Alert.alert("Error", e.message || "Failed to save package");
+    }
+  };
 
   return (
     <SafeAreaView style={[styles.safe, { backgroundColor: colors.bg }]} edges={["top"]}>
@@ -40,7 +90,7 @@ export default function AvailabilityPackagesScreen() {
         <Text style={[styles.headerTitle, { color: colors.text, flex: 1, marginLeft: 10 }]}>
           Availability & Packages
         </Text>
-        <TouchableOpacity>
+        <TouchableOpacity onPress={handleSaveSlots}>
           <Text style={{ color: colors.primary, fontWeight: "700", fontSize: 12 }}>Save</Text>
         </TouchableOpacity>
       </View>
@@ -62,190 +112,207 @@ export default function AvailabilityPackagesScreen() {
         ))}
       </View>
 
-      <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
-        {tab === "weekly" ? (
-          <>
-            <View
-              style={[
-                styles.infoBanner,
-                {
-                  backgroundColor: isDark ? "#1e3a5f55" : "#eff6ff",
-                  borderColor: isDark ? "#1e40af" : "#bfdbfe",
-                },
-              ]}
-            >
-              <Text style={{ color: isDark ? "#93c5fd" : "#1d4ed8", fontSize: 11 }}>
-                ⏱ Weekly capacity: <Text style={{ fontWeight: "800" }}>22 hrs</Text> · Max recommended: 30 hrs/week
-              </Text>
-            </View>
-
-            <View style={[styles.card, { backgroundColor: colors.card, borderColor: colors.border }]}>
-              <Text style={[styles.label, { color: colors.sub }]}>RECURRING SCHEDULE</Text>
-              {SCHEDULE.map((d) => (
-                <View
-                  key={d.day}
-                  style={[styles.dayRow, { borderBottomColor: colors.border }]}
-                >
-                  <View
-                    style={[
-                      styles.dayBadge,
-                      {
-                        backgroundColor:
-                          d.slots.length > 0
-                            ? isDark
-                              ? "#134e4a55"
-                              : "#ccfbf1"
-                            : isDark
-                              ? "#1e293b"
-                              : "#f1f5f9",
-                      },
-                    ]}
-                  >
-                    <Text
-                      style={{
-                        color: d.slots.length > 0 ? colors.primary : colors.sub,
-                        fontWeight: "800",
-                        fontSize: 11,
-                      }}
-                    >
-                      {d.day}
-                    </Text>
-                  </View>
-                  <View style={{ flex: 1, flexDirection: "row", flexWrap: "wrap", gap: 6 }}>
-                    {d.slots.length > 0 ? (
-                      <>
-                        {d.slots.map((s) => (
-                          <View
-                            key={s}
-                            style={[
-                              styles.slotChip,
-                              {
-                                backgroundColor: isDark ? "#134e4a55" : "#f0fdfa",
-                                borderColor: isDark ? "#0f766e" : "#99f6e4",
-                              },
-                            ]}
-                          >
-                            <Text style={{ color: colors.primary, fontSize: 11, fontWeight: "600" }}>
-                              {s}
-                            </Text>
-                          </View>
-                        ))}
-                        <TouchableOpacity>
-                          <Text style={{ color: colors.primary, fontSize: 11, fontWeight: "700" }}>
-                            + Add
-                          </Text>
-                        </TouchableOpacity>
-                      </>
-                    ) : (
-                      <TouchableOpacity>
-                        <Text style={{ color: colors.sub, fontSize: 11 }}>+ Add slots</Text>
-                      </TouchableOpacity>
-                    )}
-                  </View>
-                </View>
-              ))}
-            </View>
-
-            <View style={[styles.card, { backgroundColor: colors.card, borderColor: colors.border }]}>
-              <View style={styles.rowBetween}>
-                <Text style={[styles.label, { color: colors.sub }]}>BLOCK DATES</Text>
-                <TouchableOpacity>
-                  <Text style={{ color: colors.primary, fontSize: 11, fontWeight: "700" }}>+ Block</Text>
-                </TouchableOpacity>
-              </View>
-              {[
-                ["Oct 20–22", "University exam period"],
-                ["Nov 5", "Family event — Meskel celebration"],
-              ].map(([d, r]) => (
-                <View key={d} style={styles.blockRow}>
-                  <View style={styles.amberDot} />
-                  <View style={{ flex: 1 }}>
-                    <Text style={{ color: colors.text, fontWeight: "700", fontSize: 12 }}>{d}</Text>
-                    <Text style={{ color: colors.sub, fontSize: 10 }}>{r}</Text>
-                  </View>
-                  <Text style={{ color: colors.sub }}>🗑</Text>
-                </View>
-              ))}
-            </View>
-          </>
-        ) : (
-          <>
-            {PACKAGES.map((p) => (
+      {loading ? (
+        <View style={{ flex: 1, alignItems: "center", justifyContent: "center" }}>
+          <ActivityIndicator size="large" color={colors.primary} />
+        </View>
+      ) : error ? (
+        <View style={{ padding: 24, alignItems: "center" }}>
+          <Text style={{ color: colors.text, marginBottom: 12 }}>{error}</Text>
+          <TouchableOpacity onPress={load} style={{ backgroundColor: colors.primary, paddingVertical: 12, paddingHorizontal: 24, borderRadius: 12 }}>
+            <Text style={{ color: "#fff", fontWeight: "700", fontSize: 13 }}>Retry</Text>
+          </TouchableOpacity>
+        </View>
+      ) : (
+        <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
+          {tab === "weekly" ? (
+            <>
               <View
-                key={p.name}
                 style={[
-                  styles.card,
+                  styles.infoBanner,
                   {
-                    backgroundColor: colors.card,
-                    borderColor: p.popular ? colors.primary : colors.border,
-                    borderWidth: p.popular ? 2 : 1,
+                    backgroundColor: isDark ? "#1e3a5f55" : "#eff6ff",
+                    borderColor: isDark ? "#1e40af" : "#bfdbfe",
                   },
                 ]}
               >
-                <View style={styles.rowBetween}>
-                  <Text style={{ color: colors.text, fontWeight: "800", fontSize: 15 }}>{p.name}</Text>
-                  {p.popular && (
-                    <View style={styles.popularBadge}>
-                      <Text style={{ color: "#047857", fontSize: 10, fontWeight: "700" }}>Popular</Text>
-                    </View>
-                  )}
-                </View>
-                <View style={styles.pkgStats}>
-                  {[
-                    [`${p.sessions}`, "Sessions"],
-                    [`${p.hrs}h`, "Per session"],
-                    [p.total.toLocaleString(), "ETB total"],
-                  ].map(([v, l]) => (
-                    <View
-                      key={l}
-                      style={[styles.pkgStat, { backgroundColor: isDark ? "#1e293b" : "#f8fafc" }]}
-                    >
-                      <Text style={{ color: colors.text, fontWeight: "800", fontSize: 13 }}>{v}</Text>
-                      <Text style={{ color: colors.sub, fontSize: 9 }}>{l}</Text>
-                    </View>
-                  ))}
-                </View>
-                <Text style={{ color: colors.sub, fontSize: 10, marginBottom: 4 }}>
-                  ✅ Valid 60 days · Escrow per session · Telebirr / CBE Birr
+                <Text style={{ color: isDark ? "#93c5fd" : "#1d4ed8", fontSize: 11 }}>
+                  ⏱ Weekly capacity: <Text style={{ fontWeight: "800" }}>22 hrs</Text> · Max recommended: 30 hrs/week
                 </Text>
-                <View style={{ flexDirection: "row", gap: 8, marginTop: 8 }}>
-                  <TouchableOpacity
-                    style={[styles.pkgBtn, { borderColor: colors.border }]}
-                  >
-                    <Text style={{ color: colors.sub, fontWeight: "700", fontSize: 11 }}>Edit</Text>
-                  </TouchableOpacity>
-                  <TouchableOpacity
-                    style={[
-                      styles.pkgBtn,
-                      {
-                        backgroundColor: p.popular ? colors.primary : "transparent",
-                        borderColor: p.popular ? colors.primary : colors.border,
-                      },
-                    ]}
-                  >
-                    <Text
-                      style={{
-                        color: p.popular ? "#fff" : colors.sub,
-                        fontWeight: "700",
-                        fontSize: 11,
-                      }}
+              </View>
+
+              <View style={[styles.card, { backgroundColor: colors.card, borderColor: colors.border }]}>
+                <Text style={[styles.label, { color: colors.sub }]}>RECURRING SCHEDULE</Text>
+                {DAY_NAMES.map((d, i) => {
+                  const daySlots = slots.filter((s) => s.dayOfWeek === i);
+                  return (
+                    <View
+                      key={d}
+                      style={[styles.dayRow, { borderBottomColor: colors.border }]}
                     >
-                      {p.popular ? "Active ✓" : "Activate"}
-                    </Text>
+                      <View
+                        style={[
+                          styles.dayBadge,
+                          {
+                            backgroundColor:
+                              daySlots.length > 0
+                                ? isDark
+                                  ? "#134e4a55"
+                                  : "#ccfbf1"
+                                : isDark
+                                  ? "#1e293b"
+                                  : "#f1f5f9",
+                          },
+                        ]}
+                      >
+                        <Text
+                          style={{
+                            color: daySlots.length > 0 ? colors.primary : colors.sub,
+                            fontWeight: "800",
+                            fontSize: 11,
+                          }}
+                        >
+                          {d}
+                        </Text>
+                      </View>
+                      <View style={{ flex: 1, flexDirection: "row", flexWrap: "wrap", gap: 6 }}>
+                        {daySlots.length > 0 ? (
+                          <>
+                            {daySlots.map((s, idx) => (
+                              <View
+                                key={idx}
+                                style={[
+                                  styles.slotChip,
+                                  {
+                                    backgroundColor: isDark ? "#134e4a55" : "#f0fdfa",
+                                    borderColor: isDark ? "#0f766e" : "#99f6e4",
+                                  },
+                                ]}
+                              >
+                                <Text style={{ color: colors.primary, fontSize: 11, fontWeight: "600" }}>
+                                  {s.startTime}–{s.endTime}
+                                </Text>
+                              </View>
+                            ))}
+                            <TouchableOpacity>
+                              <Text style={{ color: colors.primary, fontSize: 11, fontWeight: "700" }}>
+                                + Add
+                              </Text>
+                            </TouchableOpacity>
+                          </>
+                        ) : (
+                          <TouchableOpacity>
+                            <Text style={{ color: colors.sub, fontSize: 11 }}>+ Add slots</Text>
+                          </TouchableOpacity>
+                        )}
+                      </View>
+                    </View>
+                  );
+                })}
+              </View>
+
+              <View style={[styles.card, { backgroundColor: colors.card, borderColor: colors.border }]}>
+                <View style={styles.rowBetween}>
+                  <Text style={[styles.label, { color: colors.sub }]}>BLOCK DATES</Text>
+                  <TouchableOpacity>
+                    <Text style={{ color: colors.primary, fontSize: 11, fontWeight: "700" }}>+ Block</Text>
                   </TouchableOpacity>
                 </View>
+                {(slots.flatMap((s) => s.blockedDates || [])).slice(0, 2).map((d) => (
+                  <View key={d} style={styles.blockRow}>
+                    <View style={styles.amberDot} />
+                    <View style={{ flex: 1 }}>
+                      <Text style={{ color: colors.text, fontWeight: "700", fontSize: 12 }}>{d}</Text>
+                      <Text style={{ color: colors.sub, fontSize: 10 }}>Blocked</Text>
+                    </View>
+                    <Text style={{ color: colors.sub }}>🗑</Text>
+                  </View>
+                ))}
               </View>
-            ))}
-            <TouchableOpacity
-              style={[styles.dashedBtn, { borderColor: colors.border }]}
-            >
-              <Text style={{ color: colors.sub, fontWeight: "700", fontSize: 12 }}>
-                + Create Custom Package
-              </Text>
-            </TouchableOpacity>
-          </>
-        )}
-      </ScrollView>
+            </>
+          ) : (
+            <>
+              {packages.length === 0 && (
+                <Text style={{ color: colors.sub, textAlign: "center", marginTop: 20 }}>No packages yet</Text>
+              )}
+              {packages.map((p) => (
+                <View
+                  key={p.id}
+                  style={[
+                    styles.card,
+                    {
+                      backgroundColor: colors.card,
+                      borderColor: p.active ? colors.primary : colors.border,
+                      borderWidth: p.active ? 2 : 1,
+                    },
+                  ]}
+                >
+                  <View style={styles.rowBetween}>
+                    <Text style={{ color: colors.text, fontWeight: "800", fontSize: 15 }}>{p.name}</Text>
+                    {p.active && (
+                      <View style={styles.popularBadge}>
+                        <Text style={{ color: "#047857", fontSize: 10, fontWeight: "700" }}>Active</Text>
+                      </View>
+                    )}
+                  </View>
+                  <View style={styles.pkgStats}>
+                    {[
+                      [`${p.sessions}`, "Sessions"],
+                      ["1h", "Per session"],
+                      [Number(p.priceEtb).toLocaleString(), "ETB total"],
+                    ].map(([v, l]) => (
+                      <View
+                        key={l}
+                        style={[styles.pkgStat, { backgroundColor: isDark ? "#1e293b" : "#f8fafc" }]}
+                      >
+                        <Text style={{ color: colors.text, fontWeight: "800", fontSize: 13 }}>{v}</Text>
+                        <Text style={{ color: colors.sub, fontSize: 9 }}>{l}</Text>
+                      </View>
+                    ))}
+                  </View>
+                  <Text style={{ color: colors.sub, fontSize: 10, marginBottom: 4 }}>
+                    ✅ Valid 60 days · Escrow per session · Telebirr / CBE Birr
+                  </Text>
+                  <View style={{ flexDirection: "row", gap: 8, marginTop: 8 }}>
+                    <TouchableOpacity
+                      style={[styles.pkgBtn, { borderColor: colors.border }]}
+                    >
+                      <Text style={{ color: colors.sub, fontWeight: "700", fontSize: 11 }}>Edit</Text>
+                    </TouchableOpacity>
+                    <TouchableOpacity
+                      style={[
+                        styles.pkgBtn,
+                        {
+                          backgroundColor: p.active ? colors.primary : "transparent",
+                          borderColor: p.active ? colors.primary : colors.border,
+                        },
+                      ]}
+                      onPress={() => handleSavePackage(p)}
+                    >
+                      <Text
+                        style={{
+                          color: p.active ? "#fff" : colors.sub,
+                          fontWeight: "700",
+                          fontSize: 11,
+                        }}
+                      >
+                        {p.active ? "Active ✓" : "Activate"}
+                      </Text>
+                    </TouchableOpacity>
+                  </View>
+                </View>
+              ))}
+              <TouchableOpacity
+                style={[styles.dashedBtn, { borderColor: colors.border }]}
+              >
+                <Text style={{ color: colors.sub, fontWeight: "700", fontSize: 12 }}>
+                  + Create Custom Package
+                </Text>
+              </TouchableOpacity>
+            </>
+          )}
+        </ScrollView>
+      )}
     </SafeAreaView>
   );
 }
