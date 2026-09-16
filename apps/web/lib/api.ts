@@ -55,6 +55,9 @@ export const paths = {
   // wallet
   wallet: "/payments/wallet",
 
+  // payments
+  paymentsInitiate: "/payments/initiate",
+
   // notifications
   notifications: "/notifications",
   notificationRead: (id: string) => `/notifications/${id}/read`,
