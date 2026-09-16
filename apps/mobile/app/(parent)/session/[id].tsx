@@ -1,14 +1,59 @@
 import { useState } from "react";
-import { View, Text, Pressable, StyleSheet } from "react-native";
+import { View, Text, Pressable, StyleSheet, ActivityIndicator, Alert } from "react-native";
 import { useRouter } from "expo-router";
+import { useLocalSearchParams } from "expo-router";
 import { useTheme } from "@/hooks/useTheme";
+import { apiRequest, paths } from "@/lib/api";
 
 export default function SessionScreen() {
   const router = useRouter();
+  const { id } = useLocalSearchParams<{ id: string }>();
   const { colors, isDark } = useTheme();
   const [status, setStatus] = useState<"idle" | "checked-in" | "checked-out">("idle");
-  const distance = 42; // mock meters
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState("");
+  const distance = 42;
   const inside = distance <= 150;
+
+  const handleCheckIn = async () => {
+    try {
+      setLoading(true);
+      setError("");
+      await apiRequest(paths.attendanceCheckIn, {
+        method: "POST",
+        body: JSON.stringify({
+          contractId: String(id),
+          latitude: 9.02,
+          longitude: 38.74,
+        }),
+      });
+      setStatus("checked-in");
+    } catch (err: any) {
+      setError(err.message || "Check-in failed");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleCheckOut = async () => {
+    try {
+      setLoading(true);
+      setError("");
+      await apiRequest(paths.attendanceCheckOut, {
+        method: "POST",
+        body: JSON.stringify({
+          contractId: String(id),
+          latitude: 9.02,
+          longitude: 38.74,
+        }),
+      });
+      setStatus("checked-out");
+    } catch (err: any) {
+      setError(err.message || "Check-out failed");
+    } finally {
+      setLoading(false);
+    }
+  };
 
   return (
     <View style={[styles.root, { backgroundColor: colors.background }]}>
@@ -34,6 +79,12 @@ export default function SessionScreen() {
           <Text style={{ color: colors.mutedForeground, fontSize: 12 }}>{distance}m · 150m radius</Text>
         </View>
 
+        {error ? (
+          <View style={[styles.banner, { backgroundColor: "#FEE2E2", borderColor: "#FECACA" }]}>
+            <Text style={{ fontWeight: "700", color: "#991B1B" }}>{error}</Text>
+          </View>
+        ) : null}
+
         <View
           style={[
             styles.banner,
@@ -50,14 +101,18 @@ export default function SessionScreen() {
 
         {status === "idle" && (
           <Pressable
-            disabled={!inside}
+            disabled={!inside || loading}
             style={[
               styles.cta,
-              { backgroundColor: inside ? colors.primary : colors.border },
+              { backgroundColor: inside && !loading ? colors.primary : colors.border },
             ]}
-            onPress={() => setStatus("checked-in")}
+            onPress={handleCheckIn}
           >
-            <Text style={styles.ctaText}>Check in</Text>
+            {loading ? (
+              <ActivityIndicator color="#fff" />
+            ) : (
+              <Text style={styles.ctaText}>Check in</Text>
+            )}
           </Pressable>
         )}
         {status === "checked-in" && (
@@ -67,9 +122,14 @@ export default function SessionScreen() {
             </View>
             <Pressable
               style={[styles.cta, { backgroundColor: "#DC2626" }]}
-              onPress={() => setStatus("checked-out")}
+              onPress={handleCheckOut}
+              disabled={loading}
             >
-              <Text style={styles.ctaText}>Check out</Text>
+              {loading ? (
+                <ActivityIndicator color="#fff" />
+              ) : (
+                <Text style={styles.ctaText}>Check out</Text>
+              )}
             </Pressable>
           </>
         )}

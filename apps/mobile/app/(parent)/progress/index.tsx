@@ -1,69 +1,61 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import {
   View,
   Text,
   ScrollView,
   TouchableOpacity,
   StyleSheet,
+  ActivityIndicator,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useRouter } from "expo-router";
 import { useTheme } from "@/hooks/useTheme";
+import { apiRequest, paths } from "@/lib/api";
 
-const CHILDREN = [
-  {
-    id: "kidane",
-    name: "Kidane",
-    grade: "10",
-    avg: 87,
-    trend: "+4%",
-    tutor: "Selamawit T.",
-    sessions: 24,
-    homework: "90%",
-    attendance: "100%",
-    subjects: [
-      { name: "Mathematics", score: 92 },
-      { name: "Physics", score: 85 },
-      { name: "English", score: 84 },
-    ],
-  },
-  {
-    id: "meron",
-    name: "Meron",
-    grade: "8",
-    avg: 92,
-    trend: "+7%",
-    tutor: "Bereket S.",
-    sessions: 18,
-    homework: "95%",
-    attendance: "98%",
-    subjects: [
-      { name: "English", score: 94 },
-      { name: "Math", score: 90 },
-    ],
-  },
-  {
-    id: "sara",
-    name: "Sara",
-    grade: "5",
-    avg: 79,
-    trend: "+2%",
-    tutor: "Tigist H.",
-    sessions: 12,
-    homework: "88%",
-    attendance: "100%",
-    subjects: [
-      { name: "Math", score: 82 },
-      { name: "Amharic", score: 76 },
-    ],
-  },
-];
+type Subject = { name: string; score: number };
+type ChildProgress = {
+  childId: string;
+  studentName: string;
+  gradeLevel: string;
+  overallScore: number;
+  sessionsThisMonth: number;
+  attendancePct: number;
+  homeworkPct: number;
+  subjects: Subject[];
+  aiInsights: string[];
+};
 
 export default function ProgressDashboardScreen() {
   const router = useRouter();
   const { colors, isDark } = useTheme();
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState("");
+  const [children, setChildren] = useState<ChildProgress[]>([]);
   const [active, setActive] = useState(0);
-  const child = CHILDREN[active];
+
+  useEffect(() => {
+    let cancelled = false;
+    setLoading(true);
+    setError("");
+
+    apiRequest<ChildProgress[]>(paths.progressMine)
+      .then((data) => {
+        if (!cancelled) {
+          setChildren(Array.isArray(data) ? data : []);
+          if (data && data.length > 0) setActive(0);
+        }
+      })
+      .catch((err) => {
+        if (!cancelled) setError(err.message || "Failed to load progress");
+      })
+      .finally(() => {
+        if (!cancelled) setLoading(false);
+      });
+
+    return () => { cancelled = true; };
+  }, []);
+
+  const child = children[active];
 
   const bg = colors.background ?? (isDark ? "#0A1628" : "#F8FAFC");
   const card = colors.card ?? (isDark ? "#112240" : "#FFFFFF");
@@ -73,16 +65,68 @@ export default function ProgressDashboardScreen() {
   const border = colors.border ?? (isDark ? "#1E3A5F" : "#E2E8F0");
   const surface = isDark ? "#1E293B" : "#F8FAFC";
 
+  if (loading) {
+    return (
+      <SafeAreaView style={[styles.safe, { backgroundColor: bg }]} edges={["top"]}>
+        <View style={[styles.header, { backgroundColor: card, borderBottomColor: border }]}>
+          <Text style={[styles.headerTitle, { color: text }]}>Progress Dashboard</Text>
+        </View>
+        <View style={{ flex: 1, alignItems: "center", justifyContent: "center" }}>
+          <ActivityIndicator size="large" color={primary} />
+        </View>
+      </SafeAreaView>
+    );
+  }
+
+  if (error) {
+    return (
+      <SafeAreaView style={[styles.safe, { backgroundColor: bg }]} edges={["top"]}>
+        <View style={[styles.header, { backgroundColor: card, borderBottomColor: border }]}>
+          <Text style={[styles.headerTitle, { color: text }]}>Progress Dashboard</Text>
+        </View>
+        <View style={{ padding: 24, alignItems: "center" }}>
+          <Text style={{ color: text, marginBottom: 12 }}>{error}</Text>
+          <TouchableOpacity
+            onPress={() => {
+              setError("");
+              setLoading(true);
+              apiRequest<ChildProgress[]>(paths.progressMine)
+                .then((data) => setChildren(Array.isArray(data) ? data : []))
+                .catch((err) => setError(err.message))
+                .finally(() => setLoading(false));
+            }}
+            style={[styles.retryBtn, { backgroundColor: primary }]}
+          >
+            <Text style={{ color: "#fff", fontWeight: "700", fontSize: 13 }}>Retry</Text>
+          </TouchableOpacity>
+        </View>
+      </SafeAreaView>
+    );
+  }
+
+  if (!child) {
+    return (
+      <SafeAreaView style={[styles.safe, { backgroundColor: bg }]} edges={["top"]}>
+        <View style={[styles.header, { backgroundColor: card, borderBottomColor: border }]}>
+          <Text style={[styles.headerTitle, { color: text }]}>Progress Dashboard</Text>
+        </View>
+        <View style={{ padding: 24 }}>
+          <Text style={{ color: sub }}>No progress data available.</Text>
+        </View>
+      </SafeAreaView>
+    );
+  }
+
   return (
     <SafeAreaView style={[styles.safe, { backgroundColor: bg }]} edges={["top"]}>
       <View style={[styles.header, { backgroundColor: card, borderBottomColor: border }]}>
         <Text style={[styles.headerTitle, { color: text }]}>Progress Dashboard</Text>
         <ScrollView horizontal showsHorizontalScrollIndicator={false} style={{ marginTop: 10 }}>
-          {CHILDREN.map((c, i) => {
+          {children.map((c, i) => {
             const on = active === i;
             return (
               <TouchableOpacity
-                key={c.id}
+                key={c.childId}
                 onPress={() => setActive(i)}
                 style={[
                   styles.childChip,
@@ -99,14 +143,14 @@ export default function ProgressDashboardScreen() {
                   ]}
                 >
                   <Text style={{ color: "#fff", fontWeight: "800", fontSize: 11 }}>
-                    {c.name[0]}
+                    {c.studentName[0]}
                   </Text>
                 </View>
                 <Text style={{ color: on ? "#fff" : text, fontSize: 10, fontWeight: "700" }}>
-                  {c.name}
+                  {c.studentName}
                 </Text>
                 <Text style={{ color: on ? "rgba(255,255,255,0.75)" : sub, fontSize: 8 }}>
-                  Gr.{c.grade}
+                  Gr.{c.gradeLevel}
                 </Text>
               </TouchableOpacity>
             );
@@ -119,30 +163,30 @@ export default function ProgressDashboardScreen() {
           <View style={styles.row}>
             <View style={[styles.avatarLg, { backgroundColor: primary }]}>
               <Text style={{ color: "#fff", fontWeight: "800", fontSize: 18 }}>
-                {child.name[0]}
+                {child.studentName[0]}
               </Text>
             </View>
             <View style={{ flex: 1 }}>
-              <Text style={{ color: text, fontWeight: "800", fontSize: 16 }}>{child.name}</Text>
+              <Text style={{ color: text, fontWeight: "800", fontSize: 16 }}>{child.studentName}</Text>
               <Text style={{ color: sub, fontSize: 12 }}>
-                Grade {child.grade} · Tutor: {child.tutor}
+                Grade {child.gradeLevel}
               </Text>
               <Text style={{ color: "#059669", fontSize: 12, fontWeight: "700", marginTop: 2 }}>
-                {child.trend} this month ↑
+                {child.attendancePct}% attendance
               </Text>
             </View>
             <View style={{ alignItems: "center" }}>
               <Text style={{ color: primary, fontSize: 28, fontWeight: "800" }}>
-                {child.avg}%
+                {child.overallScore}%
               </Text>
               <Text style={{ color: sub, fontSize: 9 }}>Average Score</Text>
             </View>
           </View>
           <View style={styles.statsRow}>
             {[
-              [String(child.sessions), "📚", "Sessions"],
-              [child.homework, "📝", "Homework"],
-              [child.attendance, "⏰", "Attendance"],
+              [String(child.sessionsThisMonth), "📚", "Sessions"],
+              [child.homeworkPct + "%", "📝", "Homework"],
+              [child.attendancePct + "%", "⏰", "Attendance"],
             ].map(([v, icon, l]) => (
               <View key={l} style={[styles.statBox, { backgroundColor: surface }]}>
                 <Text style={{ fontSize: 14 }}>{icon}</Text>
@@ -176,14 +220,15 @@ export default function ProgressDashboardScreen() {
         <View style={[styles.aiCard, { backgroundColor: primary }]}>
           <Text style={styles.aiLabel}>🤖 AI INSIGHT</Text>
           <Text style={styles.aiBody}>
-            {child.name} shows steady improvement. Focus next week on weaker subjects and past-paper
-            practice before exams.
+            {child.aiInsights && child.aiInsights.length > 0
+              ? child.aiInsights[0]
+              : `${child.studentName} shows steady improvement. Focus next week on weaker subjects and past-paper practice before exams.`}
           </Text>
         </View>
 
         <TouchableOpacity
           style={[styles.cta, { backgroundColor: primary }]}
-          onPress={() => router.push(`/(parent)/progress/${child.id}`)}
+          onPress={() => router.push(`/(parent)/progress/${child.childId}`)}
         >
           <Text style={styles.ctaText}>Open Full Report →</Text>
         </TouchableOpacity>
@@ -258,4 +303,5 @@ const styles = StyleSheet.create({
     alignItems: "center",
   },
   ctaText: { color: "#fff", fontWeight: "800", fontSize: 13 },
+  retryBtn: { paddingVertical: 12, paddingHorizontal: 24, borderRadius: 12, alignItems: "center" },
 });
