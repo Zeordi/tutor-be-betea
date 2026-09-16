@@ -1,51 +1,105 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
+import { apiFetch, paths } from "@/lib/api";
 
-const COLS = [
-  {
-    status: "Submitted",
-    color: "var(--primary)",
-    apps: [{ title: "IGCSE Math Tutor", family: "Girma · Yeka", date: "Aug 28", rate: "500 ETB/hr" }],
-  },
-  {
-    status: "Reviewing",
-    color: "#F59E0B",
-    apps: [
-      { title: "Grade 11 Math", family: "Mulugeta · Bole", date: "Aug 25", rate: "450 ETB/hr" },
-      { title: "Grade 12 Physics", family: "Tadesse · Sarbet", date: "Aug 24", rate: "480 ETB/hr" },
-    ],
-  },
-  {
-    status: "Hired",
-    color: "#2DD4BF",
-    apps: [{ title: "Grade 9–10 Maths", family: "Hailu · Kirkos", date: "Aug 20", rate: "450 ETB/hr" }],
-  },
-  {
-    status: "Declined",
-    color: "#EF4444",
-    apps: [{ title: "Cambridge A-Level", family: "Bekele · Arada", date: "Aug 15", rate: "550 ETB/hr" }],
-  },
-];
+type Application = {
+  id: string;
+  status: "SUBMITTED" | "REVIEWING" | "HIRED" | "DECLINED";
+  job: {
+    title: string;
+    family: string;
+    loc: string;
+    rate: string;
+  };
+  appliedAt: string;
+  coverNote: string;
+};
+
+const STATUS_CONFIG: Record<string, { label: string; color: string; emoji: string }> = {
+  SUBMITTED: { label: "Submitted", color: "var(--primary)", emoji: "📋" },
+  REVIEWING: { label: "Reviewing", color: "#F59E0B", emoji: "🔍" },
+  HIRED: { label: "Hired", color: "#2DD4BF", emoji: "🎉" },
+  DECLINED: { label: "Declined", color: "#EF4444", emoji: "✗" },
+};
 
 export default function TeacherApplicationsPage() {
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState("");
+  const [applications, setApplications] = useState<Application[]>([]);
   const [mode, setMode] = useState<"kanban" | "table">("kanban");
+
+  useEffect(() => {
+    let cancelled = false;
+    setLoading(true);
+    setError("");
+
+    apiFetch<Application[]>(paths.applicationsMine)
+      .then((data) => {
+        if (!cancelled) setApplications(data || []);
+      })
+      .catch((err) => {
+        if (!cancelled) setError(err.message || "Failed to load applications");
+      })
+      .finally(() => {
+        if (!cancelled) setLoading(false);
+      });
+
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  const cols = ["SUBMITTED", "REVIEWING", "HIRED", "DECLINED"] as const;
+  const counts = cols.map(
+    (s) => applications.filter((a) => a.status === s).length,
+  );
+
+  const appsByStatus = (s: string) =>
+    applications.filter((a) => a.status === s);
+
+  if (loading) {
+    return (
+      <div>
+        <div className="mb-6 h-8 w-56 animate-pulse rounded bg-slate-200 dark:bg-slate-800" />
+        <div className="mb-6 grid gap-3 sm:grid-cols-4">
+          {[1, 2, 3, 4].map((i) => (
+            <div key={i} className="h-16 animate-pulse rounded-xl bg-slate-100 dark:bg-slate-800" />
+          ))}
+        </div>
+        <div className="h-64 animate-pulse rounded-2xl bg-slate-100 dark:bg-slate-800" />
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="p-6">
+        <p className="text-sm text-red-600">{error}</p>
+        <button
+          type="button"
+          onClick={() => window.location.reload()}
+          className="mt-3 rounded-xl bg-teal-600 px-4 py-2 text-sm font-bold text-white"
+        >
+          Retry
+        </button>
+      </div>
+    );
+  }
 
   return (
     <div>
       <div className="mb-6 flex flex-wrap items-center justify-between gap-4">
         <div className="flex flex-wrap gap-3">
-          {[["5", "Applied"], ["2", "Reviewing"], ["1", "Hired"], ["1", "Declined"]].map(
-            ([v, l]) => (
-              <div
-                key={l}
-                className="rounded-xl border border-[var(--border)] bg-[var(--card)] px-4 py-3"
-              >
-                <p className="text-xl font-black text-[var(--primary)]">{v}</p>
-                <p className="text-[11px] text-[var(--secondary)]">{l}</p>
-              </div>
-            )
-          )}
+          {cols.map((s, i) => (
+            <div
+              key={s}
+              className="rounded-xl border border-[var(--border)] bg-[var(--card)] px-4 py-3"
+            >
+              <p className="text-xl font-black text-[var(--primary)]">{counts[i]}</p>
+              <p className="text-[11px] text-[var(--secondary)]">{STATUS_CONFIG[s]?.label}</p>
+            </div>
+          ))}
         </div>
         <div className="flex overflow-hidden rounded-lg border border-[var(--border)]">
           {(["kanban", "table"] as const).map((v) => (
@@ -67,40 +121,48 @@ export default function TeacherApplicationsPage() {
 
       {mode === "kanban" ? (
         <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
-          {COLS.map((col) => (
-            <div key={col.status}>
-              <div className="mb-3 flex items-center gap-2">
-                <span
-                  className="h-2.5 w-2.5 rounded-full"
-                  style={{ background: col.color }}
-                />
-                <span className="text-xs font-bold uppercase text-[var(--secondary)]">
-                  {col.status}
-                </span>
-                <span
-                  className="rounded-full px-2 py-0.5 text-[11px] font-bold"
-                  style={{ background: `${col.color}18`, color: col.color }}
-                >
-                  {col.apps.length}
-                </span>
-              </div>
-              {col.apps.map((a) => (
-                <div
-                  key={a.title}
-                  className="mb-2 rounded-xl border border-[var(--border)] bg-[var(--card)] p-4"
-                >
-                  <p className="font-bold text-[var(--foreground)]">{a.title}</p>
-                  <p className="text-xs text-[var(--secondary)]">{a.family}</p>
-                  <div className="mt-2 flex justify-between text-xs">
-                    <span className="text-[var(--secondary)]">{a.date}</span>
-                    <span className="font-mono font-bold text-[var(--primary)]">
-                      {a.rate}
-                    </span>
-                  </div>
+          {cols.map((status) => {
+            const cfg = STATUS_CONFIG[status];
+            const colApps = appsByStatus(status);
+            return (
+              <div key={status}>
+                <div className="mb-3 flex items-center gap-2">
+                  <span
+                    className="h-2.5 w-2.5 rounded-full"
+                    style={{ background: cfg.color }}
+                  />
+                  <span className="text-xs font-bold uppercase text-[var(--secondary)]">
+                    {cfg.label}
+                  </span>
+                  <span
+                    className="rounded-full px-2 py-0.5 text-[11px] font-bold"
+                    style={{ background: `${cfg.color}18`, color: cfg.color }}
+                  >
+                    {colApps.length}
+                  </span>
                 </div>
-              ))}
-            </div>
-          ))}
+                {colApps.map((a) => (
+                  <div
+                    key={a.id}
+                    className="mb-2 rounded-xl border border-[var(--border)] bg-[var(--card)] p-4"
+                  >
+                    <p className="font-bold text-[var(--foreground)]">{a.job.title}</p>
+                    <p className="text-xs text-[var(--secondary)]">
+                      {a.job.family} · {a.job.loc}
+                    </p>
+                    <div className="mt-2 flex justify-between text-xs">
+                      <span className="text-[var(--secondary)]">
+                        {new Date(a.appliedAt).toLocaleDateString()}
+                      </span>
+                      <span className="font-mono font-bold text-[var(--primary)]">
+                        {a.job.rate}
+                      </span>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            );
+          })}
         </div>
       ) : (
         <div className="overflow-x-auto rounded-2xl border border-[var(--border)] bg-[var(--card)]">
@@ -118,24 +180,34 @@ export default function TeacherApplicationsPage() {
               </tr>
             </thead>
             <tbody>
-              {COLS.flatMap((c) =>
-                c.apps.map((a) => (
-                  <tr key={a.title} className="border-b border-[var(--border)]">
-                    <td className="px-4 py-3 font-bold">{a.title}</td>
-                    <td className="px-4 py-3 text-[var(--secondary)]">{a.family}</td>
+              {applications.length === 0 && (
+                <tr>
+                  <td colSpan={5} className="px-4 py-8 text-center text-sm text-slate-400">
+                    No applications yet.
+                  </td>
+                </tr>
+              )}
+              {applications.map((a) => {
+                const cfg = STATUS_CONFIG[a.status] || STATUS_CONFIG.SUBMITTED;
+                return (
+                  <tr key={a.id} className="border-b border-[var(--border)]">
+                    <td className="px-4 py-3 font-bold text-[var(--foreground)]">{a.job.title}</td>
+                    <td className="px-4 py-3 text-[var(--secondary)]">{a.job.family} · {a.job.loc}</td>
                     <td className="px-4 py-3">
                       <span
                         className="rounded-full px-2 py-0.5 text-[11px] font-bold"
-                        style={{ background: `${c.color}18`, color: c.color }}
+                        style={{ background: `${cfg.color}18`, color: cfg.color }}
                       >
-                        {c.status}
+                        {cfg.label}
                       </span>
                     </td>
-                    <td className="px-4 py-3 font-mono text-[var(--primary)]">{a.rate}</td>
-                    <td className="px-4 py-3 text-[var(--secondary)]">{a.date}</td>
+                    <td className="px-4 py-3 font-mono text-[var(--primary)]">{a.job.rate}</td>
+                    <td className="px-4 py-3 text-[var(--secondary)]">
+                      {new Date(a.appliedAt).toLocaleDateString()}
+                    </td>
                   </tr>
-                ))
-              )}
+                );
+              })}
             </tbody>
           </table>
         </div>

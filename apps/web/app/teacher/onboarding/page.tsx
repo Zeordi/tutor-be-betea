@@ -1,6 +1,8 @@
 "use client";
 
 import Link from "next/link";
+import { useEffect, useState } from "react";
+import { apiFetch, paths } from "@/lib/api";
 
 type StepStatus = "done" | "issue" | "pending" | "locked";
 
@@ -14,14 +16,14 @@ type OnboardingStep = {
   href?: string;
 };
 
-const STEPS: OnboardingStep[] = [
+const DEFAULT_STEPS: OnboardingStep[] = [
   {
     id: 1,
     icon: "👤",
     label: "Complete Your Bio",
     desc: "Add headline, subjects, languages, and teaching style",
     status: "done",
-    time: "Completed Oct 5",
+    time: "Completed",
   },
   {
     id: 2,
@@ -29,7 +31,7 @@ const STEPS: OnboardingStep[] = [
     label: "Upload Identity Documents",
     desc: "Fayda National ID (front & back) + university degree",
     status: "issue",
-    time: "Action required · See notes",
+    time: "Action required",
     href: "/teacher/verification",
   },
   {
@@ -38,7 +40,7 @@ const STEPS: OnboardingStep[] = [
     label: "Set Availability",
     desc: "Add your weekly recurring schedule and preferred zones",
     status: "done",
-    time: "Completed Oct 6",
+    time: "Completed",
   },
   {
     id: 4,
@@ -63,7 +65,7 @@ const STEPS: OnboardingStep[] = [
     label: "Profile Goes Live",
     desc: "After all required steps are complete, you'll be searchable",
     status: "locked",
-    time: "Waiting on steps 2 & 4",
+    time: "Waiting on required steps",
   },
 ];
 
@@ -72,8 +74,44 @@ function canStartStep(status: StepStatus): boolean {
 }
 
 export default function TeacherOnboardingPage() {
-  const doneCount = STEPS.filter((s) => s.status === "done").length;
-  const progress = Math.round((doneCount / (STEPS.length - 1)) * 100);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState("");
+  const [steps, setSteps] = useState<OnboardingStep[]>(DEFAULT_STEPS);
+
+  useEffect(() => {
+    let cancelled = false;
+    setLoading(true);
+
+    apiFetch<OnboardingStep[]>(paths.onboardingStatus)
+      .then((data) => {
+        if (!cancelled && data && data.length > 0) {
+          setSteps(data);
+        }
+      })
+      .catch(() => {
+        if (!cancelled) {
+          // keep defaults
+        }
+      })
+      .finally(() => {
+        if (!cancelled) setLoading(false);
+      });
+
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  const doneCount = steps.filter((s) => s.status === "done").length;
+  const progress = Math.round((doneCount / (steps.length - 1)) * 100);
+
+  if (error) {
+    return (
+      <div className="p-6">
+        <p className="text-sm text-red-600">{error}</p>
+      </div>
+    );
+  }
 
   return (
     <div className="mx-auto max-w-3xl space-y-5">
@@ -91,7 +129,7 @@ export default function TeacherOnboardingPage() {
           <div>
             <p className="font-extrabold">Onboarding Progress</p>
             <p className="text-sm text-white/75">
-              {doneCount} of {STEPS.length - 1} required steps complete
+              {doneCount} of {steps.length - 1} required steps complete
             </p>
           </div>
           <p className="text-3xl font-black">{progress}%</p>
@@ -103,12 +141,12 @@ export default function TeacherOnboardingPage() {
           />
         </div>
         <p className="mt-2 text-xs text-white/60">
-          ፕሮፋይልዎን ለማጠናቀቅ 2 ደረጃዎች ይቀሩዎታል
+          ፕሮፍይልዎን ለማጠናቀቅ 2 ደረጃዎች ይቀሩዎታል
         </p>
       </div>
 
       <div className="space-y-3">
-        {STEPS.map((step) => (
+        {steps.map((step) => (
           <div
             key={step.id}
             className={`flex items-start gap-3 rounded-2xl border p-4 ${
@@ -166,21 +204,9 @@ export default function TeacherOnboardingPage() {
         ))}
       </div>
 
-      <div className="rounded-2xl border border-amber-200 bg-amber-50 p-5 dark:border-amber-800 dark:bg-amber-950/30">
-        <p className="font-bold text-amber-800 dark:text-amber-300">
-          ⚡ Quick action needed
-        </p>
-        <p className="my-2 text-sm text-amber-700 dark:text-amber-400">
-          Add your Telebirr or CBE Birr number to complete payout setup and unlock
-          profile publishing.
-        </p>
-        <Link
-          href="/teacher/earnings"
-          className="inline-block rounded-xl bg-amber-600 px-4 py-2.5 text-xs font-extrabold text-white"
-        >
-          Set Up Payout Now →
-        </Link>
-      </div>
+      {steps.some((s) => s.status === "issue" || s.status === "pending") && (
+        <p className="text-center text-xs text-[var(--secondary)">* Some steps require attention</p>
+      )}
     </div>
   );
 }

@@ -1,16 +1,95 @@
+"use client";
+
+import { useEffect, useState } from "react";
+import { apiFetch, paths } from "@/lib/api";
+
+type Analytics = {
+  profileViews: number;
+  jobMatches: number;
+  applyRate: number;
+  rehireRate: number;
+  subjectDemand: { name: string; pct: number }[];
+  earningsForecast: { label: string; amount: string }[];
+};
+
 export default function TeacherAnalyticsPage() {
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState("");
+  const [data, setData] = useState<Analytics | null>(null);
+
+  useEffect(() => {
+    let cancelled = false;
+    setLoading(true);
+    setError("");
+
+    apiFetch<Analytics>(paths.analyticsMine)
+      .then((d) => {
+        if (!cancelled) setData(d);
+      })
+      .catch((err) => {
+        if (!cancelled) setError(err.message || "Failed to load analytics");
+      })
+      .finally(() => {
+        if (!cancelled) setLoading(false);
+      });
+
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  if (loading) {
+    return (
+      <div className="space-y-5 p-6">
+        <div className="h-6 w-48 animate-pulse rounded bg-slate-200 dark:bg-slate-800" />
+        <div className="grid gap-4 md:grid-cols-4">
+          {[1, 2, 3, 4].map((i) => (
+            <div key={i} className="h-24 animate-pulse rounded-2xl bg-slate-100 dark:bg-slate-800" />
+          ))}
+        </div>
+        <div className="grid gap-4 md:grid-cols-2">
+          <div className="h-48 animate-pulse rounded-2xl bg-slate-100 dark:bg-slate-800" />
+          <div className="h-48 animate-pulse rounded-2xl bg-slate-100 dark:bg-slate-800" />
+        </div>
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="p-6">
+        <p className="text-sm text-red-600">{error}</p>
+        <button
+          type="button"
+          onClick={() => window.location.reload()}
+          className="mt-3 rounded-xl bg-teal-600 px-4 py-2 text-sm font-bold text-white"
+        >
+          Retry
+        </button>
+      </div>
+    );
+  }
+
+  if (!data) {
+    return (
+      <div className="p-6">
+        <p className="text-sm text-[var(--secondary)]">No analytics data available.</p>
+      </div>
+    );
+  }
+
   return (
     <div className="space-y-5 p-6">
       <h2 className="text-xl font-extrabold text-slate-800 dark:text-white">Analytics & Insights</h2>
       <div className="grid gap-4 md:grid-cols-4">
         {[
-          ["Profile Views", "247", "This month"],
-          ["Job Matches", "18", "Active"],
-          ["Apply Rate", "67%", "Applied/matched"],
-          ["Rehire Rate", "94%", "Past clients"],
+          [String(data.profileViews), "Profile Views", "This month"],
+          [String(data.jobMatches), "Job Matches", "Active"],
+          [`${data.applyRate}%`, "Apply Rate", "Applied/matched"],
+          [`${data.rehireRate}%`, "Rehire Rate", "Past clients"],
         ].map(([l, v, s]) => (
           <div
-            key={l}
+            key={l as string}
             className="rounded-2xl border border-slate-100 bg-white p-4 text-center dark:border-slate-800 dark:bg-[#112240]"
           >
             <p className="text-2xl font-extrabold text-teal-600">{v}</p>
@@ -19,25 +98,21 @@ export default function TeacherAnalyticsPage() {
           </div>
         ))}
       </div>
+
       <div className="grid gap-4 md:grid-cols-2">
         <div className="rounded-2xl border border-slate-100 bg-white p-5 dark:border-slate-800 dark:bg-[#112240]">
           <h3 className="mb-4 font-bold text-slate-800 dark:text-white">Subject Demand</h3>
           <div className="space-y-3">
-            {[
-              ["Mathematics", "85%"],
-              ["Physics", "72%"],
-              ["Statistics", "58%"],
-              ["Chemistry", "45%"],
-            ].map(([sub, pct]) => (
-              <div key={sub}>
+            {(data.subjectDemand || []).map((sub) => (
+              <div key={sub.name}>
                 <div className="mb-1 flex justify-between text-sm">
-                  <span className="text-slate-600 dark:text-slate-400">{sub}</span>
-                  <span className="font-bold text-teal-600">{pct}</span>
+                  <span className="text-slate-600 dark:text-slate-400">{sub.name}</span>
+                  <span className="font-bold text-teal-600">{sub.pct}%</span>
                 </div>
                 <div className="h-2 rounded-full bg-slate-100 dark:bg-slate-700">
                   <div
                     className="h-full rounded-full bg-gradient-to-r from-teal-500 to-teal-400"
-                    style={{ width: pct }}
+                    style={{ width: `${sub.pct}%` }}
                   />
                 </div>
               </div>
@@ -47,17 +122,13 @@ export default function TeacherAnalyticsPage() {
         <div className="rounded-2xl border border-slate-100 bg-white p-5 dark:border-slate-800 dark:bg-[#112240]">
           <h3 className="mb-4 font-bold text-slate-800 dark:text-white">Earnings Forecast</h3>
           <div className="space-y-2">
-            {[
-              ["Next Month (projected)", "14,200 ETB"],
-              ["If +2 sessions/week", "17,600 ETB"],
-              ["Annual (current rate)", "153,600 ETB"],
-            ].map(([label, val]) => (
+            {(data.earningsForecast || []).map((f) => (
               <div
-                key={label}
+                key={f.label}
                 className="flex justify-between rounded-xl bg-slate-50 p-3 dark:bg-slate-800/50"
               >
-                <span className="text-xs text-slate-600 dark:text-slate-400">{label}</span>
-                <span className="text-xs font-extrabold text-teal-600">{val}</span>
+                <span className="text-xs text-slate-600 dark:text-slate-400">{f.label}</span>
+                <span className="text-xs font-extrabold text-teal-600">{f.amount}</span>
               </div>
             ))}
           </div>

@@ -1,34 +1,172 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
+import { apiFetch, paths } from "@/lib/api";
 
-const SUBJECTS = ["Mathematics", "Physics", "Statistics"];
-const CERTS = [
-  "BSc Applied Mathematics · Addis Ababa Univ.",
-  "CELTA English Teaching Certificate",
-];
-const RATES = [
-  { label: "Home Visit / hr", value: "450" },
-  { label: "Online / hr", value: "350" },
-  { label: "Group Session / hr", value: "250" },
-];
-const STYLES = [
-  "Interactive",
-  "Structured",
-  "Visual",
-  "Patient",
-  "Exam-Focused",
-  "Bilingual EN/አማ",
-];
+type TeacherMe = {
+  id: string;
+  fullName: string;
+  email: string;
+  phone: string | null;
+  subCity: string | null;
+  teacherProfile: {
+    hourlyRate: number;
+    hourlyRateOnline: number;
+    hourlyRateGroup: number;
+    rating: number;
+    reviewCount: number;
+    isVerified: boolean;
+    idVerified: boolean;
+    degreeVerified: boolean;
+    badgeLevel: string;
+    subjects: string[];
+    gradeLevels: string[];
+    certificates: string[];
+    teachingStyles: string[];
+    bioEn: string | null;
+    bioAm: string | null;
+    tagline: string | null;
+    introVideoUrl: string | null;
+  } | null;
+};
+
+type FieldProps = {
+  label: string;
+  defaultValue: string;
+  multiline?: boolean;
+};
+
+function Field({ label, defaultValue, multiline }: FieldProps) {
+  return (
+    <label className="mb-3 block">
+      <span className="mb-1 block text-[10px] font-semibold text-[var(--secondary)]">{label}</span>
+      {multiline ? (
+        <textarea
+          defaultValue={defaultValue}
+          rows={3}
+          className="w-full rounded-xl border border-[var(--border)] bg-[var(--muted)] px-3 py-2.5 text-sm text-[var(--foreground)]"
+        />
+      ) : (
+        <input
+          defaultValue={defaultValue}
+          className="w-full rounded-xl border border-[var(--border)] bg-[var(--muted)] px-3 py-2.5 text-sm text-[var(--foreground)]"
+        />
+      )}
+    </label>
+  );
+}
 
 export default function TeacherProfilePage() {
-  const [activeStyles, setActiveStyles] = useState([
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState("");
+  const [me, setMe] = useState<TeacherMe | null>(null);
+  const [activeStyles, setActiveStyles] = useState<string[]>([]);
+  const [saved, setSaved] = useState(false);
+
+  const STYLES = [
     "Interactive",
     "Structured",
     "Visual",
     "Patient",
-  ]);
-  const [saved, setSaved] = useState(false);
+    "Exam-Focused",
+    "Bilingual EN/አማ",
+  ];
+
+  useEffect(() => {
+    let cancelled = false;
+    setLoading(true);
+    setError("");
+
+    apiFetch<TeacherMe>(paths.usersMe)
+      .then((data) => {
+        if (!cancelled) {
+          setMe(data);
+          if (data?.teacherProfile?.teachingStyles) {
+            setActiveStyles(data.teacherProfile.teachingStyles);
+          }
+        }
+      })
+      .catch((err) => {
+        if (!cancelled) setError(err.message || "Failed to load profile");
+      })
+      .finally(() => {
+        if (!cancelled) setLoading(false);
+      });
+
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  const handleSave = async () => {
+    if (!me) return;
+    const tp = me.teacherProfile;
+    const updates = {
+      fullName: me.fullName,
+      teacherProfile: tp
+        ? {
+            hourlyRate: tp.hourlyRate,
+            subjects: tp.subjects,
+            gradeLevels: tp.gradeLevels,
+            teachingStyles: activeStyles,
+            bioEn: tp.bioEn,
+            bioAm: tp.bioAm,
+            tagline: tp.tagline,
+          }
+        : {},
+    };
+
+    try {
+      await apiFetch(paths.usersMe, {
+        method: "PATCH",
+        body: JSON.stringify(updates),
+      });
+      setSaved(true);
+      setTimeout(() => setSaved(false), 2000);
+    } catch (err: any) {
+      setError(err.message || "Failed to save");
+    }
+  };
+
+  if (loading) {
+    return (
+      <div className="mx-auto max-w-3xl space-y-5 p-6">
+        <div className="h-6 w-56 animate-pulse rounded bg-slate-200 dark:bg-slate-800" />
+        <div className="h-64 animate-pulse rounded-2xl bg-slate-100 dark:bg-slate-800" />
+        <div className="h-96 animate-pulse rounded-2xl bg-slate-100 dark:bg-slate-800" />
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="p-6">
+        <p className="text-sm text-red-600">{error}</p>
+        <button
+          type="button"
+          onClick={() => window.location.reload()}
+          className="mt-3 rounded-xl bg-teal-600 px-4 py-2 text-sm font-bold text-white"
+        >
+          Retry
+        </button>
+      </div>
+    );
+  }
+
+  if (!me) {
+    return <div className="p-6"><p className="text-sm text-[var(--secondary)]">No profile data.</p></div>;
+  }
+
+  const tp = me.teacherProfile;
+  const initials = me.fullName
+    .split(" ")
+    .map((n) => n[0])
+    .slice(0, 2)
+    .join("")
+    .toUpperCase();
+  const badgeText = tp?.isVerified
+    ? "🛡️ ID Verified · 🎓 Degree Verified"
+    : "⚠️ Verification in progress";
 
   return (
     <div className="mx-auto max-w-3xl space-y-5">
@@ -45,20 +183,21 @@ export default function TeacherProfilePage() {
         </button>
       </div>
 
-      {/* Photo + intro */}
       <div className="rounded-2xl border border-[var(--border)] bg-[var(--card)] p-5">
         <p className="mb-3 text-[10px] font-bold tracking-wide text-[var(--secondary)]">
           PROFILE PHOTO & INTRO VIDEO
         </p>
         <div className="flex flex-wrap gap-4">
           <div className="flex h-20 w-20 items-center justify-center rounded-full bg-[var(--primary)] text-2xl font-extrabold text-white">
-            HB
+            {initials}
           </div>
           <div className="min-w-0 flex-1">
-            <p className="text-lg font-extrabold text-[var(--foreground)]">Hana Bekele</p>
-            <p className="mb-2 text-sm text-[var(--secondary)]">Mathematics · Physics · 3+ years</p>
+            <p className="text-lg font-extrabold text-[var(--foreground)]">{me.fullName}</p>
+            <p className="mb-2 text-sm text-[var(--secondary)]">
+              {(tp?.subjects || []).join(", ")} · {tp?.gradeLevels?.join(", ") || ""}
+            </p>
             <div className="mb-3 flex flex-wrap gap-1.5">
-              {["🛡️ ID Verified", "🎓 Degree Verified"].map((b) => (
+              {badgeText.split(" · ").map((b) => (
                 <span
                   key={b}
                   className="rounded-full bg-teal-50 px-2.5 py-0.5 text-[10px] font-bold text-teal-700 dark:bg-teal-900/40 dark:text-teal-300"
@@ -77,26 +216,24 @@ export default function TeacherProfilePage() {
         </div>
       </div>
 
-      {/* Bio */}
       <div className="rounded-2xl border border-[var(--border)] bg-[var(--card)] p-5">
         <p className="mb-3 text-[10px] font-bold tracking-wide text-[var(--secondary)]">BIO & TAGLINE</p>
         <Field
           label="Professional Tagline"
-          defaultValue="Expert Math tutor · 4.9★ · Bole & CMC home visits"
+          defaultValue={tp?.tagline || ""}
         />
         <Field
           label="Bio (EN)"
           multiline
-          defaultValue="I hold a BSc in Applied Mathematics from Addis Ababa University and have 3+ years of home and online tutoring experience."
+          defaultValue={tp?.bioEn || ""}
         />
         <Field
           label="Bio (አማርኛ)"
           multiline
-          defaultValue="ሂሳብን ቀላልና አስደሳች ለማድረግ ከ3 ዓመት በላይ ተሞክሮ አለኝ።"
+          defaultValue={tp?.bioAm || ""}
         />
       </div>
 
-      {/* Subjects */}
       <div className="rounded-2xl border border-[var(--border)] bg-[var(--card)] p-5">
         <div className="mb-3 flex items-center justify-between">
           <p className="text-[10px] font-bold tracking-wide text-[var(--secondary)]">SUBJECTS TAUGHT</p>
@@ -105,7 +242,7 @@ export default function TeacherProfilePage() {
           </button>
         </div>
         <div className="mb-4 flex flex-wrap gap-2">
-          {SUBJECTS.map((s) => (
+          {(tp?.subjects || []).map((s) => (
             <span
               key={s}
               className="rounded-full border border-[var(--primary)] bg-[var(--primary)]/10 px-3 py-1 text-xs font-semibold text-[var(--primary)]"
@@ -116,22 +253,17 @@ export default function TeacherProfilePage() {
         </div>
         <p className="mb-2 text-[10px] font-semibold text-[var(--secondary)]">Grade Levels</p>
         <div className="flex gap-2">
-          {["9", "10", "11", "12"].map((g) => (
+          {(tp?.gradeLevels || []).map((g) => (
             <span
               key={g}
-              className={`flex-1 rounded-xl border py-2 text-center text-xs font-bold ${
-                g !== "9"
-                  ? "border-[var(--primary)] bg-[var(--primary)]/10 text-[var(--primary)]"
-                  : "border-[var(--border)] text-[var(--secondary)]"
-              }`}
+              className="flex-1 rounded-xl border py-2 text-center text-xs font-bold border-[var(--primary)] bg-[var(--primary)]/10 text-[var(--primary)]"
             >
-              Gr {g}
+              {g}
             </span>
           ))}
         </div>
       </div>
 
-      {/* Certs */}
       <div className="rounded-2xl border border-[var(--border)] bg-[var(--card)] p-5">
         <div className="mb-3 flex items-center justify-between">
           <p className="text-[10px] font-bold tracking-wide text-[var(--secondary)]">CERTIFICATIONS</p>
@@ -140,7 +272,7 @@ export default function TeacherProfilePage() {
           </button>
         </div>
         <div className="space-y-2">
-          {CERTS.map((c) => (
+          {(tp?.certificates || []).map((c) => (
             <div key={c} className="flex items-center gap-2 rounded-xl bg-[var(--muted)] p-3">
               <span>🎓</span>
               <p className="text-xs font-semibold text-[var(--foreground)]">{c}</p>
@@ -149,23 +281,33 @@ export default function TeacherProfilePage() {
         </div>
       </div>
 
-      {/* Rates */}
       <div className="rounded-2xl border border-[var(--border)] bg-[var(--card)] p-5">
         <p className="mb-3 text-[10px] font-bold tracking-wide text-[var(--secondary)]">RATES (ETB)</p>
         <div className="space-y-2">
-          {RATES.map((r) => (
-            <div key={r.label} className="flex items-center gap-3">
-              <p className="flex-1 text-sm font-semibold text-[var(--foreground)]">{r.label}</p>
-              <div className="flex w-28 items-center rounded-xl border border-[var(--border)] bg-[var(--muted)] px-3 py-2">
-                <span className="text-[10px] text-[var(--secondary)]">ETB </span>
-                <span className="font-extrabold text-[var(--foreground)]">{r.value}</span>
-              </div>
+          <div className="flex items-center gap-3">
+            <p className="flex-1 text-sm font-semibold text-[var(--foreground)]">Home Visit / hr</p>
+            <div className="flex w-28 items-center rounded-xl border border-[var(--border)] bg-[var(--muted)] px-3 py-2">
+              <span className="text-[10px] text-[var(--secondary)]">ETB </span>
+              <span className="font-extrabold text-[var(--foreground)]">{tp?.hourlyRate ?? 0}</span>
             </div>
-          ))}
+          </div>
+          <div className="flex items-center gap-3">
+            <p className="flex-1 text-sm font-semibold text-[var(--foreground)]">Online / hr</p>
+            <div className="flex w-28 items-center rounded-xl border border-[var(--border)] bg-[var(--muted)] px-3 py-2">
+              <span className="text-[10px] text-[var(--secondary)]">ETB </span>
+              <span className="font-extrabold text-[var(--foreground)]">{tp?.hourlyRateOnline ?? 0}</span>
+            </div>
+          </div>
+          <div className="flex items-center gap-3">
+            <p className="flex-1 text-sm font-semibold text-[var(--foreground)]">Group Session / hr</p>
+            <div className="flex w-28 items-center rounded-xl border border-[var(--border)] bg-[var(--muted)] px-3 py-2">
+              <span className="text-[10px] text-[var(--secondary)]">ETB </span>
+              <span className="font-extrabold text-[var(--foreground)]">{tp?.hourlyRateGroup ?? 0}</span>
+            </div>
+          </div>
         </div>
       </div>
 
-      {/* Styles */}
       <div className="rounded-2xl border border-[var(--border)] bg-[var(--card)] p-5">
         <p className="mb-3 text-[10px] font-bold tracking-wide text-[var(--secondary)]">
           TEACHING STYLE TAGS
@@ -197,39 +339,12 @@ export default function TeacherProfilePage() {
 
       <button
         type="button"
-        onClick={() => setSaved(true)}
-        className="w-full rounded-2xl bg-[var(--primary)] py-3.5 text-sm font-extrabold text-white"
+        onClick={handleSave}
+        disabled={saved}
+        className="w-full rounded-2xl bg-[var(--primary)] py-3.5 text-sm font-extrabold text-white disabled:opacity-70"
       >
         {saved ? "✓ Saved & Published" : "Save & Publish Profile"}
       </button>
     </div>
-  );
-}
-
-function Field({
-  label,
-  defaultValue,
-  multiline,
-}: {
-  label: string;
-  defaultValue: string;
-  multiline?: boolean;
-}) {
-  return (
-    <label className="mb-3 block">
-      <span className="mb-1 block text-[10px] font-semibold text-[var(--secondary)]">{label}</span>
-      {multiline ? (
-        <textarea
-          defaultValue={defaultValue}
-          rows={3}
-          className="w-full rounded-xl border border-[var(--border)] bg-[var(--muted)] px-3 py-2.5 text-sm text-[var(--foreground)]"
-        />
-      ) : (
-        <input
-          defaultValue={defaultValue}
-          className="w-full rounded-xl border border-[var(--border)] bg-[var(--muted)] px-3 py-2.5 text-sm text-[var(--foreground)]"
-        />
-      )}
-    </label>
   );
 }

@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
+import { apiFetch, paths } from "@/lib/api";
 
 const SECTIONS = [
   { href: "/teacher", label: "Overview", icon: "🏠", exact: true },
@@ -24,6 +25,15 @@ const SECTIONS = [
   { href: "/teacher/settings", label: "Settings", icon: "⚙️" },
 ];
 
+type TeacherMe = {
+  id: string;
+  fullName: string;
+  email: string;
+  teacherProfile: {
+    connectsBalance: number;
+  } | null;
+};
+
 export default function TeacherLayout({
   children,
 }: {
@@ -32,6 +42,7 @@ export default function TeacherLayout({
   const pathname = usePathname();
   const router = useRouter();
   const [ready, setReady] = useState(false);
+  const [me, setMe] = useState<TeacherMe | null>(null);
 
   useEffect(() => {
     const token = localStorage.getItem("token");
@@ -39,7 +50,11 @@ export default function TeacherLayout({
       router.replace("/login");
       return;
     }
-    setReady(true);
+
+    apiFetch<TeacherMe>(paths.usersMe)
+      .then((data) => setMe(data))
+      .catch(() => {})
+      .finally(() => setReady(true));
   }, [router]);
 
   if (!ready) {
@@ -54,6 +69,10 @@ export default function TeacherLayout({
     if (exact) return pathname === href;
     return pathname === href || pathname.startsWith(`${href}/`);
   };
+
+  const displayName = me?.fullName || "Berhane Alemu";
+  const displayEmail = me?.email || "berhane@tutor.et";
+  const connects = me?.teacherProfile?.connectsBalance ?? 14;
 
   return (
     <div className="flex min-h-screen bg-[var(--background)]">
@@ -90,16 +109,21 @@ export default function TeacherLayout({
         <div className="border-t border-white/10 px-5 py-4">
           <div className="mb-3 flex items-center gap-2 rounded-xl bg-amber-500/20 px-3 py-2">
             <span>⚡</span>
-            <span className="font-mono text-sm font-bold text-amber-300">14</span>
+            <span className="font-mono text-sm font-bold text-amber-300">{connects}</span>
             <span className="text-[11px] text-white/60">Connects</span>
           </div>
           <div className="flex items-center gap-2.5">
             <div className="flex h-9 w-9 items-center justify-center rounded-full bg-white/20 text-lg">
-              👨‍🏫
+              {displayName
+                .split(" ")
+                .map((n) => n[0])
+                .slice(0, 2)
+                .join("")
+                .toUpperCase()}
             </div>
             <div className="min-w-0 flex-1">
-              <p className="truncate text-[13px] font-bold">Berhane Alemu</p>
-              <p className="truncate text-[11px] text-white/50">berhane@tutor.et</p>
+              <p className="truncate text-[13px] font-bold">{displayName}</p>
+              <p className="truncate text-[11px] text-white/50">{displayEmail}</p>
             </div>
           </div>
         </div>
@@ -109,7 +133,7 @@ export default function TeacherLayout({
         <header className="flex h-14 items-center justify-between border-b border-[var(--border)] bg-[var(--card)] px-5 md:h-16 md:px-8">
           <p className="font-extrabold text-[var(--foreground)]">Teacher Portal</p>
           <div className="flex items-center gap-2 rounded-lg border border-amber-200 bg-amber-50 px-3 py-1.5 text-xs font-bold text-amber-700 dark:border-amber-900 dark:bg-amber-950/40 dark:text-amber-300">
-            ⚡ 14 Connects
+            ⚡ {connects} Connects
           </div>
         </header>
         <main className="flex-1 overflow-y-auto p-5 md:p-8">{children}</main>

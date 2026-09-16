@@ -77,12 +77,31 @@ export const paths = {
   referralsCode: "/referrals/code",
   referralsMine: "/referrals/mine",
 
-  // support
-  supportMine: "/support/mine",
-  supportCreate: "/support",
+   // support
+   supportMine: "/support/mine",
+   supportCreate: "/support",
 
-  // matching
-  matchingTutors: "/matching/tutors",
+   // risk / safety (teacher view of flags and restrictions)
+   riskFlags: "/risk-flags",
+
+   // matching
+   matchingTutors: "/matching/tutors",
+
+   // analytics
+   analyticsMine: "/analytics/mine",
+
+   // onboarding
+   onboardingStatus: "/onboarding/status",
+
+   // verification
+   verificationStatus: "/verification/status",
+
+   // availability
+   availability: "/teacher/availability",
+
+   // applications (teacher view of applications they submitted / received)
+   applicationsMine: "/applications/mine",
+   applicationsAction: (id: string) => `/applications/${id}/action`,
 } as const;
 
 export async function apiFetch<T = any>(
