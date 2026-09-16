@@ -34,6 +34,14 @@ export const paths = {
   favorites: "/favorites",
   favorite: (teacherId: string) => `/favorites/${teacherId}`,
   wallet: "/payments/wallet",
+  notifications: "/notifications",
+  notificationRead: (id: string) => `/notifications/${id}/read`,
+  notificationsReadAll: "/notifications/read-all",
+  subscriptionMine: "/subscriptions/mine",
+  subscriptionUpgrade: "/subscriptions/upgrade",
+  subscriptionsPlans: "/subscriptions/plans",
+  referralsCode: "/referrals/code",
+  referralsMine: "/referrals/mine",
 } as const;
 
 export async function getToken(): Promise<string | null> {

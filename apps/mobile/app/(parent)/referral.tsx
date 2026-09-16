@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import {
   View,
   Text,
@@ -6,27 +6,123 @@ import {
   TouchableOpacity,
   StyleSheet,
   Alert,
+  ActivityIndicator,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useRouter } from "expo-router";
 import { useTheme } from "../../hooks/useTheme";
+import { apiRequest, paths } from "@/lib/api";
 
-const CODE = "TBB-YESHI24";
-const MILESTONES = [
-  { label: "Invite 1 friend", reward: "200 ETB", done: true, current: false },
-  { label: "Invite 3 friends", reward: "500 ETB", done: true, current: false },
-  { label: "Invite 5 friends", reward: "1,000 ETB", done: false, current: true },
-  { label: "Invite 10 friends", reward: "2,500 ETB", done: false, current: false },
-];
-const INVITED = [
-  { name: "Meron Abebe", date: "Oct 2", status: "Joined", earned: "+200 ETB" },
-  { name: "Dawit Lemma", date: "Oct 8", status: "Joined", earned: "+200 ETB" },
-  { name: "Sara Kebede", date: "Oct 11", status: "Pending", earned: "—" },
-];
+type ReferralCode = {
+  code: string;
+  totalEarnings: number;
+  referredCount: number;
+  milestones: { label: string; reward: string; threshold: number; done: boolean; current: boolean }[];
+};
+
+type ReferredFriend = {
+  id: string;
+  name: string;
+  date: string;
+  status: "Joined" | "Pending";
+  earned: string;
+};
 
 export default function ReferralScreen() {
   const router = useRouter();
   const { colors, isDark } = useTheme();
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState("");
+  const [code, setCode] = useState<ReferralCode | null>(null);
+  const [friends, setFriends] = useState<ReferredFriend[]>([]);
+  const [copied, setCopied] = useState(false);
+
+  useEffect(() => {
+    let cancelled = false;
+    setLoading(true);
+    setError("");
+
+    Promise.all([
+      apiRequest<ReferralCode>(paths.referralsCode),
+      apiRequest<ReferredFriend[]>(paths.referralsMine),
+    ])
+      .then(([codeData, friendsData]) => {
+        if (!cancelled) {
+          setCode(codeData);
+          setFriends(Array.isArray(friendsData) ? friendsData : []);
+        }
+      })
+      .catch((err) => {
+        if (!cancelled) setError(err.message || "Failed to load referral data");
+      })
+      .finally(() => {
+        if (!cancelled) setLoading(false);
+      });
+
+    return () => { cancelled = true; };
+  }, []);
+
+  const copy = () => {
+    if (code?.code) {
+      Alert.alert("Copied", code.code);
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2000);
+    }
+  };
+
+  if (loading) {
+    return (
+      <SafeAreaView style={[styles.safe, { backgroundColor: colors.bg }]} edges={["top"]}>
+        <View style={[styles.header, { backgroundColor: colors.card, borderBottomColor: colors.border }]}>
+          <TouchableOpacity onPress={() => router.back()}>
+            <Text style={{ color: colors.sub, fontSize: 16 }}>←</Text>
+          </TouchableOpacity>
+          <Text style={[styles.headerTitle, { color: colors.text }]}>Referral Program</Text>
+        </View>
+        <View style={{ flex: 1, alignItems: "center", justifyContent: "center" }}>
+          <ActivityIndicator size="large" color={colors.primary} />
+        </View>
+      </SafeAreaView>
+    );
+  }
+
+  if (error || !code) {
+    return (
+      <SafeAreaView style={[styles.safe, { backgroundColor: colors.bg }]} edges={["top"]}>
+        <View style={[styles.header, { backgroundColor: colors.card, borderBottomColor: colors.border }]}>
+          <TouchableOpacity onPress={() => router.back()}>
+            <Text style={{ color: colors.sub, fontSize: 16 }}>←</Text>
+          </TouchableOpacity>
+          <Text style={[styles.headerTitle, { color: colors.text }]}>Referral Program</Text>
+        </View>
+        <View style={{ padding: 24, alignItems: "center" }}>
+          <Text style={{ color: colors.text, marginBottom: 12 }}>{error || "No referral data available."}</Text>
+          <TouchableOpacity
+            onPress={() => {
+              setError("");
+              setLoading(true);
+              Promise.all([
+                apiRequest<ReferralCode>(paths.referralsCode),
+                apiRequest<ReferredFriend[]>(paths.referralsMine),
+              ])
+                .then(([codeData, friendsData]) => {
+                  setCode(codeData);
+                  setFriends(Array.isArray(friendsData) ? friendsData : []);
+                })
+                .catch((e) => setError(e.message))
+                .finally(() => setLoading(false));
+            }}
+            style={[styles.retryBtn, { backgroundColor: colors.primary }]}
+          >
+            <Text style={{ color: "#fff", fontWeight: "700", fontSize: 13 }}>Retry</Text>
+          </TouchableOpacity>
+        </View>
+      </SafeAreaView>
+    );
+  }
+
+  const milestoneCount = friends.filter((f) => f.status === "Joined").length;
+  const progressText = `${milestoneCount} / ${code.milestones[code.milestones.length - 1]?.threshold || 10} friends`;
 
   return (
     <SafeAreaView style={[styles.safe, { backgroundColor: colors.bg }]} edges={["top"]}>
@@ -49,12 +145,12 @@ export default function ReferralScreen() {
         <View style={[styles.card, { backgroundColor: colors.card, borderColor: colors.border }]}>
           <Text style={[styles.label, { color: colors.sub }]}>YOUR INVITE CODE</Text>
           <View style={styles.codeRow}>
-            <Text style={[styles.code, { color: colors.text }]}>{CODE}</Text>
+            <Text style={[styles.code, { color: colors.text }]}>{code.code}</Text>
             <TouchableOpacity
               style={[styles.copyBtn, { backgroundColor: colors.primary }]}
-              onPress={() => Alert.alert("Copied", CODE)}
+              onPress={copy}
             >
-              <Text style={styles.copyText}>Copy</Text>
+              <Text style={styles.copyText}>{copied ? "Copied!" : "Copy"}</Text>
             </TouchableOpacity>
           </View>
           <Text style={{ color: colors.sub, fontSize: 10, textAlign: "center", marginTop: 8 }}>
@@ -87,9 +183,9 @@ export default function ReferralScreen() {
         <View style={[styles.card, { backgroundColor: colors.card, borderColor: colors.border }]}>
           <View style={styles.rowBetween}>
             <Text style={[styles.label, { color: colors.sub }]}>REWARD MILESTONES</Text>
-            <Text style={{ color: colors.primary, fontWeight: "700", fontSize: 11 }}>2 / 5 friends</Text>
+            <Text style={{ color: colors.primary, fontWeight: "700", fontSize: 11 }}>{progressText}</Text>
           </View>
-          {MILESTONES.map((m, i) => (
+          {code.milestones.map((m, i) => (
             <View key={i} style={styles.milestoneRow}>
               <View
                 style={[
@@ -134,9 +230,9 @@ export default function ReferralScreen() {
 
         <View style={[styles.card, { backgroundColor: colors.card, borderColor: colors.border }]}>
           <Text style={[styles.label, { color: colors.sub }]}>INVITED FRIENDS</Text>
-          {INVITED.map((f) => (
+          {friends.map((f) => (
             <View
-              key={f.name}
+              key={f.id}
               style={[styles.friendRow, { backgroundColor: isDark ? "#1e293b99" : "#f8fafc" }]}
             >
               <View style={[styles.avatar, { backgroundColor: colors.primary }]}>
@@ -188,7 +284,9 @@ export default function ReferralScreen() {
         >
           <View>
             <Text style={{ color: colors.sub, fontSize: 11 }}>Total Earned</Text>
-            <Text style={{ color: colors.primary, fontSize: 20, fontWeight: "800" }}>1,000 ETB</Text>
+            <Text style={{ color: colors.primary, fontSize: 20, fontWeight: "800" }}>
+              {code.totalEarnings.toLocaleString()} ETB
+            </Text>
           </View>
           <TouchableOpacity style={[styles.withdraw, { backgroundColor: colors.primary }]}>
             <Text style={{ color: "#fff", fontWeight: "700", fontSize: 12 }}>Withdraw</Text>
@@ -256,4 +354,5 @@ const styles = StyleSheet.create({
     alignItems: "center",
   },
   withdraw: { paddingHorizontal: 16, paddingVertical: 10, borderRadius: 12 },
+  retryBtn: { paddingVertical: 12, paddingHorizontal: 24, borderRadius: 12, alignItems: "center" },
 });
