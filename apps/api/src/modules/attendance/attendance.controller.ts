@@ -26,6 +26,9 @@ export class AttendanceController {
       body.latitude,
       body.longitude,
       body.offlineId,
+      body.clientCreatedAt,
+      body.parentLat,
+      body.parentLng,
     );
   }
 

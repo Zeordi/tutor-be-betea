@@ -300,19 +300,20 @@ model TutoringContract {
 }
 
 model AttendanceLog {
-  id                 String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
-  contractId         String    @map("contract_id") @db.Uuid
-  teacherId          String?   @map("teacher_id") @db.Uuid
-  checkInTime        DateTime  @map("check_in_time")
-  checkOutTime       DateTime? @map("check_out_time")
-  distanceMeters     Decimal   @map("distance_meters") @db.Decimal(8, 2)
-  isVerifiedGeofence Boolean   @default(true) @map("is_verified_geofence")
-  parentConfirmed    Boolean   @default(false) @map("parent_confirmed")
-  offlineId          String?   @unique @map("offline_id")
-  clientCreatedAt    DateTime? @map("client_created_at")
-  teacherLatitude    Decimal?  @map("teacher_latitude") @db.Decimal(10, 7)
-  teacherLongitude   Decimal?  @map("teacher_longitude") @db.Decimal(10, 7)
-  createdAt          DateTime  @default(now()) @map("created_at")
+  id                     String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  contractId             String    @map("contract_id") @db.Uuid
+  teacherId              String?   @map("teacher_id") @db.Uuid
+  checkInTime            DateTime  @map("check_in_time")
+  checkOutTime           DateTime? @map("check_out_time")
+  distanceMeters         Decimal   @map("distance_meters") @db.Decimal(8, 2)
+  isVerifiedGeofence     Boolean   @default(true) @map("is_verified_geofence")
+  requiresManualConfirm  Boolean   @default(false) @map("requires_manual_confirm")
+  parentConfirmed        Boolean   @default(false) @map("parent_confirmed")
+  offlineId              String?   @unique @map("offline_id")
+  clientCreatedAt        DateTime? @map("client_created_at")
+  teacherLatitude        Decimal?  @map("teacher_latitude") @db.Decimal(10, 7)
+  teacherLongitude       Decimal?  @map("teacher_longitude") @db.Decimal(10, 7)
+  createdAt              DateTime  @default(now()) @map("created_at")
 
   contract TutoringContract @relation(fields: [contractId], references: [id], onDelete: Cascade)
 

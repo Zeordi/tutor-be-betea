@@ -10,6 +10,7 @@ type AttendanceLog = {
   checkOutTime?: string | null;
   distanceMeters?: number | null;
   isVerifiedGeofence?: boolean;
+  requiresManualConfirm?: boolean;
   parentConfirmed?: boolean;
 };
 
@@ -93,6 +94,10 @@ export default function ParentSessionPage() {
               <p className="text-sm text-[var(--secondary)]">
                 Geofence:{" "}
                 {log.isVerifiedGeofence ? "Verified ✅" : "Not verified"}
+                {log.requiresManualConfirm ? " · ⚠️ Manual confirm required" : ""}
+              </p>
+              <p className="text-sm text-[var(--secondary)]">
+                Distance: {Number(log.distanceMeters ?? 0).toLocaleString()}m
               </p>
               <p className="text-sm text-[var(--secondary)]">
                 Parent confirmed: {log.parentConfirmed ? "Yes ✅" : "No"}

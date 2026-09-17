@@ -1,150 +1,129 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { View, Text, Pressable, StyleSheet, ActivityIndicator, Alert } from "react-native";
-import { useRouter } from "expo-router";
-import { useLocalSearchParams } from "expo-router";
+import { useRouter, useLocalSearchParams } from "expo-router";
 import { useTheme } from "@/hooks/useTheme";
+import { SafeAreaView } from "react-native-safe-area-context";
 import { apiRequest, paths } from "@/lib/api";
 
-export default function SessionScreen() {
+type AttendanceLog = {
+  id: string;
+  checkInTime: string;
+  checkOutTime?: string | null;
+  distanceMeters?: number | null;
+  isVerifiedGeofence?: boolean;
+  requiresManualConfirm?: boolean;
+  parentConfirmed?: boolean;
+};
+
+export default function ParentSessionScreen() {
   const router = useRouter();
-  const { id } = useLocalSearchParams<{ id: string }>();
+  const { id: contractId } = useLocalSearchParams<{ id: string }>();
   const { colors, isDark } = useTheme();
-  const [status, setStatus] = useState<"idle" | "checked-in" | "checked-out">("idle");
-  const [loading, setLoading] = useState(false);
+  const [logs, setLogs] = useState<AttendanceLog[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [confirmingId, setConfirmingId] = useState<string | null>(null);
   const [error, setError] = useState("");
-  const distance = 42;
-  const inside = distance <= 150;
 
-  const handleCheckIn = async () => {
+  const load = async () => {
+    if (!contractId) return;
+    setLoading(true);
+    setError("");
     try {
-      setLoading(true);
-      setError("");
-      await apiRequest(paths.attendanceCheckIn, {
-        method: "POST",
-        body: JSON.stringify({
-          contractId: String(id),
-          latitude: 9.02,
-          longitude: 38.74,
-        }),
-      });
-      setStatus("checked-in");
-    } catch (err: any) {
-      setError(err.message || "Check-in failed");
+      const data = await apiRequest<AttendanceLog[]>(paths.attendanceByContract(String(contractId)));
+      setLogs(Array.isArray(data) ? data : []);
+    } catch (e: any) {
+      setError(e.message || "Failed to load sessions");
     } finally {
       setLoading(false);
     }
   };
 
-  const handleCheckOut = async () => {
+  useEffect(() => {
+    load();
+  }, [contractId]);
+
+  const confirmAttendance = async (attendanceId: string) => {
+    setConfirmingId(attendanceId);
     try {
-      setLoading(true);
-      setError("");
-      await apiRequest(paths.attendanceCheckOut, {
+      await apiRequest(paths.attendanceConfirm(attendanceId), {
         method: "POST",
-        body: JSON.stringify({
-          contractId: String(id),
-          latitude: 9.02,
-          longitude: 38.74,
-        }),
+        body: JSON.stringify({}),
       });
-      setStatus("checked-out");
-    } catch (err: any) {
-      setError(err.message || "Check-out failed");
+      Alert.alert("Confirmed", "Session attendance confirmed.");
+      await load();
+    } catch (e: any) {
+      Alert.alert("Error", e.message || "Confirm failed");
     } finally {
-      setLoading(false);
+      setConfirmingId(null);
     }
   };
+
+  const bg = colors.background ?? (isDark ? "#0A1628" : "#F8FAFC");
+  const card = colors.card ?? (isDark ? "#112240" : "#FFFFFF");
+  const text = colors.text ?? colors.foreground;
+  const sub = colors.subtext ?? colors.mutedForeground ?? "#64748B";
+  const primary = colors.primary ?? "#0D9488";
 
   return (
-    <View style={[styles.root, { backgroundColor: colors.background }]}>
-      <View style={[styles.header, { backgroundColor: colors.card, borderBottomColor: colors.border }]}>
+    <SafeAreaView style={{ flex: 1, backgroundColor: bg }} edges={["top"]}>
+      <View style={[styles.header, { backgroundColor: card, borderBottomColor: colors.border }]}>
         <Pressable onPress={() => router.back()}>
-          <Text style={{ fontSize: 18, color: colors.mutedForeground }}>←</Text>
+          <Text style={{ fontSize: 18, color: sub }}>←</Text>
         </Pressable>
-        <Text style={[styles.title, { color: colors.foreground }]}>Session check-in</Text>
+        <Text style={[styles.title, { color: text }]}>Session attendance</Text>
       </View>
 
-      <View style={{ padding: 16, gap: 14 }}>
-        <View style={[styles.card, { backgroundColor: colors.card, borderColor: colors.border }]}>
-          <Text style={[styles.label, { color: colors.mutedForeground }]}>TODAY · MATHEMATICS</Text>
-          <Text style={[styles.h, { color: colors.foreground }]}>Selamawit Tadesse</Text>
-          <Text style={{ color: colors.mutedForeground, fontSize: 13 }}>Grade 10 · Bole, Addis Ababa</Text>
-        </View>
-
-        <View style={[styles.map, { backgroundColor: isDark ? "#134E4A" : "#CCFBF1" }]}>
-          <Text style={{ fontSize: 40 }}>📍</Text>
-          <Text style={{ color: colors.primary, fontWeight: "800", marginTop: 8 }}>
-            {inside ? "✓ Inside geofence" : "✗ Outside zone"}
-          </Text>
-          <Text style={{ color: colors.mutedForeground, fontSize: 12 }}>{distance}m · 150m radius</Text>
-        </View>
-
+      <View style={{ padding: 16, gap: 12 }}>
         {error ? (
           <View style={[styles.banner, { backgroundColor: "#FEE2E2", borderColor: "#FECACA" }]}>
             <Text style={{ fontWeight: "700", color: "#991B1B" }}>{error}</Text>
           </View>
         ) : null}
 
-        <View
-          style={[
-            styles.banner,
-            {
-              backgroundColor: inside ? "#D1FAE5" : "#FEE2E2",
-              borderColor: inside ? "#6EE7B7" : "#FECACA",
-            },
-          ]}
-        >
-          <Text style={{ fontWeight: "700", color: inside ? "#065F46" : "#991B1B" }}>
-            {inside ? "You can check in now" : "Move closer to the session location"}
-          </Text>
-        </View>
-
-        {status === "idle" && (
-          <Pressable
-            disabled={!inside || loading}
-            style={[
-              styles.cta,
-              { backgroundColor: inside && !loading ? colors.primary : colors.border },
-            ]}
-            onPress={handleCheckIn}
-          >
-            {loading ? (
-              <ActivityIndicator color="#fff" />
-            ) : (
-              <Text style={styles.ctaText}>Check in</Text>
-            )}
-          </Pressable>
-        )}
-        {status === "checked-in" && (
-          <>
-            <View style={[styles.banner, { backgroundColor: "#D1FAE5", borderColor: "#6EE7B7" }]}>
-              <Text style={{ fontWeight: "700", color: "#065F46" }}>Checked in · attendance logged</Text>
-            </View>
-            <Pressable
-              style={[styles.cta, { backgroundColor: "#DC2626" }]}
-              onPress={handleCheckOut}
-              disabled={loading}
-            >
-              {loading ? (
-                <ActivityIndicator color="#fff" />
-              ) : (
-                <Text style={styles.ctaText}>Check out</Text>
-              )}
-            </Pressable>
-          </>
-        )}
-        {status === "checked-out" && (
-          <View style={[styles.banner, { backgroundColor: "#E0F2FE", borderColor: "#7DD3FC" }]}>
-            <Text style={{ fontWeight: "700", color: "#0C4A6E" }}>Session completed · pending parent confirm</Text>
+        {loading ? (
+          <View style={{ padding: 24, alignItems: "center" }}>
+            <ActivityIndicator size="large" color={primary} />
           </View>
+        ) : logs.length === 0 ? (
+          <View style={[styles.card, { backgroundColor: card, borderColor: colors.border }]}>
+            <Text style={{ color: sub }}>No sessions yet. Attendance will show after tutor check-in.</Text>
+          </View>
+        ) : (
+          logs.map((log) => (
+            <View key={log.id} style={[styles.card, { backgroundColor: card, borderColor: colors.border }]}>
+              <Text style={[styles.label, { color: sub }]}>
+                {new Date(log.checkInTime).toLocaleString()}
+              </Text>
+              <Text style={{ color: text, marginTop: 4 }}>
+                Geofence: {log.isVerifiedGeofence ? "Verified ✅" : "Not verified"}
+                {log.requiresManualConfirm ? " · ⚠️ Manual confirm required" : ""}
+              </Text>
+              <Text style={{ color: sub, marginTop: 2 }}>
+                Distance: {Number(log.distanceMeters ?? 0).toLocaleString()}m
+              </Text>
+              <Text style={{ color: sub, marginTop: 2 }}>
+                Parent confirmed: {log.parentConfirmed ? "Yes ✅" : "No"}
+              </Text>
+              {!log.parentConfirmed && log.checkOutTime && (
+                <Pressable
+                  style={[styles.cta, { backgroundColor: primary }]}
+                  disabled={confirmingId === log.id}
+                  onPress={() => confirmAttendance(log.id)}
+                >
+                  <Text style={styles.ctaText}>
+                    {confirmingId === log.id ? "Confirming…" : "Confirm session"}
+                  </Text>
+                </Pressable>
+              )}
+            </View>
+          ))
         )}
       </View>
-    </View>
+    </SafeAreaView>
   );
 }
 
 const styles = StyleSheet.create({
-  root: { flex: 1 },
   header: {
     flexDirection: "row",
     alignItems: "center",
@@ -155,14 +134,7 @@ const styles = StyleSheet.create({
   title: { fontSize: 17, fontWeight: "800" },
   card: { borderRadius: 16, borderWidth: 1, padding: 14 },
   label: { fontSize: 10, fontWeight: "800", letterSpacing: 0.6 },
-  h: { fontSize: 18, fontWeight: "800", marginTop: 4 },
-  map: {
-    height: 180,
-    borderRadius: 16,
-    alignItems: "center",
-    justifyContent: "center",
-  },
   banner: { borderRadius: 12, borderWidth: 1, padding: 12 },
-  cta: { paddingVertical: 16, borderRadius: 14, alignItems: "center" },
-  ctaText: { color: "#fff", fontWeight: "800", fontSize: 16 },
+  cta: { marginTop: 12, paddingVertical: 12, borderRadius: 12, alignItems: "center" },
+  ctaText: { color: "#fff", fontWeight: "800", fontSize: 14 },
 });

@@ -113,19 +113,22 @@ export default function TeacherSessionCheckInScreen() {
             parentLng: homeLng,
             offlineId,
             clientCreatedAt,
-            distanceMeters: status.distanceMeters,
-            isVerifiedGeofence: status.isVerified,
           }),
         });
 
         setOpenSession(data);
         setMessage(data.message || "Checked in");
+        setGeo({
+          ...status,
+          distanceMeters: Number(data.distanceMeters ?? status.distanceMeters),
+          isVerified: data.isVerifiedGeofence ?? status.isVerified,
+        });
         Alert.alert(
-          status.isVerified ? "Success" : "Outside geofence",
+          data.isVerifiedGeofence ? "Success" : "Outside geofence",
           data.message ||
-            (status.isVerified
+            (data.isVerifiedGeofence
               ? "Checked in within geofence"
-              : `You are ${status.distanceMeters}m away`),
+              : `You are ${data.distanceMeters}m away`),
         );
       } catch (onlineError: any) {
         await enqueueAttendance({
