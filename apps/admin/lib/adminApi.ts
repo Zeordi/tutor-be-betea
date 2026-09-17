@@ -98,6 +98,20 @@ export type AdminContract = {
   createdAt: string;
 };
 
+export type AdminPromo = {
+  id: string;
+  code: string;
+  description?: string;
+  discountPct: string;
+  discountEtb: string;
+  usageLimit: number;
+  usedCount: number;
+  active: boolean;
+  bannerText?: string;
+  expiresAt?: string;
+  createdAt: string;
+};
+
 export const adminApi = {
   dashboard: () => api.get<AdminDashboardStats>("/admin/dashboard"),
 
@@ -168,7 +182,10 @@ export const adminApi = {
   clearRiskFlag: (flagId: string) =>
     api.post(`/admin/risk-flags/${flagId}/clear`, {}),
 
-  promos: () => api.get("/admin/promos"),
+  startImpersonation: (userId: string, reason?: string) =>
+    api.post(`/admin/impersonate/${userId}`, { reason }),
+
+  promos: () => api.get<AdminPromo[]>("/admin/promos"),
 
   upsertPromo: (body: any) => api.post("/admin/promos", body),
 

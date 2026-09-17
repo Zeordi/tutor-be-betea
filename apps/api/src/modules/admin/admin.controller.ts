@@ -25,6 +25,27 @@ export class AdminController {
     return this.adminService.getDashboardStats();
   }
 
+  @Get("analytics")
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles("SUPER_ADMIN", "FINANCE")
+  getAnalytics() {
+    return this.adminService.getAnalytics();
+  }
+
+  @Get("settings")
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles("SUPER_ADMIN")
+  getSettings() {
+    return this.adminService.getSettings();
+  }
+
+  @Patch("settings")
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles("SUPER_ADMIN")
+  updateSettings(@CurrentUser() user: any, @Body() body: any) {
+    return this.adminService.updateSettings(body, user.id);
+  }
+
   @Get("audit-logs")
   @UseGuards(JwtAuthGuard, RolesGuard)
   @Roles("SUPER_ADMIN")
