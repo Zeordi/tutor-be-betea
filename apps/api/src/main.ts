@@ -3,6 +3,7 @@ import { NestFactory } from "@nestjs/core";
 import { ValidationPipe } from "@nestjs/common";
 import { AppModule } from "./app.module";
 import { AllExceptionsFilter } from "./common/filters/http-exception.filter";
+import * as express from "express";
 
 async function bootstrap() {
   const app = await NestFactory.create(AppModule);
@@ -22,6 +23,9 @@ async function bootstrap() {
     credentials: true,
     methods: "GET,HEAD,PUT,PATCH,POST,DELETE,OPTIONS",
   });
+
+  app.use("/payments/webhook", express.raw({ type: "application/json" }));
+  app.use("/escrow/webhook", express.raw({ type: "application/json" }));
 
   const port = process.env.PORT || 4000;
   await app.listen(port);

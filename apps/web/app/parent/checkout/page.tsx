@@ -84,6 +84,8 @@ export default function CheckoutPage() {
           } else {
             setError("Payment failed. Please try again.");
           }
+        } else if (data.status === "PENDING") {
+          apiFetch(paths.paymentReconcile(paymentId), { method: "POST" }).catch(() => {});
         }
       } catch {
         // keep polling

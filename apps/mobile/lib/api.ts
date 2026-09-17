@@ -36,6 +36,7 @@ export const paths = {
   wallet: "/payments/wallet",
   teacherEarnings: "/payments/earnings",
   paymentsInitiate: "/payments/initiate",
+  paymentReconcile: (id: string) => `/payments/reconcile/${id}`,
   payoutRequest: "/payments/payout",
   notifications: "/notifications",
   notificationRead: (id: string) => `/notifications/${id}/read`,

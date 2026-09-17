@@ -219,3 +219,41 @@ export async function requestMpesaCheckout(params: {
     expiresAt: data.expiresAt || data.data?.expiresAt || new Date(Date.now() + 30 * 60 * 1000).toISOString(),
   };
 }
+
+export function verifyTelebirrSignature(rawBody: string, signature: string | undefined, secret: string): boolean {
+  if (!signature || !secret) return false;
+  const crypto = require("crypto");
+  const expected = crypto.createHmac("sha256", secret).update(rawBody).digest("base64");
+  return signature === expected;
+}
+
+export function verifyCbeBirrSignature(rawBody: string, signature: string | undefined, secret: string): boolean {
+  if (!signature || !secret) return false;
+  const crypto = require("crypto");
+  const expected = crypto.createHmac("sha256", secret).update(rawBody).digest("base64");
+  return signature === expected;
+}
+
+export function verifyMpesaSignature(rawBody: string, signature: string | undefined, secret: string): boolean {
+  if (!signature || !secret) return false;
+  const crypto = require("crypto");
+  const expected = crypto.createHmac("sha256", secret).update(rawBody).digest("base64");
+  return signature === expected;
+}
+
+export function verifyStripeSignature(rawBody: string, signature: string | undefined, secret: string): boolean {
+  if (!signature || !secret) return false;
+  try {
+    const crypto = require("crypto");
+    const [timestamp, ...sigs] = signature.split(",").map((s) => s.split("="));
+    const signatureParts = Object.fromEntries(sigs);
+    const signedPayload = `${timestamp[1]}.${rawBody}`;
+    const expected = crypto.createHmac("sha256", secret).update(signedPayload).digest("base64");
+    const tolerance = 300;
+    const eventTime = Number(timestamp[1]);
+    if (Math.abs(Date.now() / 1000 - eventTime) > tolerance) return false;
+    return crypto.timingSafeEqual(Buffer.from(expected), Buffer.from(signatureParts.v || ""));
+  } catch {
+    return false;
+  }
+}

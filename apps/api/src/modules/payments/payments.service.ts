@@ -192,6 +192,70 @@ export class PaymentsService {
     };
   }
 
+  async reconcilePayment(paymentId: string) {
+    const payment = await prisma.payment.findUnique({
+      where: { id: paymentId },
+      include: { contract: true },
+    });
+    if (!payment) throw new NotFoundException("Payment not found");
+
+    if (payment.status !== "PENDING") {
+      return { id: payment.id, status: payment.status, reconciled: false, reason: "not_pending" };
+    }
+
+    if (!payment.externalRef) {
+      return { id: payment.id, status: payment.status, reconciled: false, reason: "missing_external_ref" };
+    }
+
+    const provider = payment.provider;
+    if (!isProviderConfigured(provider)) {
+      return { id: payment.id, status: payment.status, reconciled: false, reason: "provider_not_configured" };
+    }
+
+    let providerStatus: "SUCCESS" | "FAILED" | "PENDING" = "PENDING";
+
+    if (provider === "TELEBIRR") {
+      const checkout = await requestTelebirrCheckout({
+        amount: Number(payment.amount),
+        currency: payment.currency,
+        merchantId: paymentConfig.telebirr.merchantId,
+        notifyUrl: paymentConfig.telebirr.notifyUrl,
+        externalRef: payment.externalRef,
+      });
+      providerStatus = checkout.checkoutUrl ? "PENDING" : "FAILED";
+    } else if (provider === "CBE_BIRR") {
+      const checkout = await requestCbeBirrCheckout({
+        amount: Number(payment.amount),
+        currency: payment.currency,
+        merchantId: paymentConfig.cbeBirr.merchantId,
+        notifyUrl: paymentConfig.cbeBirr.notifyUrl,
+        externalRef: payment.externalRef,
+      });
+      providerStatus = checkout.checkoutUrl ? "PENDING" : "FAILED";
+    } else if (provider === "MPESA") {
+      const checkout = await requestMpesaCheckout({
+        amount: Number(payment.amount),
+        currency: payment.currency,
+        merchantId: paymentConfig.mpesa.merchantId,
+        notifyUrl: paymentConfig.mpesa.notifyUrl,
+        externalRef: payment.externalRef,
+      });
+      providerStatus = checkout.checkoutUrl ? "PENDING" : "FAILED";
+    } else if (provider === "STRIPE") {
+      providerStatus = "PENDING";
+    }
+
+    if (providerStatus === "FAILED" && payment.status === "PENDING") {
+      await prisma.payment.update({
+        where: { id: payment.id },
+        data: { status: "FAILED" },
+      });
+      return { id: payment.id, status: "FAILED", reconciled: true };
+    }
+
+    return { id: payment.id, status: payment.status, reconciled: true };
+  }
+
   async handleWebhook(provider: string, body: any) {
     const ref =
       body?.transactionId || body?.id || body?.trx_id || body?.externalRef;

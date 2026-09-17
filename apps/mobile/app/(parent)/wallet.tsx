@@ -40,21 +40,28 @@ export default function ParentWalletScreen() {
   const primary = colors.primary ?? "#0D9488";
   const border = colors.border ?? (isDark ? "#1E3A5F" : "#E2E8F0");
 
-  const refreshWallet = () => {
+  const refreshWallet = async () => {
     setLoading(true);
     setError("");
-    Promise.all([
-      apiRequest<WalletData>(paths.wallet),
-      apiRequest<ProvidersResponse>("/payments/status/check"),
-    ])
-      .then(([walletData, providers]) => {
-        setWallet(walletData);
-        setProviderStatus(providers || {});
-        const firstAvailable = Object.entries(providers || {}).find(([, v]) => v)?.[0];
-        if (firstAvailable) setSelectedProvider(firstAvailable);
-      })
-      .catch((err) => setError(err.message || "Failed to load wallet"))
-      .finally(() => setLoading(false));
+    try {
+      const [walletData, providers] = await Promise.all([
+        apiRequest<WalletData>(paths.wallet),
+        apiRequest<ProvidersResponse>("/payments/status/check"),
+      ]);
+      setWallet(walletData);
+      setProviderStatus(providers || {});
+      const firstAvailable = Object.entries(providers || {}).find(([, v]) => v)?.[0];
+      if (firstAvailable) setSelectedProvider(firstAvailable);
+
+      const pendingPayments = (walletData.transactions || []).filter((t) => t.status === "PENDING");
+      for (const payment of pendingPayments) {
+        apiRequest(paths.paymentReconcile(payment.id), { method: "POST" }).catch(() => {});
+      }
+    } catch (err: any) {
+      setError(err.message || "Failed to load wallet");
+    } finally {
+      setLoading(false);
+    }
   };
 
   useEffect(() => {
