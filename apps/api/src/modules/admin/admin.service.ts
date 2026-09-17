@@ -101,7 +101,7 @@ export class AdminService {
   async rejectVerification(userId: string, reason: string, adminId: string) {
     await prisma.vaultDocument.updateMany({
       where: { teacherId: userId },
-      data: { status: "REJECTED", rejectionReason: reason },
+      data: { status: "REJECTED", adminNote: reason },
     });
     await prisma.teacherProfile.updateMany({
       where: { userId },

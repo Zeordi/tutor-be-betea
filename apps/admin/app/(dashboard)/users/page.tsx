@@ -133,7 +133,7 @@ export default function UsersPage() {
                   {u.role}
                 </span>
               </div>
-              <div className="col-span-2 text-xs text-slate-500">{u.city || "—"}</div>
+              <div className="col-span-2 text-xs text-slate-500">{u.subCity || "—"}</div>
               <div className="col-span-2">
                 {u.status && (
                   <span className={`rounded-full px-2 py-0.5 text-[10px] font-bold ${statusClass(u.status)}`}>

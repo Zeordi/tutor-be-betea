@@ -15,23 +15,17 @@ export type AdminUser = {
   role: string;
   status?: string;
   phoneNumber?: string;
-  city?: string;
+  subCity?: string;
   createdAt?: string;
 };
 
 export type AdminVerificationItem = {
   id: string;
-  userId: string;
+  teacherId: string;
   documentType: string;
   status: string;
-  rejectionReason?: string;
+  adminNote?: string;
   createdAt: string;
-  user?: {
-    fullName: string;
-    email?: string;
-    phoneNumber?: string;
-    role?: string;
-  };
 };
 
 export type AdminVaultDocument = {
@@ -81,6 +75,15 @@ export type AdminSupportTicket = {
   contractId?: string;
 };
 
+export type AdminAuditLog = {
+  id: string;
+  adminId: string;
+  actionType: string;
+  targetUserId?: string;
+  reason?: string;
+  createdAt: string;
+};
+
 export const adminApi = {
   dashboard: () => api.get<AdminDashboardStats>("/admin/dashboard"),
 
@@ -102,10 +105,7 @@ export const adminApi = {
   approveVerification: (userId: string) =>
     api.post(`/admin/verification/${userId}/approve`, {}),
 
-  rejectVerification: (userId: string, reason?: string) =>
-    api.post(`/admin/verification/${userId}/reject`, { reason }),
-
-  rejectVerification: (userId: string, reason?: string) =>
+   rejectVerification: (userId: string, reason?: string) =>
     api.post(`/admin/verification/${userId}/reject`, { reason }),
 
   vaultPending: () => api.get<AdminVaultDocument[]>("/vault/pending"),

@@ -13,6 +13,10 @@ function priorityClass(priority: Priority) {
     : "bg-slate-100 text-slate-600 dark:bg-slate-800 dark:text-slate-300";
 }
 
+function priorityFor(docType: string): Priority {
+  return docType === "NATIONAL_ID" || docType === "DEGREE" ? "High" : "Normal";
+}
+
 export default function VerificationQueuePage() {
   const [queue, setQueue] = useState<AdminVerificationItem[]>([]);
   const [loading, setLoading] = useState(true);
@@ -37,30 +41,30 @@ export default function VerificationQueuePage() {
     load();
   }, []);
 
-  const handleApprove = async (userId: string) => {
-    setActionId(userId);
-    try {
-      await adminApi.approveVerification(userId);
-      setQueue((prev) => prev.filter((item) => item.userId !== userId));
-    } catch (err: any) {
-      alert(err.message || "Failed to approve");
-    } finally {
-      setActionId(null);
-    }
-  };
+   const handleApprove = async (teacherId: string) => {
+     setActionId(teacherId);
+     try {
+       await adminApi.approveVerification(teacherId);
+       setQueue((prev) => prev.filter((item) => item.teacherId !== teacherId));
+     } catch (err: any) {
+       alert(err.message || "Failed to approve");
+     } finally {
+       setActionId(null);
+     }
+   };
 
-  const handleReject = async (userId: string) => {
-    const reason = prompt("Rejection reason (optional):") || "Documents unclear";
-    setActionId(userId);
-    try {
-      await adminApi.rejectVerification(userId, reason);
-      setQueue((prev) => prev.filter((item) => item.userId !== userId));
-    } catch (err: any) {
-      alert(err.message || "Failed to reject");
-    } finally {
-      setActionId(null);
-    }
-  };
+   const handleReject = async (teacherId: string) => {
+     const reason = prompt("Rejection reason (optional):") || "Documents unclear";
+     setActionId(teacherId);
+     try {
+       await adminApi.rejectVerification(teacherId, reason);
+       setQueue((prev) => prev.filter((item) => item.teacherId !== teacherId));
+     } catch (err: any) {
+       alert(err.message || "Failed to reject");
+     } finally {
+       setActionId(null);
+     }
+   };
 
   const displayQueue = queue.slice(0, 50);
 
@@ -102,10 +106,10 @@ export default function VerificationQueuePage() {
             >
               <div className="col-span-3">
                 <p className="text-sm font-bold text-slate-800 dark:text-white">
-                  {row.user?.fullName || "—"}
+                  {row.teacherId}
                 </p>
                 <p className="text-xs text-slate-400">
-                  {row.user?.phoneNumber || row.user?.email || "—"}
+                  {row.documentType.replace(/_/g, " ")}
                 </p>
               </div>
               <div className="col-span-3 flex flex-wrap gap-1">
@@ -116,26 +120,26 @@ export default function VerificationQueuePage() {
               <div className="col-span-2 text-xs text-slate-500">
                 {row.createdAt ? new Date(row.createdAt).toLocaleString() : "—"}
               </div>
-              <div className="col-span-2">
-                <span
-                  className={`rounded-full px-2 py-0.5 text-[10px] font-bold ${priorityClass((row.priority as Priority) || "Normal")}`}
-                >
-                  {row.priority || "Normal"}
-                </span>
-              </div>
-              <div className="col-span-2 flex flex-wrap gap-2">
-                <button
-                  type="button"
-                  onClick={() => handleApprove(row.userId)}
-                  disabled={actionId === row.userId}
+             <div className="col-span-2">
+                 <span
+                   className={`rounded-full px-2 py-0.5 text-[10px] font-bold ${priorityClass(priorityFor(row.documentType))}`}
+                 >
+                   {priorityFor(row.documentType)}
+                 </span>
+               </div>
+               <div className="col-span-2 flex flex-wrap gap-2">
+                 <button
+                   type="button"
+                   onClick={() => handleApprove(row.teacherId)}
+                   disabled={actionId === row.teacherId}
                   className="rounded-lg bg-emerald-600 px-3 py-1.5 text-xs font-bold text-white hover:bg-emerald-700 disabled:opacity-50"
                 >
-                  {actionId === row.userId ? "…" : "Approve"}
+                   {actionId === row.teacherId ? "…" : "Approve"}
                 </button>
-                <button
-                  type="button"
-                  onClick={() => handleReject(row.userId)}
-                  disabled={actionId === row.userId}
+                 <button
+                   type="button"
+                   onClick={() => handleReject(row.teacherId)}
+                   disabled={actionId === row.teacherId}
                   className="rounded-lg border border-red-300 bg-red-50 px-3 py-1.5 text-xs font-bold text-red-700 hover:bg-red-100 disabled:opacity-50 dark:border-red-800 dark:bg-red-950/30 dark:text-red-300"
                 >
                   Reject
