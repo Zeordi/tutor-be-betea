@@ -325,12 +325,27 @@ export class PaymentsService {
       );
     }
 
+    const teacherProfile = await prisma.teacherProfile.findUnique({
+      where: { userId: teacherId },
+      select: { payoutMethod: true, payoutAccount: true },
+    });
+
+    const payoutProvider = (provider || teacherProfile?.payoutMethod || "TELEBIRR") as any;
+    const externalRef = payoutProvider === "TELEBIRR"
+      ? `telebirr_payout_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`
+      : payoutProvider === "CBE_BIRR"
+        ? `cbe_payout_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`
+        : payoutProvider === "MPESA"
+          ? `mpesa_payout_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`
+          : `payout_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`;
+
     const payout = await prisma.payout.create({
       data: {
         teacherId,
         amount,
-        provider: (provider || "TELEBIRR") as any,
+        provider: payoutProvider,
         status: "PENDING",
+        externalRef,
       },
     });
 

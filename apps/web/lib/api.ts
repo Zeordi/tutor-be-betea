@@ -66,6 +66,10 @@ export const paths = {
   paymentStatus: (id: string) => `/payments/status/${id}`,
   paymentReconcile: (id: string) => `/payments/reconcile/${id}`,
 
+  // teacher
+  teacherEarnings: "/payments/earnings",
+  payoutRequest: "/payments/payout",
+
   // notifications
   notifications: "/notifications",
   notificationRead: (id: string) => `/notifications/${id}/read`,

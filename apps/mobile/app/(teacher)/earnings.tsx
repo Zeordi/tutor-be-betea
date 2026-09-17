@@ -1,5 +1,5 @@
 import { useState, useEffect, useMemo } from "react";
-import { View, Text, ScrollView, TouchableOpacity, StyleSheet, ActivityIndicator, Alert } from "react-native";
+import { View, Text, ScrollView, TouchableOpacity, StyleSheet, ActivityIndicator, Alert, TextInput } from "react-native";
 import { useRouter } from "expo-router";
 import { useTheme } from "@/hooks/useTheme";
 import { SafeAreaView } from "react-native-safe-area-context";
@@ -26,6 +26,9 @@ export default function EarningsScreen() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [earnings, setEarnings] = useState<TeacherEarnings | null>(null);
+  const [withdrawAmount, setWithdrawAmount] = useState("");
+  const [withdrawProvider, setWithdrawProvider] = useState("TELEBIRR");
+  const [paying, setPaying] = useState(false);
 
   const bg = isDark ? "#0A1628" : "#F8FAFC";
   const card = isDark ? "#112240" : "#FFFFFF";
@@ -35,24 +38,16 @@ export default function EarningsScreen() {
   const border = isDark ? "#1E3A5F" : "#E2E8F0";
   const surface = isDark ? "#1E293B" : "#F8FAFC";
 
-  useEffect(() => {
-    let cancelled = false;
+  const refresh = () => {
     setLoading(true);
     setError("");
+    apiRequest<TeacherEarnings>(paths.teacherEarnings)
+      .then(setEarnings)
+      .catch((e) => setError(e.message || "Failed to load earnings"))
+      .finally(() => setLoading(false));
+  };
 
-              apiRequest<TeacherEarnings>(paths.teacherEarnings)
-      .then((data) => {
-        if (!cancelled) setEarnings(data);
-      })
-      .catch((err) => {
-        if (!cancelled) setError(err.message || "Failed to load earnings");
-      })
-      .finally(() => {
-        if (!cancelled) setLoading(false);
-      });
-
-    return () => { cancelled = true; };
-  }, []);
+  useEffect(() => { refresh(); }, []);
 
   const WEEK = useMemo(() => {
     if (!earnings?.payouts?.length) return [30, 45, 40, 60, 55, 70, 65];
@@ -67,6 +62,58 @@ export default function EarningsScreen() {
   const available = earnings ? `${earnings.pendingPayout.toLocaleString()} ETB` : "0 ETB";
   const monthEarned = earnings ? `${earnings.totalEarned.toLocaleString()} ETB` : "0 ETB";
   const payouts: Payout[] = earnings?.payouts?.length ? earnings.payouts : [];
+
+  const handleWithdrawAll = async () => {
+    if (!earnings || earnings.pendingPayout <= 0) {
+      Alert.alert("Unavailable", "No earnings available to withdraw.");
+      return;
+    }
+    setPaying(true);
+    try {
+      await apiRequest(paths.payoutRequest, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ amount: earnings.pendingPayout, provider: "TELEBIRR" }),
+      });
+      Alert.alert("Success", "Payout request submitted.");
+      refresh();
+    } catch (err: any) {
+      Alert.alert("Error", err.message || "Payout failed");
+    } finally {
+      setPaying(false);
+    }
+  };
+
+  const handleSchedulePayout = async () => {
+    if (!earnings || earnings.pendingPayout <= 0) {
+      Alert.alert("Unavailable", "No earnings available to withdraw.");
+      return;
+    }
+    const amount = Number(withdrawAmount);
+    if (!amount || amount <= 0) {
+      Alert.alert("Invalid", "Enter a valid amount.");
+      return;
+    }
+    if (amount > earnings.pendingPayout) {
+      Alert.alert("Invalid", "Amount exceeds available balance.");
+      return;
+    }
+    setPaying(true);
+    try {
+      await apiRequest(paths.payoutRequest, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ amount, provider: withdrawProvider }),
+      });
+      setWithdrawAmount("");
+      Alert.alert("Success", "Payout request submitted.");
+      refresh();
+    } catch (err: any) {
+      Alert.alert("Error", err.message || "Payout failed");
+    } finally {
+      setPaying(false);
+    }
+  };
 
   if (loading) {
     return (
@@ -131,13 +178,51 @@ export default function EarningsScreen() {
           <View style={{ flexDirection: "row", gap: 8, marginTop: 14 }}>
             <TouchableOpacity
               style={styles.heroBtn}
-              onPress={() => Alert.alert("Withdraw", "Payout request started")}
+              onPress={handleWithdrawAll}
+              disabled={paying}
             >
-              <Text style={styles.heroBtnText}>Withdraw All</Text>
+              <Text style={styles.heroBtnText}>{paying ? "Processing…" : "Withdraw All"}</Text>
             </TouchableOpacity>
-            <TouchableOpacity style={styles.heroBtn}>
-              <Text style={styles.heroBtnText}>Schedule Payout</Text>
+            <TouchableOpacity
+              style={styles.heroBtn}
+              onPress={handleSchedulePayout}
+              disabled={paying}
+            >
+              <Text style={styles.heroBtnText}>{paying ? "Processing…" : "Schedule Payout"}</Text>
             </TouchableOpacity>
+          </View>
+          <View style={{ marginTop: 10, gap: 6 }}>
+            <Text style={{ color: "rgba(255,255,255,0.7)", fontSize: 10 }}>Custom amount</Text>
+            <View style={{ flexDirection: "row", gap: 8 }}>
+              <TextInput
+                value={withdrawAmount}
+                onChangeText={setWithdrawAmount}
+                placeholder="Amount"
+                keyboardType="numeric"
+                style={{ flex: 1, borderRadius: 10, backgroundColor: "rgba(255,255,255,0.15)", paddingHorizontal: 12, paddingVertical: 8, color: "#fff" }}
+              />
+              <View style={{ flexDirection: "row", gap: 6 }}>
+                {["TELEBIRR", "CBE_BIRR", "MPESA"].map((p) => (
+                  <TouchableOpacity
+                    key={p}
+                    onPress={() => setWithdrawProvider(p)}
+                    style={[
+                      styles.providerChip,
+                      withdrawProvider === p && styles.providerChipActive,
+                    ]}
+                  >
+                    <Text
+                      style={[
+                        styles.providerChipText,
+                        withdrawProvider === p && styles.providerChipTextActive,
+                      ]}
+                    >
+                      {p.replace("_", " ")}
+                    </Text>
+                  </TouchableOpacity>
+                ))}
+              </View>
+            </View>
           </View>
         </View>
 
@@ -253,6 +338,23 @@ const styles = StyleSheet.create({
     alignItems: "center",
   },
   heroBtnText: { color: "#fff", fontWeight: "800", fontSize: 12 },
+  providerChip: {
+    paddingHorizontal: 8,
+    paddingVertical: 6,
+    borderRadius: 8,
+    backgroundColor: "rgba(255,255,255,0.15)",
+  },
+  providerChipActive: {
+    backgroundColor: "rgba(255,255,255,0.35)",
+  },
+  providerChipText: {
+    color: "rgba(255,255,255,0.85)",
+    fontSize: 9,
+    fontWeight: "700",
+  },
+  providerChipTextActive: {
+    color: "#fff",
+  },
   card: { borderRadius: 16, padding: 14, borderWidth: 1 },
   section: {
     fontSize: 10,
