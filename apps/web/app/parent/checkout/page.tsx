@@ -21,6 +21,7 @@ export default function CheckoutPage() {
   const [step, setStep] = useState(0);
   const [pack, setPack] = useState(2);
   const [pay, setPay] = useState("telebirr");
+  const [contractId, setContractId] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   const [confirmed, setConfirmed] = useState(false);
@@ -32,14 +33,20 @@ export default function CheckoutPage() {
     { id: "mpesa", label: "M-Pesa", color: "#00A859", available: true },
   ]);
 
-  const selectedProvider = providers.find((p) => p.id === pay);
+   const selectedProvider = providers.find((p) => p.id === pay);
+
+  const providerMap: Record<string, string> = {
+    telebirr: "TELEBIRR",
+    cbe: "CBE_BIRR",
+    mpesa: "MPESA",
+  };
 
   useEffect(() => {
     let cancelled = false;
     setLoading(true);
     Promise.all(
       providers.map((p) =>
-        apiFetch<{ available: boolean }>(`/payments/status/check?provider=${p.id.toUpperCase()}`)
+        apiFetch<{ available: boolean }>(`/payments/status/check?provider=${providerMap[p.id] || p.id.toUpperCase()}`)
           .then((data) => {
             if (!cancelled) {
               setProviders((prev) =>
@@ -103,7 +110,7 @@ export default function CheckoutPage() {
       }>(paths.paymentsInitiate, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ amount: PACKS[pack].amount, provider }),
+        body: JSON.stringify({ amount: PACKS[pack].amount, provider, contractId: contractId || undefined }),
       });
 
       if (result.redirectUrl) {
@@ -116,7 +123,7 @@ export default function CheckoutPage() {
         setPolling(true);
         setError("Waiting for payment confirmation…");
       } else {
-        setConfirmed(true);
+        setError("Payment initiated but no redirect received. Please check your wallet.");
       }
     } catch (err: any) {
       setError(err.message || "Payment failed");

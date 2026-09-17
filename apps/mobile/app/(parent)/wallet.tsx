@@ -1,4 +1,4 @@
-import { View, Text, ScrollView, TouchableOpacity, StyleSheet, ActivityIndicator, Alert } from "react-native";
+import { View, Text, ScrollView, TouchableOpacity, StyleSheet, ActivityIndicator, Alert, Linking } from "react-native";
 import { useEffect, useState } from "react";
 import { useRouter } from "expo-router";
 import { useTheme } from "@/hooks/useTheme";
@@ -21,10 +21,7 @@ type WalletData = {
   transactions: Transaction[];
 };
 
-type ProviderStatus = {
-  provider: string;
-  available: boolean;
-};
+type ProvidersResponse = Record<string, boolean>;
 
 export default function ParentWalletScreen() {
   const router = useRouter();
@@ -32,7 +29,8 @@ export default function ParentWalletScreen() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [wallet, setWallet] = useState<WalletData | null>(null);
-  const [providerStatus, setProviderStatus] = useState<ProviderStatus[]>([]);
+  const [providerStatus, setProviderStatus] = useState<ProvidersResponse>({});
+  const [selectedProvider, setSelectedProvider] = useState<string>("");
   const [paying, setPaying] = useState(false);
 
   const bg = colors.background ?? (isDark ? "#0A1628" : "#F8FAFC");
@@ -42,49 +40,58 @@ export default function ParentWalletScreen() {
   const primary = colors.primary ?? "#0D9488";
   const border = colors.border ?? (isDark ? "#1E3A5F" : "#E2E8F0");
 
-  useEffect(() => {
-    let cancelled = false;
+  const refreshWallet = () => {
     setLoading(true);
     setError("");
-
     Promise.all([
       apiRequest<WalletData>(paths.wallet),
-      apiRequest<ProviderStatus[]>("/payments/status/check"),
+      apiRequest<ProvidersResponse>("/payments/status/check"),
     ])
       .then(([walletData, providers]) => {
-        if (!cancelled) {
-          setWallet(walletData);
-          setProviderStatus(Array.isArray(providers) ? providers : []);
-        }
+        setWallet(walletData);
+        setProviderStatus(providers || {});
+        const firstAvailable = Object.entries(providers || {}).find(([, v]) => v)?.[0];
+        if (firstAvailable) setSelectedProvider(firstAvailable);
       })
-      .catch((err) => {
-        if (!cancelled) setError(err.message || "Failed to load wallet");
-      })
-      .finally(() => {
-        if (!cancelled) setLoading(false);
-      });
+      .catch((err) => setError(err.message || "Failed to load wallet"))
+      .finally(() => setLoading(false));
+  };
 
+  useEffect(() => {
+    let cancelled = false;
+    refreshWallet();
     return () => { cancelled = true; };
   }, []);
 
-  const anyProviderAvailable = providerStatus.some((p) => p.available);
+  const availableProviders = Object.entries(providerStatus)
+    .filter(([, available]) => available)
+    .map(([provider]) => provider);
 
   const handleTopUp = async () => {
-    if (!anyProviderAvailable) {
+    if (!selectedProvider || !providerStatus[selectedProvider]) {
       Alert.alert("Unavailable", "No payment provider is configured. Contact support.");
       return;
     }
     setPaying(true);
     try {
-      const result = await apiRequest<{ redirectUrl?: string }>(paths.paymentsInitiate, {
+      const result = await apiRequest<{ redirectUrl?: string; payment?: any }>(paths.paymentsInitiate, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ amount: 500, provider: "TELEBIRR" }),
+        body: JSON.stringify({ amount: 500, provider: selectedProvider }),
       });
+
       if (result.redirectUrl) {
-        Alert.alert("Redirect", "Complete payment in the provider checkout.");
-      } else {
+        const canOpen = await Linking.canOpenURL(result.redirectUrl);
+        if (canOpen) {
+          await Linking.openURL(result.redirectUrl);
+        } else {
+          Alert.alert("Redirect", "Complete payment in the provider checkout.");
+        }
+      } else if (result.payment?.id) {
         Alert.alert("Initiated", "Payment initiated. Check your wallet for updates.");
+        refreshWallet();
+      } else {
+        setError("Payment initiated but no redirect received. Please check your wallet.");
       }
     } catch (err: any) {
       Alert.alert("Error", err.message || "Payment failed");
@@ -129,14 +136,7 @@ export default function ParentWalletScreen() {
         <View style={{ padding: 24, alignItems: "center" }}>
           <Text style={{ color: text, marginBottom: 12 }}>{error}</Text>
           <TouchableOpacity
-            onPress={() => {
-              setError("");
-              setLoading(true);
-              apiRequest<WalletData>(paths.wallet)
-                .then((data) => setWallet(data))
-                .catch((err) => setError(err.message))
-                .finally(() => setLoading(false));
-            }}
+            onPress={refreshWallet}
             style={[styles.retryBtn, { backgroundColor: primary }]}
           >
             <Text style={{ color: "#fff", fontWeight: "700", fontSize: 13 }}>Retry</Text>
@@ -165,25 +165,59 @@ export default function ParentWalletScreen() {
           <Text style={{ color: "rgba(255,255,255,0.85)", fontSize: 12, marginTop: 6 }}>
             {escrowHeld.toLocaleString()} ETB currently in escrow
           </Text>
-          <View style={{ flexDirection: "row", gap: 8, marginTop: 14 }}>
-            <TouchableOpacity
-              style={[styles.heroBtn, !anyProviderAvailable && { opacity: 0.5 }]}
-              onPress={handleTopUp}
-              disabled={!anyProviderAvailable || paying}
-            >
-              <Text style={styles.heroBtnText}>{paying ? "Processing…" : "Top up"}</Text>
-            </TouchableOpacity>
-            <TouchableOpacity
-              style={styles.heroBtn}
-              onPress={() => router.push("/(parent)/contracts")}
-            >
-              <Text style={styles.heroBtnText}>View escrow</Text>
-            </TouchableOpacity>
-          </View>
-          {!anyProviderAvailable && (
-            <Text style={{ color: "rgba(255,255,255,0.7)", fontSize: 11, marginTop: 8 }}>
-              Payments are currently unavailable. Contact support to enable a provider.
-            </Text>
+
+          {availableProviders.length > 0 ? (
+            <View style={{ marginTop: 14, gap: 8 }}>
+              <View style={{ flexDirection: "row", gap: 8, alignItems: "center" }}>
+                <View style={{ flex: 1 }}>
+                  <Text style={{ color: "rgba(255,255,255,0.7)", fontSize: 10, marginBottom: 4 }}>
+                    Provider
+                  </Text>
+                  <View style={{ flexDirection: "row", flexWrap: "wrap", gap: 6 }}>
+                    {availableProviders.map((p) => (
+                      <TouchableOpacity
+                        key={p}
+                        onPress={() => setSelectedProvider(p)}
+                        style={[
+                          styles.providerChip,
+                          selectedProvider === p && styles.providerChipActive,
+                        ]}
+                      >
+                        <Text
+                          style={[
+                            styles.providerChipText,
+                            selectedProvider === p && styles.providerChipTextActive,
+                          ]}
+                        >
+                          {p}
+                        </Text>
+                      </TouchableOpacity>
+                    ))}
+                  </View>
+                </View>
+              </View>
+              <View style={{ flexDirection: "row", gap: 8, marginTop: 6 }}>
+                <TouchableOpacity
+                  style={[styles.heroBtn]}
+                  onPress={handleTopUp}
+                  disabled={paying}
+                >
+                  <Text style={styles.heroBtnText}>{paying ? "Processing…" : "Top up 500 ETB"}</Text>
+                </TouchableOpacity>
+                <TouchableOpacity
+                  style={styles.heroBtn}
+                  onPress={() => router.push("/(parent)/contracts")}
+                >
+                  <Text style={styles.heroBtnText}>View escrow</Text>
+                </TouchableOpacity>
+              </View>
+            </View>
+          ) : (
+            <View style={{ marginTop: 14 }}>
+              <Text style={{ color: "rgba(255,255,255,0.7)", fontSize: 11 }}>
+                Payments are currently unavailable. Contact support to enable a provider.
+              </Text>
+            </View>
           )}
         </View>
 
@@ -241,6 +275,23 @@ const styles = StyleSheet.create({
     alignItems: "center",
   },
   heroBtnText: { color: "#fff", fontWeight: "800", fontSize: 12 },
+  providerChip: {
+    paddingHorizontal: 10,
+    paddingVertical: 6,
+    borderRadius: 8,
+    backgroundColor: "rgba(255,255,255,0.15)",
+  },
+  providerChipActive: {
+    backgroundColor: "rgba(255,255,255,0.35)",
+  },
+  providerChipText: {
+    color: "rgba(255,255,255,0.85)",
+    fontSize: 10,
+    fontWeight: "700",
+  },
+  providerChipTextActive: {
+    color: "#fff",
+  },
   section: { fontSize: 10, fontWeight: "800", letterSpacing: 0.5 },
   tx: {
     borderRadius: 14,

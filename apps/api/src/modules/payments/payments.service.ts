@@ -6,6 +6,7 @@ import {
   isProviderConfigured,
   requestTelebirrCheckout,
   requestCbeBirrCheckout,
+  requestMpesaCheckout,
 } from "../../config/payment.config";
 
 @Injectable()
@@ -126,6 +127,16 @@ export class PaymentsService {
         currency: "ETB",
         merchantId: paymentConfig.cbeBirr.merchantId,
         notifyUrl: paymentConfig.cbeBirr.notifyUrl,
+        externalRef,
+      });
+      redirectUrl = checkout.checkoutUrl;
+      meta = { externalRef, transactionId: checkout.transactionId, expiresAt: checkout.expiresAt };
+    } else if (provider === "MPESA") {
+      const checkout = await requestMpesaCheckout({
+        amount: Number(input.amount),
+        currency: "ETB",
+        merchantId: paymentConfig.mpesa.merchantId,
+        notifyUrl: paymentConfig.mpesa.notifyUrl,
         externalRef,
       });
       redirectUrl = checkout.checkoutUrl;

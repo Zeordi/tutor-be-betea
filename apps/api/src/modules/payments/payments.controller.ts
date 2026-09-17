@@ -1,9 +1,10 @@
-import { Controller, Post, Get, Body, UseGuards, Param } from "@nestjs/common";
+import { Controller, Post, Get, Body, UseGuards, Param, Query } from "@nestjs/common";
 import { PaymentsService } from "./payments.service";
 import { JwtAuthGuard } from "../../common/guards/jwt-auth.guard";
 import { RolesGuard } from "../../common/guards/roles.guard";
 import { Roles } from "../../common/decorators/roles.decorator";
 import { CurrentUser } from "../../common/decorators/current-user.decorator";
+import { isProviderConfigured } from "../../config/payment.config";
 
 @Controller("payments")
 export class PaymentsController {
@@ -70,12 +71,13 @@ export class PaymentsController {
   @Get("status/check")
   checkProviders(@Query("provider") provider?: string) {
     if (provider) {
-      return { provider: provider.toUpperCase(), available: true };
+      return { provider: provider.toUpperCase(), available: isProviderConfigured(provider) };
     }
     return {
-      TELEBIRR: true,
-      CBE_BIRR: true,
-      STRIPE: false,
+      TELEBIRR: isProviderConfigured("TELEBIRR"),
+      CBE_BIRR: isProviderConfigured("CBE_BIRR"),
+      MPESA: isProviderConfigured("MPESA"),
+      STRIPE: isProviderConfigured("STRIPE"),
     };
   }
 }
