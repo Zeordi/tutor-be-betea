@@ -5,6 +5,7 @@ import {
   Param,
   Body,
   UseGuards,
+  Query,
 } from "@nestjs/common";
 import { SupportService } from "./support.service";
 import { JwtAuthGuard } from "../../common/guards/jwt-auth.guard";
@@ -33,6 +34,14 @@ export class SupportController {
   @UseGuards(JwtAuthGuard)
   listMine(@CurrentUser() user: any) {
     return this.supportService.listMine(user.id);
+  }
+
+  /** Admin-only – list all tickets with optional status filter */
+  @Get()
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles("SUPER_ADMIN", "SUPPORT_AGENT", "VERIFICATION_OFFICER")
+  async listAll(@Query("status") status?: string) {
+    return this.supportService.listAll(status as any);
   }
 
   @Get("ticket/:id")

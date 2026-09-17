@@ -84,6 +84,20 @@ export type AdminAuditLog = {
   createdAt: string;
 };
 
+export type AdminContract = {
+  id: string;
+  parentId: string;
+  teacherId: string;
+  studentId: string;
+  agreedAmount: string;
+  platformFeePercent: string;
+  escrowHeldAmount: string;
+  status: string;
+  startDate: string;
+  endDate: string;
+  createdAt: string;
+};
+
 export const adminApi = {
   dashboard: () => api.get<AdminDashboardStats>("/admin/dashboard"),
 
@@ -122,7 +136,18 @@ export const adminApi = {
     if (params?.page) qs.set("page", String(params.page));
     if (params?.limit) qs.set("limit", String(params.limit));
     const qsStr = qs.toString();
-    return api.get(`/contracts${qsStr ? `?${qsStr}` : ""}`);
+    return api.get<AdminContract[]>(`/contracts${qsStr ? `?${qsStr}` : ""}`);
+  },
+
+  payoutUpdate: (payoutId: string, status: string) =>
+    api.patch(`/admin/payout-ledger/${payoutId}`, { status }),
+
+  payouts: (params?: { status?: string; page?: number; limit?: number }) => {
+    const qs = new URLSearchParams();
+    if (params?.status) qs.set("status", params.status);
+    if (params?.limit) qs.set("limit", String(params.limit));
+    const qsStr = qs.toString();
+    return api.get<AdminPayout[]>(`/admin/payout-ledger${qsStr ? `?${qsStr}` : ""}`);
   },
 
   tickets: (params?: { status?: string; page?: number; limit?: number }) => {

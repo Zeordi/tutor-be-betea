@@ -2,6 +2,7 @@ import {
   Controller,
   Get,
   Post,
+  Patch,
   Body,
   Param,
   Query,
@@ -111,6 +112,17 @@ export class AdminController {
   @Roles("SUPER_ADMIN", "FINANCE")
   getPayoutLedger() {
     return this.adminService.getPayoutLedger();
+  }
+
+  @Patch("payout-ledger/:id")
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles("SUPER_ADMIN", "FINANCE")
+  updatePayout(
+    @CurrentUser() user: any,
+    @Param("id") payoutId: string,
+    @Body() body: { status?: string },
+  ) {
+    return this.adminService.updatePayout(payoutId, body.status, user.id);
   }
 
   @Get("children/:parentId")
