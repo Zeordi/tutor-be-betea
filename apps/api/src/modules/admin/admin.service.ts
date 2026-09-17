@@ -191,6 +191,27 @@ export class AdminService {
     });
   }
 
+  async updatePayout(payoutId: string, status?: string, adminId?: string) {
+    const payout = await prisma.payout.findUnique({ where: { id: payoutId } });
+    if (!payout) throw new NotFoundException("Payout not found");
+    const data: any = {};
+    if (status) data.status = status;
+    if (status === "PAID") data.paidAt = new Date();
+    const updated = await prisma.payout.update({
+      where: { id: payoutId },
+      data,
+    });
+    if (adminId && status) {
+      await this.writeAudit({
+        adminId,
+        targetUserId: payout.teacherId,
+        actionType: "UPDATE_PAYOUT",
+        reason: `Payout status changed to ${status}`,
+      });
+    }
+    return updated;
+  }
+
   async listRiskFlags() {
     return prisma.riskFlag.findMany({
       where: { resolved: false },
