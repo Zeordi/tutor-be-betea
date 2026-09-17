@@ -54,16 +54,36 @@ export default function VerificationDetailPage() {
     }
   };
 
-  const handleReject = async () => {
+  const handleRequestMore = async () => {
     if (!id) return;
-    const reason = prompt("Rejection reason (optional):") || "Documents unclear";
-    setActionId(id);
+    const pendingDoc = docs.find((d) => d.status === "PENDING");
+    if (!pendingDoc) {
+      alert("No pending documents to request more info for.");
+      return;
+    }
+    const reason = prompt("What additional information do you need?") || "Please provide additional documents.";
+    setActionId(pendingDoc.id);
     try {
-      await adminApi.rejectVerification(id, reason);
-      alert("Verification rejected.");
+      await adminApi.requestMoreVerification(pendingDoc.id, reason);
+      alert("Request for more info sent.");
       load();
     } catch (err: any) {
-      alert(err.message || "Failed to reject");
+      alert(err.message || "Failed to request more info");
+    } finally {
+      setActionId(null);
+    }
+  };
+
+  const handleRevoke = async () => {
+    if (!id) return;
+    const reason = prompt("Reason for revocation:") || "Verification revoked.";
+    setActionId(id);
+    try {
+      await adminApi.revokeVerification(id, reason);
+      alert("Verification revoked.");
+      load();
+    } catch (err: any) {
+      alert(err.message || "Failed to revoke");
     } finally {
       setActionId(null);
     }
@@ -162,24 +182,24 @@ export default function VerificationDetailPage() {
       <div className="flex flex-wrap gap-3">
         <button
           onClick={handleApprove}
-          disabled={actionId === id}
+          disabled={!!actionId}
           className="rounded-xl bg-emerald-600 px-5 py-2.5 text-sm font-bold text-white hover:bg-emerald-700 disabled:opacity-50"
         >
-          {actionId === id ? "…" : "✓ Approve & Issue Badges"}
+          {actionId ? "…" : "✓ Approve & Issue Badges"}
         </button>
         <button
-          onClick={handleReject}
-          disabled={actionId === id}
+          onClick={handleRequestMore}
+          disabled={!!actionId}
           className="rounded-xl border border-amber-300 bg-amber-50 px-5 py-2.5 text-sm font-bold text-amber-700 hover:bg-amber-100 disabled:opacity-50 dark:border-amber-800 dark:bg-amber-900/20 dark:text-amber-300"
         >
-          Request More Docs
+          {actionId ? "…" : "Request More Docs"}
         </button>
         <button
-          onClick={handleReject}
-          disabled={actionId === id}
+          onClick={handleRevoke}
+          disabled={!!actionId}
           className="rounded-xl border border-red-300 bg-red-50 px-5 py-2.5 text-sm font-bold text-red-700 hover:bg-red-100 disabled:opacity-50 dark:border-red-800 dark:bg-red-900/20 dark:text-red-300"
         >
-          Reject
+          {actionId ? "…" : "Revoke"}
         </button>
       </div>
     </div>

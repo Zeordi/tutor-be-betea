@@ -104,14 +104,19 @@ export default function VerificationQueuePage() {
               key={row.id}
               className="grid grid-cols-12 items-center gap-2 border-b border-slate-50 px-4 py-3 last:border-0 dark:border-slate-800/60"
             >
-              <div className="col-span-3">
-                <p className="text-sm font-bold text-slate-800 dark:text-white">
-                  {row.teacherId}
-                </p>
-                <p className="text-xs text-slate-400">
-                  {row.documentType.replace(/_/g, " ")}
-                </p>
-              </div>
+               <div className="col-span-3">
+                 <p className="text-sm font-bold text-slate-800 dark:text-white">
+                   {row.teacherId}
+                 </p>
+                 <p className="text-xs text-slate-400">
+                   {row.documentType.replace(/_/g, " ")}
+                 </p>
+                 {row.adminNote && (
+                   <p className="mt-1 text-[10px] text-amber-600 dark:text-amber-400">
+                     Note: {row.adminNote}
+                   </p>
+                 )}
+               </div>
               <div className="col-span-3 flex flex-wrap gap-1">
                 <span className="rounded-full bg-slate-100 px-2 py-0.5 text-[10px] font-semibold text-slate-600 dark:bg-slate-800 dark:text-slate-300">
                   {row.documentType.replace(/_/g, " ")}

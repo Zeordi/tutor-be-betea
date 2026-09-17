@@ -20,6 +20,7 @@ type VaultDoc = {
   id: string;
   documentType: string;
   status: string;
+  adminNote?: string;
   rejectionReason?: string;
   createdAt: string;
 };
@@ -195,16 +196,18 @@ export default function DocumentReuploadScreen() {
                   </View>
                 </View>
 
-                {doc.rejectionReason ? (
-                  <View
-                    style={[
-                      styles.noteBox,
-                      { backgroundColor: isDark ? "#1e293b99" : "#f8fafc" },
-                    ]}
-                  >
-                    <Text style={{ color: colors.sub, fontSize: 11, lineHeight: 16 }}>{doc.rejectionReason}</Text>
-                  </View>
-                ) : null}
+                 {(doc.adminNote || doc.rejectionReason) ? (
+                   <View
+                     style={[
+                       styles.noteBox,
+                       { backgroundColor: isDark ? "#1e293b99" : "#f8fafc" },
+                     ]}
+                   >
+                     <Text style={{ color: colors.sub, fontSize: 11, lineHeight: 16 }}>
+                       {doc.adminNote || doc.rejectionReason}
+                     </Text>
+                   </View>
+                 ) : null}
 
                 {doc.status !== "approved" ? (
                   <View style={{ flexDirection: "row", gap: 8, marginTop: 10 }}>

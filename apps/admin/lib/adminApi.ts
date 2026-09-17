@@ -147,7 +147,13 @@ export const adminApi = {
     api.post(`/admin/verification/${userId}/approve`, {}),
 
    rejectVerification: (userId: string, reason?: string) =>
-    api.post(`/admin/verification/${userId}/reject`, { reason }),
+     api.post(`/admin/verification/${userId}/reject`, { reason }),
+
+  requestMoreVerification: (documentId: string, reason: string) =>
+    api.post(`/verification/${documentId}/request-more`, { reason }),
+
+  revokeVerification: (documentId: string, reason?: string) =>
+    api.post(`/verification/${documentId}/revoke`, { reason }),
 
   vaultPending: () => api.get<AdminVaultDocument[]>("/vault/pending"),
 

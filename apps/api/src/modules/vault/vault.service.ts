@@ -99,6 +99,7 @@ export class VaultService {
         id: true,
         documentType: true,
         status: true,
+        adminNote: true,
         createdAt: true,
       },
       orderBy: { createdAt: "desc" },
