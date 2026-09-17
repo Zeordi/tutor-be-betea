@@ -98,7 +98,7 @@ export async function requestTelebirrCheckout(params: {
   externalRef: string;
 }): Promise<{ checkoutUrl: string; transactionId: string; expiresAt: string }> {
   const { baseUrl, apiKey, apiSecret } = paymentConfig.telebirr;
-  if (!apiKey || !merchantId) {
+  if (!apiKey || !params.merchantId) {
     throw new Error("Telebirr is not configured");
   }
 
@@ -142,7 +142,7 @@ export async function requestCbeBirrCheckout(params: {
   externalRef: string;
 }): Promise<{ checkoutUrl: string; transactionId: string; expiresAt: string }> {
   const { baseUrl, apiKey } = paymentConfig.cbeBirr;
-  if (!apiKey || !merchantId) {
+  if (!apiKey || !params.merchantId) {
     throw new Error("CBE Birr is not configured");
   }
 
@@ -185,7 +185,7 @@ export async function requestMpesaCheckout(params: {
   externalRef: string;
 }): Promise<{ checkoutUrl: string; transactionId: string; expiresAt: string }> {
   const { baseUrl, apiKey } = paymentConfig.mpesa;
-  if (!apiKey || !merchantId) {
+  if (!apiKey || !params.merchantId) {
     throw new Error("M-Pesa is not configured");
   }
 

@@ -148,7 +148,7 @@ export class PaymentsService {
         userId: input.userId,
         contractId: input.contractId,
         amount: input.amount,
-        provider,
+        provider: provider as any,
         status: "PENDING",
         externalRef,
         meta,

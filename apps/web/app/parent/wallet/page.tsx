@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import Link from "next/link";
 import { apiFetch, paths } from "@/lib/api";
 
 type Transaction = {
@@ -97,11 +98,14 @@ export default function ParentWalletPage() {
             {availableBalance.toLocaleString()} <span className="text-xl opacity-70">ETB</span>
           </p>
           <div className="flex gap-3">
-            <button className="flex-1 rounded-xl bg-white/15 py-2.5 text-sm font-bold backdrop-blur">
-              📤 Withdraw
-            </button>
-            <button className="flex-1 rounded-xl bg-white/15 py-2.5 text-sm font-bold backdrop-blur">
+            <Link
+              href="/parent/checkout"
+              className="flex-1 rounded-xl bg-white/15 py-2.5 text-center text-sm font-bold backdrop-blur"
+            >
               ➕ Top Up
+            </Link>
+            <button className="flex-1 rounded-xl bg-white/15 py-2.5 text-sm font-bold backdrop-blur" disabled>
+              📤 Withdraw
             </button>
           </div>
         </div>
