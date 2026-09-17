@@ -48,6 +48,21 @@ export class AdminController {
     return this.adminService.approveVerification(userId, user.id);
   }
 
+  @Post("verification/:userId/reject")
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles("SUPER_ADMIN", "VERIFICATION_OFFICER")
+  rejectVerification(
+    @CurrentUser() user: any,
+    @Param("userId") userId: string,
+    @Body() body: { reason?: string },
+  ) {
+    return this.adminService.rejectVerification(
+      userId,
+      body?.reason || "Documents rejected",
+      user.id,
+    );
+  }
+
   @Post("risk-flag/:userId")
   @UseGuards(JwtAuthGuard, RolesGuard)
   @Roles("SUPER_ADMIN")

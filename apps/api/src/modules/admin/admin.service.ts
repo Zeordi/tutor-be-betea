@@ -98,6 +98,24 @@ export class AdminService {
     return { success: true };
   }
 
+  async rejectVerification(userId: string, reason: string, adminId: string) {
+    await prisma.vaultDocument.updateMany({
+      where: { teacherId: userId },
+      data: { status: "REJECTED", rejectionReason: reason },
+    });
+    await prisma.teacherProfile.updateMany({
+      where: { userId },
+      data: { isIdVerified: false, isEduVerified: false },
+    });
+    await this.writeAudit({
+      adminId,
+      targetUserId: userId,
+      actionType: "REJECT_VERIFICATION",
+      reason,
+    });
+    return { success: true };
+  }
+
   async flagRisk(userId: string, reason: string, adminId: string) {
     await prisma.user.update({
       where: { id: userId },

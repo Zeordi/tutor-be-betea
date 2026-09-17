@@ -1,17 +1,67 @@
+"use client";
+
+import { useEffect, useState } from "react";
 import Link from "next/link";
 import PageHeader from "@/components/PageHeader";
 import StatCard from "@/components/StatCard";
+import { adminApi, type AdminDashboardStats } from "@/lib/adminApi";
 
-const KPIS = [
-  { label: "Total Users", value: "52,841", delta: "+12%", icon: "👥", tone: "teal" as const },
-  { label: "Active Tutors", value: "12,847", delta: "+8%", icon: "🧑‍🏫", tone: "blue" as const },
-  { label: "Sessions Today", value: "3,421", delta: "+18%", icon: "📅", tone: "purple" as const },
-  { label: "Escrow Balance", value: "2.4M ETB", delta: "+22%", icon: "💰", tone: "amber" as const },
-  { label: "Pending Verif.", value: "234", delta: "-5%", icon: "⏳", tone: "orange" as const },
-  { label: "Connects Sold", value: "18,400", delta: "+31%", icon: "🔗", tone: "emerald" as const },
-];
+type Kpi = {
+  label: string;
+  value: string;
+  delta?: string;
+  icon: string;
+  tone: "teal" | "blue" | "purple" | "amber" | "orange" | "emerald";
+};
+
+function mapStatsToKpis(stats: AdminDashboardStats | null): Kpi[] {
+  if (!stats) {
+    return [
+      { label: "Total Users", value: "—", delta: "", icon: "👥", tone: "teal" },
+      { label: "Active Tutors", value: "—", delta: "", icon: "🧑‍🏫", tone: "blue" },
+      { label: "Active Contracts", value: "—", delta: "", icon: "📅", tone: "purple" },
+      { label: "Escrow Balance", value: "—", delta: "", icon: "💰", tone: "amber" },
+      { label: "Pending Verif.", value: "—", delta: "", icon: "⏳", tone: "orange" },
+      { label: "Open Tickets", value: "—", delta: "", icon: "🎫", tone: "emerald" },
+    ];
+  }
+  return [
+    { label: "Total Users", value: String(stats.tutors + stats.parents), delta: "", icon: "👥", tone: "teal" },
+    { label: "Active Tutors", value: String(stats.tutors), delta: "", icon: "🧑‍🏫", tone: "blue" },
+    { label: "Active Contracts", value: String(stats.activeContracts), delta: "", icon: "📅", tone: "purple" },
+    { label: "Escrow Balance", value: "Live", delta: "", icon: "💰", tone: "amber" },
+    { label: "Pending Verif.", value: String(stats.pendingVerifications), delta: "", icon: "⏳", tone: "orange" },
+    { label: "Open Tickets", value: String(stats.openTickets), delta: "", icon: "🎫", tone: "emerald" },
+  ];
+}
 
 export default function AdminDashboardPage() {
+  const [stats, setStats] = useState<AdminDashboardStats | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState("");
+
+  useEffect(() => {
+    let cancelled = false;
+    setLoading(true);
+    setError("");
+    adminApi
+      .dashboard()
+      .then((data) => {
+        if (!cancelled) setStats(data);
+      })
+      .catch((err) => {
+        if (!cancelled) setError(err.message || "Failed to load dashboard");
+      })
+      .finally(() => {
+        if (!cancelled) setLoading(false);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  const kpis = mapStatsToKpis(stats);
+
   return (
     <div className="space-y-6">
       <PageHeader
@@ -27,8 +77,14 @@ export default function AdminDashboardPage() {
         }
       />
 
+      {error && (
+        <div className="rounded-2xl border border-red-200 bg-red-50 p-4 text-sm text-red-700 dark:border-red-900 dark:bg-red-950/30">
+          {error}
+        </div>
+      )}
+
       <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
-        {KPIS.map((k) => (
+        {kpis.map((k) => (
           <StatCard key={k.label} {...k} />
         ))}
       </div>
