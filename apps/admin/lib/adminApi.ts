@@ -82,6 +82,14 @@ export type AdminAuditLog = {
   createdAt: string;
 };
 
+export type AdminChatFlag = {
+  id: string;
+  roomId: string;
+  senderId: string;
+  content: string;
+  createdAt: string;
+};
+
 export type AdminContract = {
   id: string;
   parentId: string;
@@ -209,6 +217,8 @@ export const adminApi = {
   upsertPromo: (body: any) => api.post("/admin/promos", body),
 
   auditLogs: (limit = 100) => api.get(`/admin/audit-logs?limit=${limit}`),
+
+  chatFlags: (limit = 50) => api.get(`/admin/chat/flags?limit=${limit}`),
 
   analytics: () => api.get("/admin/analytics"),
 

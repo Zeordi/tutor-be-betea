@@ -1,8 +1,11 @@
 import { Injectable } from "@nestjs/common";
 import { prisma } from "@tutor/database";
+import { AntiPoachingService } from "./anti-poaching.service";
 
 @Injectable()
 export class ChatService {
+  constructor(private readonly antiPoachingService: AntiPoachingService) {}
+
   async getMessages(roomId: string) {
     return prisma.chatMessage.findMany({
       where: { roomId },
@@ -39,30 +42,14 @@ export class ChatService {
       blocked = !!input.originalBlocked;
     }
 
-    const sanitized = this.sanitizeContent(text);
+    const scan = this.antiPoachingService.sanitize(text);
     return prisma.chatMessage.create({
       data: {
         roomId,
         senderId: sid,
-        content: sanitized,
-        originalBlocked: blocked || text !== sanitized,
+        content: scan.sanitizedText,
+        originalBlocked: blocked || scan.blocked,
       },
     });
-  }
-
-  private sanitizeContent(content: string): string {
-    return content
-      .replace(/\+251\s*\d{3}\s*\d{3}\s*\d{4}/g, "[RESTRICTED CONTACT INFO]")
-      .replace(/09\d{8}/g, "[RESTRICTED CONTACT INFO]")
-      .replace(/07\d{8}/g, "[RESTRICTED CONTACT INFO]")
-      .replace(/@[a-zA-Z0-9_]+/g, "[RESTRICTED CONTACT INFO]")
-      .replace(
-        /\b[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}\b/g,
-        "[RESTRICTED CONTACT INFO]",
-      )
-      .replace(
-        /\b\d{4}\s*\d{4}\s*\d{4}\s*\d{4}\b/g,
-        "[RESTRICTED CONTACT INFO]",
-      );
   }
 }

@@ -174,4 +174,11 @@ export class AdminController {
       body?.reason || "Support session",
     );
   }
+
+  @Get("chat/flags")
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles("SUPER_ADMIN", "SUPPORT_AGENT")
+  getChatFlags(@Query("limit") limit = "50") {
+    return this.adminService.getChatFlags(parseInt(limit as any, 10) || 50);
+  }
 }

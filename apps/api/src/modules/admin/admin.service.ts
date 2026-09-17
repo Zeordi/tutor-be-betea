@@ -332,4 +332,19 @@ export class AdminService {
       },
     });
   }
+
+  async getChatFlags(limit = 50) {
+    return prisma.chatMessage.findMany({
+      where: { originalBlocked: true },
+      orderBy: { createdAt: "desc" },
+      take: limit,
+      select: {
+        id: true,
+        roomId: true,
+        senderId: true,
+        content: true,
+        createdAt: true,
+      },
+    });
+  }
 }

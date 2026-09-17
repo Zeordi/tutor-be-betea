@@ -15,18 +15,11 @@ import { useTheme } from "@/hooks/useTheme";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { apiRequest, paths } from "@/lib/api";
 
-const RESTRICTED =
-  /(\+251[\d\s-]{8,}|09\d{8}|07\d{8}|[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}|@[a-zA-Z0-9_]{3,}|\b\d{10,16}\b)/gi;
-
-function sanitize(text: string) {
-  return text.replace(RESTRICTED, "[RESTRICTED CONTACT INFO]");
-}
-
 type Message = {
   id: string;
   me: boolean;
   text: string;
-  redacted?: boolean;
+  originalBlocked?: boolean;
 };
 
 export default function ChatScreen() {
@@ -49,8 +42,8 @@ export default function ChatScreen() {
           (data || []).map((m: any) => ({
             id: m.id || String(Date.now() + Math.random()),
             me: m.me || false,
-            text: m.text || m.content || "",
-            redacted: m.redacted || false,
+            text: m.content || m.text || "",
+            originalBlocked: m.originalBlocked || false,
           })),
         );
       }
@@ -67,29 +60,33 @@ export default function ChatScreen() {
 
   const send = async () => {
     if (!input.trim() || !roomId) return;
-    const cleaned = sanitize(input.trim());
-    const redacted = cleaned !== input.trim();
+    const raw = input.trim();
     const tempId = `temp-${Date.now()}`;
     setMessages((m) => [
       ...m,
-      { id: tempId, me: true, text: cleaned, redacted },
+      { id: tempId, me: true, text: raw, originalBlocked: false },
     ]);
     setInput("");
     setSending(true);
     try {
       const saved = await apiRequest<any>(paths.chatSendMessage(roomId), {
         method: "POST",
-        body: JSON.stringify({ content: cleaned }),
+        body: JSON.stringify({ content: raw }),
       });
       setMessages((prev) =>
         prev.map((m) =>
           m.id === tempId
-            ? { ...m, id: saved.id || tempId }
+            ? {
+                ...m,
+                id: saved.id || tempId,
+                text: saved.content || raw,
+                originalBlocked: saved.originalBlocked || false,
+              }
             : m,
         ),
       );
     } catch {
-      // keep optimistic message on error
+      setMessages((prev) => prev.filter((m) => m.id !== tempId));
     } finally {
       setSending(false);
     }
@@ -155,7 +152,7 @@ export default function ChatScreen() {
                 {m.text}
               </Text>
             </View>
-            {m.redacted && (
+            {m.originalBlocked && (
               <Text style={{ color: "#EF4444", fontSize: 10, fontWeight: "600", marginTop: 2, marginHorizontal: 4 }}>
                 ⚠️ Contact info auto-redacted · Platform policy
               </Text>
