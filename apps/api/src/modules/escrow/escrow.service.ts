@@ -41,4 +41,29 @@ export class EscrowService {
       data: { status: "ACTIVE" },
     });
   }
+
+  /** Auto-release ACTIVE contracts whose end date has passed and are not disputed */
+  async autoReleaseExpiredContracts() {
+    const now = new Date();
+    const expired = await prisma.tutoringContract.findMany({
+      where: {
+        status: "ACTIVE",
+        endDate: { lt: now },
+      },
+    });
+
+    const results = [];
+    for (const contract of expired) {
+      const updated = await prisma.tutoringContract.update({
+        where: { id: contract.id },
+        data: {
+          escrowHeldAmount: 0,
+          status: "COMPLETED",
+        },
+      });
+      results.push(updated);
+    }
+
+    return { released: results.length, contracts: results };
+  }
 }

@@ -41,4 +41,11 @@ export class EscrowController {
       "TELEBIRR",
     );
   }
+
+  @Post("auto-release")
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles("SUPER_ADMIN", "FINANCE")
+  autoReleaseExpired(@CurrentUser() user: any) {
+    return this.escrowService.autoReleaseExpiredContracts();
+  }
 }
