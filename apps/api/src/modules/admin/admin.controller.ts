@@ -25,6 +25,13 @@ export class AdminController {
     return this.adminService.getDashboardStats();
   }
 
+  @Get("attendance")
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles("SUPER_ADMIN", "SUPPORT_AGENT")
+  getRecentAttendance(@Query("limit") limit = "50") {
+    return this.adminService.getRecentAttendance(parseInt(limit as any, 10) || 50);
+  }
+
   @Get("analytics")
   @UseGuards(JwtAuthGuard, RolesGuard)
   @Roles("SUPER_ADMIN", "FINANCE")

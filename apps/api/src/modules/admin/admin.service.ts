@@ -314,4 +314,22 @@ export class AdminService {
     });
     return { success: true, settings: data };
   }
+
+  async getRecentAttendance(limit = 50) {
+    return prisma.attendanceLog.findMany({
+      orderBy: { checkInTime: "desc" },
+      take: limit,
+      select: {
+        id: true,
+        contractId: true,
+        teacherId: true,
+        checkInTime: true,
+        checkOutTime: true,
+        distanceMeters: true,
+        isVerifiedGeofence: true,
+        parentConfirmed: true,
+        createdAt: true,
+      },
+    });
+  }
 }

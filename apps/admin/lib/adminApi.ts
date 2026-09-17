@@ -110,8 +110,23 @@ export type AdminPromo = {
   createdAt: string;
 };
 
+export type AdminAttendanceLog = {
+  id: string;
+  contractId: string;
+  teacherId: string;
+  checkInTime: string;
+  checkOutTime?: string;
+  distanceMeters: string;
+  isVerifiedGeofence: boolean;
+  parentConfirmed: boolean;
+  createdAt: string;
+};
+
 export const adminApi = {
   dashboard: () => api.get<AdminDashboardStats>("/admin/dashboard"),
+
+  attendanceList: (limit = 50) =>
+    api.get<AdminAttendanceLog[]>(`/admin/attendance?limit=${limit}`),
 
   users: (params?: { role?: string; status?: string; page?: number; limit?: number; search?: string }) => {
     const qs = new URLSearchParams();
