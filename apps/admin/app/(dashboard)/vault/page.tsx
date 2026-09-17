@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import PageHeader from "@/components/PageHeader";
-import { adminApi, type AdminVaultDocument } from "@/lib/adminApi";
+import { adminApi, type AdminVaultDocument, type AdminAuditLog } from "@/lib/adminApi";
 
 type VaultDoc = AdminVaultDocument & {
   user?: { fullName?: string; email?: string };
@@ -19,6 +19,7 @@ function riskClass(risk: string) {
 
 export default function VaultPage() {
   const [cases, setCases] = useState<VaultDoc[]>([]);
+  const [auditLogs, setAuditLogs] = useState<AdminAuditLog[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
 
@@ -27,8 +28,23 @@ export default function VaultPage() {
     setLoading(true);
     setError("");
     try {
-      const data = await adminApi.vaultPending();
-      if (!cancelled) setCases(Array.isArray(data) ? data : []);
+      const [vaultData, logs] = await Promise.all([
+        adminApi.vaultPending(),
+        adminApi.auditLogs(50),
+      ]);
+      if (!cancelled) {
+        setCases(Array.isArray(vaultData) ? vaultData : []);
+        setAuditLogs(
+          Array.isArray(logs)
+            ? logs.filter(
+                (log) =>
+                  log.actionType === "DECRYPT_VAULT_DOCUMENT" ||
+                  log.actionType === "AUTO_RELEASE_ESCROW" ||
+                  log.actionType?.includes("VAULT"),
+              )
+            : [],
+        );
+      }
     } catch (err: any) {
       if (!cancelled) setError(err.message || "Failed to load vault");
     } finally {
@@ -130,19 +146,24 @@ export default function VaultPage() {
       <div className="rounded-2xl border border-slate-200 bg-white p-5 dark:border-slate-800 dark:bg-[#112240]">
         <h3 className="mb-3 font-bold text-slate-900 dark:text-white">Vault access log</h3>
         <div className="space-y-2 font-mono text-[11px]">
-          {[
-            { time: "11:42:03", admin: "admin@tbb.et", target: "Tadesse Alemu · Fayda ID", hash: "a3f8c2…" },
-            { time: "10:15:22", admin: "admin@tbb.et", target: "Bereket Solomon · Degree", hash: "b7d1e9…" },
-            { time: "09:01:11", admin: "system", target: "Integrity scan · vault_documents", hash: "c2a4f7…" },
-          ].map((log, i) => (
+          {auditLogs.length === 0 && !loading && (
+            <p className="text-xs text-slate-400">No vault audit entries yet.</p>
+          )}
+          {auditLogs.map((log, i) => (
             <div
-              key={i}
+              key={log.id || i}
               className="flex flex-wrap gap-2 rounded-lg bg-slate-50 px-3 py-2 dark:bg-slate-800/50"
             >
-              <span className="text-slate-400">{log.hash}</span>
-              <span className="text-teal-600">[{log.time}]</span>
-              <span className="text-blue-600 dark:text-blue-400">{log.admin}</span>
-              <span className="text-slate-600 dark:text-slate-400">{log.target}</span>
+              <span className="text-slate-400">{log.id?.slice(0, 8) || "—"}</span>
+              <span className="text-teal-600">
+                [{log.createdAt ? new Date(log.createdAt).toLocaleTimeString() : "—"}]
+              </span>
+              <span className="text-blue-600 dark:text-blue-400">
+                {log.adminId?.slice(0, 8) || "system"}
+              </span>
+              <span className="text-slate-600 dark:text-slate-400">
+                {log.actionType.replace(/_/g, " ").toLowerCase()}
+              </span>
             </div>
           ))}
         </div>
