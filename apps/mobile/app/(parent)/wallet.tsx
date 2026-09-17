@@ -1,4 +1,4 @@
-import { View, Text, ScrollView, TouchableOpacity, StyleSheet, ActivityIndicator } from "react-native";
+import { View, Text, ScrollView, TouchableOpacity, StyleSheet, ActivityIndicator, Alert } from "react-native";
 import { useEffect, useState } from "react";
 import { useRouter } from "expo-router";
 import { useTheme } from "@/hooks/useTheme";
@@ -21,21 +21,41 @@ type WalletData = {
   transactions: Transaction[];
 };
 
+type ProviderStatus = {
+  provider: string;
+  available: boolean;
+};
+
 export default function ParentWalletScreen() {
   const router = useRouter();
   const { colors, isDark } = useTheme();
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [wallet, setWallet] = useState<WalletData | null>(null);
+  const [providerStatus, setProviderStatus] = useState<ProviderStatus[]>([]);
+  const [paying, setPaying] = useState(false);
+
+  const bg = colors.background ?? (isDark ? "#0A1628" : "#F8FAFC");
+  const card = colors.card ?? (isDark ? "#112240" : "#FFFFFF");
+  const text = colors.text ?? colors.foreground;
+  const sub = colors.subtext ?? colors.mutedForeground ?? "#64748B";
+  const primary = colors.primary ?? "#0D9488";
+  const border = colors.border ?? (isDark ? "#1E3A5F" : "#E2E8F0");
 
   useEffect(() => {
     let cancelled = false;
     setLoading(true);
     setError("");
 
-    apiRequest<WalletData>(paths.wallet)
-      .then((data) => {
-        if (!cancelled) setWallet(data);
+    Promise.all([
+      apiRequest<WalletData>(paths.wallet),
+      apiRequest<ProviderStatus[]>("/payments/status/check"),
+    ])
+      .then(([walletData, providers]) => {
+        if (!cancelled) {
+          setWallet(walletData);
+          setProviderStatus(Array.isArray(providers) ? providers : []);
+        }
       })
       .catch((err) => {
         if (!cancelled) setError(err.message || "Failed to load wallet");
@@ -47,12 +67,35 @@ export default function ParentWalletScreen() {
     return () => { cancelled = true; };
   }, []);
 
-  const bg = colors.background ?? (isDark ? "#0A1628" : "#F8FAFC");
-  const card = colors.card ?? (isDark ? "#112240" : "#FFFFFF");
-  const text = colors.text ?? colors.foreground;
-  const sub = colors.subtext ?? colors.mutedForeground ?? "#64748B";
-  const primary = colors.primary ?? "#0D9488";
-  const border = colors.border ?? (isDark ? "#1E3A5F" : "#E2E8F0");
+  const anyProviderAvailable = providerStatus.some((p) => p.available);
+
+  const handleTopUp = async () => {
+    if (!anyProviderAvailable) {
+      Alert.alert("Unavailable", "No payment provider is configured. Contact support.");
+      return;
+    }
+    setPaying(true);
+    try {
+      const result = await apiRequest<{ redirectUrl?: string }>(paths.paymentsInitiate, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ amount: 500, provider: "TELEBIRR" }),
+      });
+      if (result.redirectUrl) {
+        Alert.alert("Redirect", "Complete payment in the provider checkout.");
+      } else {
+        Alert.alert("Initiated", "Payment initiated. Check your wallet for updates.");
+      }
+    } catch (err: any) {
+      Alert.alert("Error", err.message || "Payment failed");
+    } finally {
+      setPaying(false);
+    }
+  };
+
+  const successTransactions = (wallet?.transactions || []).filter((t) => t.status === "SUCCESS");
+  const availableBalance = successTransactions.reduce((sum, t) => sum + Number(t.amount), 0);
+  const escrowHeld = wallet?.escrowHeld || 0;
 
   if (loading) {
     return (
@@ -103,10 +146,6 @@ export default function ParentWalletScreen() {
     );
   }
 
-  const successTransactions = (wallet?.transactions || []).filter((t) => t.status === "SUCCESS");
-  const availableBalance = successTransactions.reduce((sum, t) => sum + Number(t.amount), 0);
-  const escrowHeld = wallet?.escrowHeld || 0;
-
   return (
     <SafeAreaView style={{ flex: 1, backgroundColor: bg }} edges={["top"]}>
       <View style={[styles.header, { borderBottomColor: border }]}>
@@ -128,10 +167,11 @@ export default function ParentWalletScreen() {
           </Text>
           <View style={{ flexDirection: "row", gap: 8, marginTop: 14 }}>
             <TouchableOpacity
-              style={styles.heroBtn}
-              onPress={() => router.push("/(parent)/contracts")}
+              style={[styles.heroBtn, !anyProviderAvailable && { opacity: 0.5 }]}
+              onPress={handleTopUp}
+              disabled={!anyProviderAvailable || paying}
             >
-              <Text style={styles.heroBtnText}>Top up</Text>
+              <Text style={styles.heroBtnText}>{paying ? "Processing…" : "Top up"}</Text>
             </TouchableOpacity>
             <TouchableOpacity
               style={styles.heroBtn}
@@ -140,6 +180,11 @@ export default function ParentWalletScreen() {
               <Text style={styles.heroBtnText}>View escrow</Text>
             </TouchableOpacity>
           </View>
+          {!anyProviderAvailable && (
+            <Text style={{ color: "rgba(255,255,255,0.7)", fontSize: 11, marginTop: 8 }}>
+              Payments are currently unavailable. Contact support to enable a provider.
+            </Text>
+          )}
         </View>
 
         <Text style={[styles.section, { color: sub }]}>RECENT</Text>

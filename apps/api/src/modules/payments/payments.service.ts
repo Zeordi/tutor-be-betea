@@ -1,6 +1,12 @@
-import { Injectable, BadRequestException } from "@nestjs/common";
+import { Injectable, BadRequestException, NotFoundException } from "@nestjs/common";
 import { prisma } from "@tutor/database";
 import { stripe } from "../../lib/stripe";
+import {
+  paymentConfig,
+  isProviderConfigured,
+  requestTelebirrCheckout,
+  requestCbeBirrCheckout,
+} from "../../config/payment.config";
 
 @Injectable()
 export class PaymentsService {
@@ -52,7 +58,28 @@ export class PaymentsService {
     if (!input.amount || Number(input.amount) <= 0) {
       throw new BadRequestException("Invalid amount");
     }
-    const provider = (input.provider || "TELEBIRR") as any;
+
+    const provider = (input.provider || "TELEBIRR").toUpperCase();
+
+    if (!isProviderConfigured(provider)) {
+      throw new BadRequestException(
+        `Payment provider ${provider} is not configured. Contact support.`,
+      );
+    }
+
+    if (input.contractId) {
+      const contract = await prisma.tutoringContract.findUnique({
+        where: { id: input.contractId },
+      });
+      if (!contract) {
+        throw new NotFoundException("Contract not found");
+      }
+    }
+
+    const externalRef = `pay_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`;
+
+    let redirectUrl: string | undefined;
+    let meta: Record<string, any> = {};
 
     if (provider === "STRIPE") {
       const intent = await stripe.paymentIntents.create({
@@ -61,6 +88,7 @@ export class PaymentsService {
         metadata: {
           userId: input.userId,
           contractId: input.contractId || "",
+          externalRef,
         },
       });
       const payment = await prisma.payment.create({
@@ -71,10 +99,37 @@ export class PaymentsService {
           provider: "STRIPE",
           status: "PENDING",
           externalRef: intent.id,
-          meta: { client_secret: intent.client_secret },
+          meta: { client_secret: intent.client_secret, externalRef },
         },
       });
-      return { payment, clientSecret: intent.client_secret };
+      return {
+        payment,
+        clientSecret: intent.client_secret,
+        redirectUrl: undefined,
+        externalRef: intent.id,
+      };
+    }
+
+    if (provider === "TELEBIRR") {
+      const checkout = await requestTelebirrCheckout({
+        amount: Number(input.amount),
+        currency: "ETB",
+        merchantId: paymentConfig.telebirr.merchantId,
+        notifyUrl: paymentConfig.telebirr.notifyUrl,
+        externalRef,
+      });
+      redirectUrl = checkout.checkoutUrl;
+      meta = { externalRef, transactionId: checkout.transactionId, expiresAt: checkout.expiresAt };
+    } else if (provider === "CBE_BIRR") {
+      const checkout = await requestCbeBirrCheckout({
+        amount: Number(input.amount),
+        currency: "ETB",
+        merchantId: paymentConfig.cbeBirr.merchantId,
+        notifyUrl: paymentConfig.cbeBirr.notifyUrl,
+        externalRef,
+      });
+      redirectUrl = checkout.checkoutUrl;
+      meta = { externalRef, transactionId: checkout.transactionId, expiresAt: checkout.expiresAt };
     }
 
     const payment = await prisma.payment.create({
@@ -84,6 +139,8 @@ export class PaymentsService {
         amount: input.amount,
         provider,
         status: "PENDING",
+        externalRef,
+        meta,
       },
     });
 
@@ -100,7 +157,27 @@ export class PaymentsService {
     return {
       payment,
       message: "Payment initiated — complete in " + provider,
-      redirectUrl: "/wallet",
+      redirectUrl,
+      externalRef,
+    };
+  }
+
+  async getPaymentStatus(paymentId: string) {
+    const payment = await prisma.payment.findUnique({
+      where: { id: paymentId },
+      include: { contract: true },
+    });
+    if (!payment) throw new NotFoundException("Payment not found");
+    return {
+      id: payment.id,
+      status: payment.status,
+      amount: payment.amount,
+      currency: payment.currency,
+      provider: payment.provider,
+      externalRef: payment.externalRef,
+      contractId: payment.contractId,
+      contractStatus: payment.contract?.status,
+      createdAt: payment.createdAt,
     };
   }
 
@@ -109,25 +186,40 @@ export class PaymentsService {
       body?.transactionId || body?.id || body?.trx_id || body?.externalRef;
     if (!ref) return { ok: false, reason: "missing_ref" };
 
-    const updated = await prisma.payment.updateMany({
+    const existing = await prisma.payment.findFirst({
       where: { externalRef: String(ref) },
-      data: { status: "SUCCESS" },
     });
 
-    const payment = await prisma.payment.findFirst({
-      where: { externalRef: String(ref) },
-    });
-    if (payment?.contractId) {
-      await prisma.tutoringContract.update({
-        where: { id: payment.contractId },
-        data: {
-          status: "ACTIVE",
-          // keep escrowHeldAmount until release
+    if (!existing) {
+      return { ok: false, reason: "payment_not_found" };
+    }
+
+    if (existing.status === "SUCCESS") {
+      return { ok: true, alreadyProcessed: true, paymentId: existing.id };
+    }
+
+    const newStatus = body?.status === "FAILED" ? "FAILED" : "SUCCESS";
+
+    const updated = await prisma.payment.update({
+      where: { id: existing.id },
+      data: {
+        status: newStatus,
+        meta: {
+          ...(existing.meta as any || {}),
+          webhookPayload: body,
+          webhookProcessedAt: new Date().toISOString(),
         },
+      },
+    });
+
+    if (newStatus === "SUCCESS" && existing.contractId) {
+      await prisma.tutoringContract.update({
+        where: { id: existing.contractId },
+        data: { status: "ACTIVE" },
       });
     }
 
-    return { ok: true, updated: updated.count, provider };
+    return { ok: true, paymentId: updated.id, status: updated.status };
   }
 
   async requestPayout(
@@ -138,13 +230,35 @@ export class PaymentsService {
     if (!amount || amount <= 0) {
       throw new BadRequestException("Invalid amount");
     }
-    return prisma.payout.create({
+
+    const earnings = await prisma.tutoringContract.aggregate({
+      where: { teacherId, status: "COMPLETED" },
+      _sum: { agreedAmount: true },
+    });
+    const pending = await prisma.payout.aggregate({
+      where: { teacherId, status: { in: ["PENDING", "PROCESSING"] } },
+      _sum: { amount: true },
+    });
+
+    const totalEarned = Number(earnings._sum.agreedAmount || 0);
+    const pendingAmount = Number(pending._sum.amount || 0);
+    const available = totalEarned - pendingAmount;
+
+    if (amount > available) {
+      throw new BadRequestException(
+        `Insufficient earnings. Available: ${available}, requested: ${amount}`,
+      );
+    }
+
+    const payout = await prisma.payout.create({
       data: {
         teacherId,
         amount,
-        provider: (provider as any) || "TELEBIRR",
+        provider: (provider || "TELEBIRR") as any,
         status: "PENDING",
       },
     });
+
+    return payout;
   }
 }

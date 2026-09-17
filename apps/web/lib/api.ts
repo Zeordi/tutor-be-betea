@@ -63,6 +63,7 @@ export const paths = {
 
   // payments
   paymentsInitiate: "/payments/initiate",
+  paymentStatus: (id: string) => `/payments/status/${id}`,
 
   // notifications
   notifications: "/notifications",

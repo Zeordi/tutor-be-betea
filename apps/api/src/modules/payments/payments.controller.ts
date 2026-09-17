@@ -1,4 +1,4 @@
-import { Controller, Post, Get, Body, UseGuards } from "@nestjs/common";
+import { Controller, Post, Get, Body, UseGuards, Param } from "@nestjs/common";
 import { PaymentsService } from "./payments.service";
 import { JwtAuthGuard } from "../../common/guards/jwt-auth.guard";
 import { RolesGuard } from "../../common/guards/roles.guard";
@@ -59,5 +59,23 @@ export class PaymentsController {
   @Post("webhook/mpesa")
   handleMpesaWebhook(@Body() body: any) {
     return this.paymentsService.handleWebhook("MPESA", body);
+  }
+
+  @Get("status/:paymentId")
+  @UseGuards(JwtAuthGuard)
+  getStatus(@Param("paymentId") paymentId: string) {
+    return this.paymentsService.getPaymentStatus(paymentId);
+  }
+
+  @Get("status/check")
+  checkProviders(@Query("provider") provider?: string) {
+    if (provider) {
+      return { provider: provider.toUpperCase(), available: true };
+    }
+    return {
+      TELEBIRR: true,
+      CBE_BIRR: true,
+      STRIPE: false,
+    };
   }
 }
