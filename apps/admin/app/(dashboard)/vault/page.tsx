@@ -80,7 +80,7 @@ export default function VaultPage() {
                     {row.user?.fullName || row.teacherId}
                   </p>
                   <p className="text-[11px] text-slate-500">
-                    Last access {row.lastAccessAt ? new Date(row.lastAccessAt).toLocaleTimeString() : "—"} · {row.accessedBy || "system"}
+                    {row.adminNote ? `Note: ${row.adminNote}` : "No admin note"}
                   </p>
                 </div>
                 <span

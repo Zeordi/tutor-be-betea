@@ -33,10 +33,8 @@ export type AdminVaultDocument = {
   teacherId: string;
   documentType: string;
   status: string;
-  rejectionReason?: string;
+  adminNote?: string;
   createdAt: string;
-  lastAccessAt?: string;
-  accessedBy?: string;
 };
 
 export type AdminPayout = {
