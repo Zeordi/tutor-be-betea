@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { apiFetch } from "@/lib/api";
+import { apiFetch, paths } from "@/lib/api";
 
 export default function AddChildPage() {
   const router = useRouter();
@@ -18,20 +18,11 @@ export default function AddChildPage() {
     setMessage("");
 
     try {
-      const token = localStorage.getItem("token");
-      const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/parents/children`, {
+      await apiFetch(paths.children, {
         method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${token}`,
-        },
+        headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ studentName, gradeLevel, curriculum }),
       });
-
-      if (!res.ok) {
-        const err = await res.json().catch(() => ({}));
-        throw new Error(err.message || "Failed to add child");
-      }
 
       router.push("/parent/children");
     } catch (error: any) {

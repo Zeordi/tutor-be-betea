@@ -1,4 +1,4 @@
-import { Injectable, NotFoundException } from "@nestjs/common";
+import { Injectable, NotFoundException, Logger } from "@nestjs/common";
 import { prisma } from "@tutor/database";
 import { encryptBuffer, decryptToBuffer } from "@tutor/encryption";
 import { AuditService } from "../audit/audit.service";
@@ -12,6 +12,8 @@ export type VaultDocumentType =
 
 @Injectable()
 export class VaultService {
+  private readonly logger = new Logger("Vault");
+
   constructor(private readonly auditService: AuditService) {}
 
   async uploadDocument(params: {
@@ -68,6 +70,15 @@ export class VaultService {
       tag: payload.tag,
     });
 
+    this.logger.log("Vault document decrypted", {
+      documentId: doc.id,
+      documentType: doc.documentType,
+      teacherId: doc.teacherId,
+      adminId,
+      ipAddress,
+      fileSizeBytes: decryptedBuffer.length,
+    });
+
     await this.auditService.createLog({
       adminId,
       actionType: "DECRYPT_VAULT_DOCUMENT",
@@ -99,6 +110,7 @@ export class VaultService {
         id: true,
         documentType: true,
         status: true,
+        adminNote: true,
         createdAt: true,
       },
       orderBy: { createdAt: "desc" },

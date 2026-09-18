@@ -42,15 +42,17 @@ export class UsersController {
    */
   @Get()
   @Roles("SUPER_ADMIN", "SUPPORT_AGENT")
-  async findAll(
+   async findAll(
     @Query("role") role?: string,
     @Query("status") status?: string,
+    @Query("search") search?: string,
     @Query("page") page?: string,
     @Query("limit") limit?: string,
   ) {
     return this.usersService.getAll({
       role: role as any,
       status: status as any,
+      search,
       page: page ? parseInt(page) : 1,
       limit: limit ? parseInt(limit) : 20,
     });

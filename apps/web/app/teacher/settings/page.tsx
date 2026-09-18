@@ -1,42 +1,63 @@
 "use client";
 
 import { useRouter } from "next/navigation";
-import { useState } from "react";
+import { useEffect, useState } from "react";
+import { apiFetch, paths } from "@/lib/api";
 
-const NOTIFS: { label: string; desc: string; defaultOn: boolean }[] = [
+type TeacherMe = {
+  id: string;
+  fullName: string;
+  email: string;
+  phone: string | null;
+  subCity: string | null;
+  teacherProfile: {
+    preferredPayoutProvider: string;
+    language: string;
+    notificationPrefs: Record<string, boolean>;
+  } | null;
+};
+
+const NOTIFS: { label: string; desc: string; key: string; defaultOn: boolean }[] = [
   {
     label: "New Booking Request",
     desc: "Alert when a parent books a session",
+    key: "newBooking",
     defaultOn: true,
   },
   {
     label: "Session Reminder (1 hr before)",
     desc: "Push notification before each session",
+    key: "sessionReminder",
     defaultOn: true,
   },
   {
     label: "Escrow Released",
     desc: "When payment is released to you",
+    key: "escrowReleased",
     defaultOn: true,
   },
   {
     label: "New Job Matches",
     desc: "Weekly digest of matching jobs",
+    key: "jobMatches",
     defaultOn: true,
   },
   {
     label: "Dispute Alerts",
     desc: "Immediate alert on any dispute",
+    key: "disputeAlerts",
     defaultOn: true,
   },
   {
     label: "Platform Updates",
     desc: "Product updates and features",
+    key: "platformUpdates",
     defaultOn: false,
   },
   {
     label: "Marketing Emails",
     desc: "Tips, promotions, newsletter",
+    key: "marketing",
     defaultOn: false,
   },
 ];
@@ -50,10 +71,92 @@ const LANGS = [
 
 export default function TeacherSettingsPage() {
   const router = useRouter();
-  const [toggles, setToggles] = useState(
-    Object.fromEntries(NOTIFS.map((n) => [n.label, n.defaultOn]))
-  );
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState("");
+  const [me, setMe] = useState<TeacherMe | null>(null);
+  const [toggles, setToggles] = useState<Record<string, boolean>>({});
   const [lang, setLang] = useState("EN");
+  const [saving, setSaving] = useState(false);
+  const [saved, setSaved] = useState(false);
+
+  useEffect(() => {
+    let cancelled = false;
+    setLoading(true);
+
+    apiFetch<TeacherMe>(paths.usersMe)
+      .then((data) => {
+        if (!cancelled) {
+          setMe(data);
+          if (data?.teacherProfile) {
+            const tp = data.teacherProfile;
+            const prefs: Record<string, boolean> = {};
+            NOTIFS.forEach((n) => {
+              prefs[n.key] = tp.notificationPrefs?.[n.key] ?? n.defaultOn;
+            });
+            setToggles(prefs);
+            setLang(tp.language || "EN");
+          }
+        }
+      })
+      .catch((err) => {
+        if (!cancelled) setError(err.message || "Failed to load settings");
+      })
+      .finally(() => {
+        if (!cancelled) setLoading(false);
+      });
+
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  const handleSave = async () => {
+    if (!me?.teacherProfile) return;
+    setSaving(true);
+    setSaved(false);
+
+    try {
+      await apiFetch(paths.usersMe, {
+        method: "PATCH",
+        body: JSON.stringify({
+          teacherProfile: {
+            language: lang,
+            notificationPrefs: toggles,
+          },
+        }),
+      });
+      setSaved(true);
+      setTimeout(() => setSaved(false), 2000);
+    } catch (err: any) {
+      setError(err.message || "Failed to save");
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  if (loading) {
+    return (
+      <div className="mx-auto max-w-3xl p-6">
+        <div className="h-6 w-48 animate-pulse rounded bg-slate-200 dark:bg-slate-800" />
+        <div className="mt-4 h-64 animate-pulse rounded-2xl bg-slate-100 dark:bg-slate-800" />
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="p-6">
+        <p className="text-sm text-red-600">{error}</p>
+        <button
+          type="button"
+          onClick={() => window.location.reload()}
+          className="mt-3 rounded-xl bg-teal-600 px-4 py-2 text-sm font-bold text-white"
+        >
+          Retry
+        </button>
+      </div>
+    );
+  }
 
   return (
     <div className="mx-auto max-w-3xl space-y-5">
@@ -71,17 +174,17 @@ export default function TeacherSettingsPage() {
         </h2>
         <div className="grid gap-4 sm:grid-cols-2">
           {[
-            ["Full Name", "Berhane Alemu"],
-            ["Email", "berhane@tutor.et"],
-            ["Phone", "+251 91 234 5678"],
-            ["Sub-city", "Bole, Addis Ababa"],
+            ["Full Name", me?.fullName || ""],
+            ["Email", me?.email || ""],
+            ["Phone", me?.phone || ""],
+            ["Sub-city", me?.subCity || ""],
           ].map(([label, value]) => (
-            <label key={label} className="block">
+            <label key={String(label)} className="block">
               <span className="mb-1.5 block text-[11px] font-bold uppercase tracking-wide text-[var(--secondary)]">
                 {label}
               </span>
               <input
-                defaultValue={value}
+                defaultValue={String(value)}
                 className="w-full rounded-xl border border-[var(--border)] bg-[var(--muted)] px-3.5 py-2.5 text-sm text-[var(--foreground)] outline-none focus:border-[var(--primary)]"
               />
             </label>
@@ -96,7 +199,7 @@ export default function TeacherSettingsPage() {
         </h2>
         <div className="divide-y divide-[var(--border)]">
           {NOTIFS.map((n) => (
-            <div key={n.label} className="flex items-center gap-4 py-3.5">
+            <div key={n.key} className="flex items-center gap-4 py-3.5">
               <div className="min-w-0 flex-1">
                 <p className="text-sm font-bold text-[var(--foreground)]">{n.label}</p>
                 <p className="text-xs text-[var(--secondary)]">{n.desc}</p>
@@ -104,17 +207,17 @@ export default function TeacherSettingsPage() {
               <button
                 type="button"
                 role="switch"
-                aria-checked={toggles[n.label]}
+                aria-checked={toggles[n.key] || false}
                 onClick={() =>
-                  setToggles((t) => ({ ...t, [n.label]: !t[n.label] }))
+                  setToggles((t) => ({ ...t, [n.key]: !t[n.key] }))
                 }
                 className={`relative h-6 w-11 shrink-0 rounded-full transition ${
-                  toggles[n.label] ? "bg-[var(--primary)]" : "bg-[var(--muted)]"
+                  toggles[n.key] ? "bg-[var(--primary)]" : "bg-[var(--muted)]"
                 }`}
               >
                 <span
                   className={`absolute top-0.5 h-5 w-5 rounded-full bg-white shadow transition ${
-                    toggles[n.label] ? "left-5" : "left-0.5"
+                    toggles[n.key] ? "left-5" : "left-0.5"
                   }`}
                 />
               </button>
@@ -166,29 +269,34 @@ export default function TeacherSettingsPage() {
             { name: "Telebirr", color: "#0072CE" },
             { name: "CBE Birr", color: "#8A1538" },
             { name: "M-Pesa", color: "#00A859" },
-          ].map((m, i) => (
-            <button
-              key={m.name}
-              type="button"
-              className="rounded-full border px-4 py-2 text-xs font-bold"
-              style={{
-                borderColor: i === 0 ? m.color : "var(--border)",
-                color: i === 0 ? m.color : "var(--secondary)",
-                background: i === 0 ? `${m.color}12` : "transparent",
-              }}
-            >
-              {m.name}
-            </button>
-          ))}
+          ].map((m, i) => {
+            const active = me?.teacherProfile?.preferredPayoutProvider === m.name;
+            return (
+              <button
+                key={m.name}
+                type="button"
+                className="rounded-full border px-4 py-2 text-xs font-bold"
+                style={{
+                  borderColor: active ? m.color : "var(--border)",
+                  color: active ? m.color : "var(--secondary)",
+                  background: active ? `${m.color}12` : "transparent",
+                }}
+              >
+                {m.name}
+              </button>
+            );
+          })}
         </div>
       </section>
 
       <div className="flex flex-wrap gap-3">
         <button
           type="button"
-          className="rounded-xl bg-[var(--primary)] px-6 py-3 text-sm font-bold text-white"
+          onClick={handleSave}
+          disabled={saving}
+          className="rounded-xl bg-[var(--primary)] px-6 py-3 text-sm font-bold text-white disabled:opacity-70"
         >
-          Save settings
+          {saving ? "Saving…" : saved ? "✓ Saved" : "Save settings"}
         </button>
         <button
           type="button"

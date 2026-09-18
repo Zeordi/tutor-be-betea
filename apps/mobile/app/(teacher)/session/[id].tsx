@@ -6,13 +6,12 @@ import {
   Pressable,
   Alert,
   ActivityIndicator,
-  Platform,
 } from "react-native";
 import MapView, { Circle, Marker } from "react-native-maps";
 import { useLocalSearchParams } from "expo-router";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useTheme } from "@/hooks/useTheme";
-import { api } from "@/lib/api";
+import { apiRequest, paths } from "@/lib/api";
 import {
   evaluateSessionGeofence,
   GEOFENCE_RADIUS_METERS,
@@ -25,7 +24,7 @@ import {
 } from "@/lib/offline";
 
 function makeId() {
-  return `off_\( {Date.now()}_ \){Math.random().toString(36).slice(2, 10)}`;
+  return `off_${Date.now()}_${Math.random().toString(36).slice(2, 10)}`;
 }
 
 export default function TeacherSessionCheckInScreen() {
@@ -44,8 +43,8 @@ export default function TeacherSessionCheckInScreen() {
   const load = async () => {
     try {
       const [contract, logs] = await Promise.all([
-        api.get(`/contracts/${contractId}`),
-        api.get(`/attendance/contract/${contractId}`),
+        apiRequest<any>(paths.contract(String(contractId))),
+        apiRequest<any[]>(paths.attendanceByContract(String(contractId))),
       ]);
 
       if (contract?.sessionLatitude != null && contract?.sessionLongitude != null) {
@@ -57,7 +56,6 @@ export default function TeacherSessionCheckInScreen() {
       setOpenSession(open);
       setPendingOffline(await getPendingOfflineCount());
     } catch {
-      // offline ok
       setPendingOffline(await getPendingOfflineCount());
     }
   };
@@ -105,26 +103,32 @@ export default function TeacherSessionCheckInScreen() {
       try {
         await flushAttendanceQueue();
 
-        const data = await api.post("/attendance/check-in", {
-          contractId,
-          latitude: status.current.latitude,
-          longitude: status.current.longitude,
-          parentLat: homeLat,
-          parentLng: homeLng,
-          offlineId,
-          clientCreatedAt,
-          distanceMeters: status.distanceMeters,
-          isVerifiedGeofence: status.isVerified,
+        const data = await apiRequest<any>(paths.attendanceCheckIn, {
+          method: "POST",
+          body: JSON.stringify({
+            contractId: String(contractId),
+            latitude: status.current.latitude,
+            longitude: status.current.longitude,
+            parentLat: homeLat,
+            parentLng: homeLng,
+            offlineId,
+            clientCreatedAt,
+          }),
         });
 
         setOpenSession(data);
         setMessage(data.message || "Checked in");
+        setGeo({
+          ...status,
+          distanceMeters: Number(data.distanceMeters ?? status.distanceMeters),
+          isVerified: data.isVerifiedGeofence ?? status.isVerified,
+        });
         Alert.alert(
-          status.isVerified ? "Success" : "Outside geofence",
+          data.isVerifiedGeofence ? "Success" : "Outside geofence",
           data.message ||
-            (status.isVerified
+            (data.isVerifiedGeofence
               ? "Checked in within geofence"
-              : `You are ${status.distanceMeters}m away`),
+              : `You are ${data.distanceMeters}m away`),
         );
       } catch (onlineError: any) {
         await enqueueAttendance({
@@ -167,12 +171,15 @@ export default function TeacherSessionCheckInScreen() {
 
       try {
         await flushAttendanceQueue();
-        await api.post("/attendance/check-out", {
-          contractId,
-          latitude: status.current.latitude,
-          longitude: status.current.longitude,
-          offlineId,
-          clientCreatedAt,
+        await apiRequest(paths.attendanceCheckOut, {
+          method: "POST",
+          body: JSON.stringify({
+            contractId: String(contractId),
+            latitude: status.current.latitude,
+            longitude: status.current.longitude,
+            offlineId,
+            clientCreatedAt,
+          }),
         });
         setOpenSession(null);
         setMessage("Checked out successfully");

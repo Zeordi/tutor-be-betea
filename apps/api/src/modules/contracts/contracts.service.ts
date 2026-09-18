@@ -135,4 +135,27 @@ export class ContractsService {
 
     return { success: true };
   }
+
+  async listAll(status?: string) {
+    const where: any = {};
+    if (status) where.status = status;
+    return prisma.tutoringContract.findMany({
+      where,
+      orderBy: { createdAt: "desc" },
+      take: 200,
+      select: {
+        id: true,
+        parentId: true,
+        teacherId: true,
+        studentId: true,
+        agreedAmount: true,
+        platformFeePercent: true,
+        escrowHeldAmount: true,
+        status: true,
+        startDate: true,
+        endDate: true,
+        createdAt: true,
+      },
+    });
+  }
 }

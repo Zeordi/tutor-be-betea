@@ -28,6 +28,15 @@ const ALLOWED_TYPES: VaultDocumentType[] = [
   "LIVENESS_SELFIE",
 ];
 
+const ALLOWED_MIME_TYPES = new Set([
+  "image/jpeg",
+  "image/png",
+  "image/webp",
+  "application/pdf",
+]);
+
+const MAX_FILENAME_LENGTH = 80;
+
 @Controller("vault")
 @UseGuards(JwtAuthGuard, RolesGuard)
 export class VaultController {
@@ -55,6 +64,13 @@ export class VaultController {
       );
     }
 
+    const mimeType = file.mimetype?.split(";")[0]?.trim().toLowerCase() || "";
+    if (!ALLOWED_MIME_TYPES.has(mimeType)) {
+      throw new BadRequestException(
+        `Unsupported file type: ${mimeType}. Allowed: ${[...ALLOWED_MIME_TYPES].join(", ")}`,
+      );
+    }
+
     const teacherId =
       user.role === "TEACHER" ? user.id : body.teacherId || user.id;
 
@@ -63,7 +79,7 @@ export class VaultController {
       documentType: body.documentType as VaultDocumentType,
       fileBuffer: file.buffer,
       uploadedBy: user.id,
-      mimeType: file.mimetype,
+      mimeType,
     });
   }
 

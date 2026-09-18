@@ -1,19 +1,23 @@
-import {
-  Injectable,
-  ConflictException,
-  BadRequestException,
-} from "@nestjs/common";
+import { Injectable, Logger } from "@nestjs/common";
 import { prisma } from "@tutor/database";
+import { validateOfflineId, validateClientCreatedAt } from "@tutor/validators";
+import { OperationalException } from "../../common/exceptions/operational-exception";
 
 @Injectable()
 export class OfflineSyncService {
-  /**
-   * Idempotent attendance sync.
-   * Same offlineId → return existing row (no duplicate).
-   */
+  private readonly logger = new Logger("OfflineSync");
+
   async syncAttendanceLog(payload: any, userId: string) {
     if (!payload?.contractId) {
-      throw new BadRequestException("contractId is required");
+      throw new OperationalException("contractId is required");
+    }
+
+    if (!validateOfflineId(payload.offlineId)) {
+      throw new OperationalException("Invalid offlineId format");
+    }
+
+    if (!validateClientCreatedAt(payload.clientCreatedAt)) {
+      throw new OperationalException("clientCreatedAt is too old (>24h)");
     }
 
     if (payload.offlineId) {
@@ -21,7 +25,35 @@ export class OfflineSyncService {
         where: { offlineId: payload.offlineId },
       });
       if (existing) {
+        this.logger.log(
+          `Offline attendance replay: offlineId=${payload.offlineId}, attendanceId=${existing.id}`,
+        );
         return { ...existing, replayed: true };
+      }
+    }
+
+    const teacherId = payload.teacherId || userId;
+
+    const existingActive = await prisma.attendanceLog.findFirst({
+      where: {
+        contractId: payload.contractId,
+        teacherId,
+        checkOutTime: null,
+      },
+      orderBy: { checkInTime: "desc" },
+    });
+
+    if (existingActive) {
+      const activeDay = new Date(existingActive.checkInTime).toDateString();
+      const requestDay = payload.clientCreatedAt
+        ? new Date(payload.clientCreatedAt).toDateString()
+        : new Date().toDateString();
+
+      if (activeDay === requestDay) {
+        throw new OperationalException(
+          "An active check-in already exists for this contract and teacher",
+          409,
+        );
       }
     }
 
@@ -29,7 +61,7 @@ export class OfflineSyncService {
       const created = await prisma.attendanceLog.create({
         data: {
           contractId: payload.contractId,
-          teacherId: payload.teacherId || userId,
+          teacherId,
           checkInTime: payload.checkInTime
             ? new Date(payload.checkInTime)
             : new Date(),
@@ -54,17 +86,26 @@ export class OfflineSyncService {
         const existing = await prisma.attendanceLog.findUnique({
           where: { offlineId: payload.offlineId },
         });
-        if (existing) return { ...existing, replayed: true };
-        throw new ConflictException("Duplicate offline attendance");
+        if (existing) {
+          this.logger.log(
+            `Offline attendance replay after P2002: offlineId=${payload.offlineId}`,
+          );
+          return { ...existing, replayed: true };
+        }
+        throw new OperationalException("Duplicate offline attendance", 409);
       }
-      throw err;
+      this.logger.error(
+        `Offline sync error: ${err?.message || err}`,
+        err?.stack,
+      );
+      throw new OperationalException("Failed to sync attendance log");
     }
   }
 
   async syncProgressReport(contractId: string, payload: any) {
-    if (!contractId) throw new BadRequestException("contractId is required");
+    if (!contractId) throw new OperationalException("contractId is required");
     if (payload.weekNumber == null) {
-      throw new BadRequestException("weekNumber is required");
+      throw new OperationalException("weekNumber is required");
     }
 
     return prisma.progressReport.create({
@@ -81,17 +122,13 @@ export class OfflineSyncService {
     });
   }
 
-  /**
-   * Offline / delayed support ticket (Report a Problem).
-   * contractId optional — matches SupportTicket.contractId String?
-   */
   async syncSupportTicket(
     contractId: string | null | undefined,
     userId: string,
     body: any,
   ) {
     if (!body?.reasonType || !body?.explanation) {
-      throw new BadRequestException("reasonType and explanation are required");
+      throw new OperationalException("reasonType and explanation are required");
     }
 
     const created = await prisma.supportTicket.create({

@@ -27,10 +27,16 @@ export const paths = {
     `/attendance/contract/${contractId}`,
   attendanceConfirm: (id: string) => `/attendance/${id}/confirm`,
 
-  // progress
-  progressMine: "/progress/mine",
-  progressSubmit: (contractId: string) => `/progress/${contractId}`,
-  progressGet: (contractId: string) => `/progress/${contractId}`,
+   // progress
+   progressMine: "/progress/mine",
+   progressSubmit: (contractId: string) => `/progress/${contractId}`,
+   progressGet: (contractId: string) => `/progress/${contractId}`,
+
+   // contracts (alias for parent contracts used by calendar)
+   contractsMine: "/contracts/mine/parent",
+
+   // sessions
+   sessionDetail: (id: string) => `/sessions/${id}`,
 
   // users
   usersMe: "/users/me",
@@ -54,6 +60,54 @@ export const paths = {
 
   // wallet
   wallet: "/payments/wallet",
+
+  // payments
+  paymentsInitiate: "/payments/initiate",
+  paymentStatus: (id: string) => `/payments/status/${id}`,
+  paymentReconcile: (id: string) => `/payments/reconcile/${id}`,
+
+  // teacher
+  teacherEarnings: "/payments/earnings",
+  payoutRequest: "/payments/payout",
+
+  // notifications
+  notifications: "/notifications",
+  notificationRead: (id: string) => `/notifications/${id}/read`,
+  notificationsReadAll: "/notifications/read-all",
+
+   // subscriptions
+   subscriptionMine: "/subscriptions/mine",
+   subscriptionUpgrade: "/subscriptions/upgrade",
+
+  // referrals
+  referralsCode: "/referrals/code",
+  referralsMine: "/referrals/mine",
+
+   // support
+   supportMine: "/support/mine",
+   supportCreate: "/support",
+
+   // risk / safety (teacher view of flags and restrictions)
+   riskFlags: "/risk-flags",
+
+   // matching
+   matchingTutors: "/matching/tutors",
+
+   // analytics
+   analyticsMine: "/analytics/mine",
+
+   // onboarding
+   onboardingStatus: "/onboarding/status",
+
+   // verification
+   verificationStatus: "/verification/status",
+
+   // availability
+   availability: "/teacher/availability",
+
+   // applications (teacher view of applications they submitted / received)
+   applicationsMine: "/applications/mine",
+   applicationsAction: (id: string) => `/applications/${id}/action`,
 } as const;
 
 export async function apiFetch<T = any>(

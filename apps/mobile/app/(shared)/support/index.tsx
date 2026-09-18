@@ -1,14 +1,23 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import {
   View,
   Text,
   ScrollView,
   TouchableOpacity,
   StyleSheet,
+  ActivityIndicator,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useRouter } from "expo-router";
-import { useTheme } from "../../../hooks/useTheme";
+import { useTheme } from "@/hooks/useTheme";
+import { apiRequest, paths } from "@/lib/api";
+
+type Ticket = {
+  id: string;
+  reasonType: string;
+  status: string;
+  createdAt: string;
+};
 
 const CATEGORIES = [
   { icon: "📅", label: "Booking", count: 12 },
@@ -33,7 +42,7 @@ const FAQS = [
     a: "Yes. After 2 sessions, you can request a free replacement from the Safety Center. Premium and Elite plans include guaranteed replacements.",
   },
   {
-    q: "What if a session doesn’t happen?",
+    q: "What if a session doesn't happen?",
     a: "If a tutor cancels or no-shows, you receive a full escrow refund for that session plus a free session credit.",
   },
 ];
@@ -42,6 +51,25 @@ export default function HelpCenterScreen() {
   const router = useRouter();
   const { colors, isDark } = useTheme();
   const [expanded, setExpanded] = useState<number | null>(null);
+  const [tickets, setTickets] = useState<Ticket[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  const load = async () => {
+    let cancelled = false;
+    setLoading(true);
+    try {
+      const data = await apiRequest<Ticket[]>(paths.supportMine);
+      if (!cancelled) setTickets(Array.isArray(data) ? data : []);
+    } catch {
+      // keep UI
+    } finally {
+      if (!cancelled) setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    load();
+  }, []);
 
   return (
     <SafeAreaView style={[styles.safe, { backgroundColor: colors.bg }]} edges={["top"]}>
@@ -135,6 +163,24 @@ export default function HelpCenterScreen() {
             </TouchableOpacity>
           </View>
         </View>
+
+        {loading ? (
+          <View style={{ padding: 24, alignItems: "center" }}>
+            <ActivityIndicator size="large" color={colors.primary} />
+          </View>
+        ) : (
+          tickets.length > 0 && (
+            <View style={[styles.card, { backgroundColor: colors.card, borderColor: colors.border }]}>
+              <Text style={[styles.label, { color: colors.sub }]}>YOUR TICKETS</Text>
+              {tickets.map((t) => (
+                <View key={t.id} style={{ paddingVertical: 8, borderBottomWidth: 1, borderBottomColor: colors.border }}>
+                  <Text style={{ color: colors.text, fontWeight: "700", fontSize: 12 }}>{t.reasonType || "Support ticket"}</Text>
+                  <Text style={{ color: colors.sub, fontSize: 10 }}>{t.status} · {new Date(t.createdAt).toLocaleDateString()}</Text>
+                </View>
+              ))}
+            </View>
+          )
+        )}
       </ScrollView>
     </SafeAreaView>
   );

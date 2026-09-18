@@ -1,5 +1,6 @@
 import { Controller, Get, Post, Param, Body, UseGuards } from "@nestjs/common";
 import { ChatService } from "./chat.service";
+import { AntiPoachingService } from "./anti-poaching.service";
 import { JwtAuthGuard } from "../../common/guards/jwt-auth.guard";
 import { RolesGuard } from "../../common/guards/roles.guard";
 import { Roles } from "../../common/decorators/roles.decorator";
@@ -7,7 +8,10 @@ import { CurrentUser } from "../../common/decorators/current-user.decorator";
 
 @Controller("chat")
 export class ChatController {
-  constructor(private readonly chatService: ChatService) {}
+  constructor(
+    private readonly chatService: ChatService,
+    private readonly antiPoachingService: AntiPoachingService,
+  ) {}
 
   @Get(":roomId/messages")
   @UseGuards(JwtAuthGuard, RolesGuard)
@@ -20,8 +24,14 @@ export class ChatController {
   sendMessage(
     @Param("roomId") roomId: string,
     @CurrentUser() user: any,
-    @Body() body: any,
+    @Body() body: { content: string },
   ) {
-    return this.chatService.sendMessage(roomId, user.id, body.content);
+    const scan = this.antiPoachingService.sanitize(body.content || "");
+    return this.chatService.sendMessage({
+      roomId,
+      senderId: user.id,
+      content: scan.sanitizedText,
+      originalBlocked: scan.blocked,
+    });
   }
 }

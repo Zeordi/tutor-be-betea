@@ -37,6 +37,16 @@ export class SupportService {
     });
   }
 
+  async listAll(status?: string) {
+    const where: any = {};
+    if (status) where.status = status;
+    return prisma.supportTicket.findMany({
+      where,
+      orderBy: { createdAt: "desc" },
+      take: 200,
+    });
+  }
+
   async getById(id: string, userId?: string) {
     const ticket = await prisma.supportTicket.findUnique({ where: { id } });
     if (!ticket) throw new NotFoundException("Ticket not found");

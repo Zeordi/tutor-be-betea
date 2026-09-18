@@ -6,10 +6,13 @@ import {
   TouchableOpacity,
   StyleSheet,
   Alert,
+  ActivityIndicator,
+  TextInput,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useRouter } from "expo-router";
-import { useTheme } from "../../../hooks/useTheme";
+import { useTheme } from "@/hooks/useTheme";
+import { apiRequest, paths } from "@/lib/api";
 
 const SUBJECTS = ["Mathematics", "Physics", "Statistics"];
 const CERTS = [
@@ -27,6 +30,30 @@ export default function ProfileEditScreen() {
   const router = useRouter();
   const { colors, isDark } = useTheme();
   const [activeStyles, setActiveStyles] = useState(["Interactive", "Structured", "Visual", "Patient"]);
+  const [saving, setSaving] = useState(false);
+  const [tagline, setTagline] = useState("Expert Math tutor · 4.9★ · Bole & CMC home visits");
+  const [bioEn, setBioEn] = useState("I hold a BSc in Applied Mathematics from Addis Ababa University and have 3+ years of home and online tutoring experience.");
+  const [bioAm, setBioAm] = useState("ሂሳብን ቀላልና አስደሳች ለማድረግ ከ3 ዓመት በላይ ተሞክሮ አለኝ።");
+
+  const onSave = async () => {
+    try {
+      setSaving(true);
+      await apiRequest(paths.teachers + "/profile", {
+        method: "PATCH",
+        body: JSON.stringify({
+          bio: bioEn,
+          bioAm: bioAm,
+          subjects: SUBJECTS,
+          teachingStyles: activeStyles,
+        }),
+      });
+      Alert.alert("Published", "Profile saved & published");
+    } catch (e: any) {
+      Alert.alert("Error", e.message || "Failed to save profile");
+    } finally {
+      setSaving(false);
+    }
+  };
 
   return (
     <SafeAreaView style={[styles.safe, { backgroundColor: colors.bg }]} edges={["top"]}>
@@ -72,20 +99,22 @@ export default function ProfileEditScreen() {
 
         <View style={[styles.card, { backgroundColor: colors.card, borderColor: colors.border }]}>
           <Text style={[styles.label, { color: colors.sub }]}>BIO & TAGLINE</Text>
-          <Field label="Professional Tagline" value="Expert Math tutor · 4.9★ · Bole & CMC home visits" colors={colors} isDark={isDark} />
+          <Field label="Professional Tagline" value={tagline} colors={colors} isDark={isDark} onChangeText={setTagline} />
           <Field
             label="Bio (EN)"
-            value="I hold a BSc in Applied Mathematics from Addis Ababa University and have 3+ years of home and online tutoring experience."
+            value={bioEn}
             colors={colors}
             isDark={isDark}
             multiline
+            onChangeText={setBioEn}
           />
           <Field
             label="Bio (አማርኛ)"
-            value="ሂሳብን ቀላልና አስደሳች ለማድረግ ከ3 ዓመት በላይ ተሞክሮ አለኝ።"
+            value={bioAm}
             colors={colors}
             isDark={isDark}
             multiline
+            onChangeText={setBioAm}
           />
         </View>
 
@@ -225,9 +254,14 @@ export default function ProfileEditScreen() {
 
         <TouchableOpacity
           style={[styles.cta, { backgroundColor: colors.primary }]}
-          onPress={() => Alert.alert("Published", "Profile saved & published")}
+          onPress={onSave}
+          disabled={saving}
         >
-          <Text style={styles.ctaText}>Save & Publish Profile</Text>
+          {saving ? (
+            <ActivityIndicator color="#fff" />
+          ) : (
+            <Text style={styles.ctaText}>Save & Publish Profile</Text>
+          )}
         </TouchableOpacity>
       </ScrollView>
     </SafeAreaView>
@@ -240,33 +274,57 @@ function Field({
   colors,
   isDark,
   multiline,
+  onChangeText,
 }: {
   label: string;
   value: string;
   colors: any;
   isDark: boolean;
   multiline?: boolean;
+  onChangeText?: (text: string) => void;
 }) {
   return (
     <View style={{ marginBottom: 10 }}>
       <Text style={{ color: colors.sub, fontSize: 10, fontWeight: "600", marginBottom: 4 }}>
         {label}
       </Text>
-      <View
-        style={{
-          borderRadius: 12,
-          borderWidth: 1,
-          borderColor: colors.border,
-          backgroundColor: isDark ? "#1e293b" : "#f8fafc",
-          paddingHorizontal: 12,
-          paddingVertical: multiline ? 12 : 10,
-          minHeight: multiline ? 70 : undefined,
-        }}
-      >
-        <Text style={{ color: colors.text, fontSize: 12, lineHeight: multiline ? 18 : undefined }}>
-          {value}
-        </Text>
-      </View>
+      {onChangeText ? (
+        <TextInput
+          value={value}
+          onChangeText={onChangeText}
+          multiline={multiline}
+          placeholder={label}
+          placeholderTextColor={colors.sub}
+          style={{
+            borderRadius: 12,
+            borderWidth: 1,
+            borderColor: colors.border,
+            backgroundColor: isDark ? "#1e293b" : "#f8fafc",
+            paddingHorizontal: 12,
+            paddingVertical: multiline ? 12 : 10,
+            minHeight: multiline ? 70 : undefined,
+            color: colors.text,
+            fontSize: 12,
+            textAlignVertical: multiline ? "top" : "center",
+          }}
+        />
+      ) : (
+        <View
+          style={{
+            borderRadius: 12,
+            borderWidth: 1,
+            borderColor: colors.border,
+            backgroundColor: isDark ? "#1e293b" : "#f8fafc",
+            paddingHorizontal: 12,
+            paddingVertical: multiline ? 12 : 10,
+            minHeight: multiline ? 70 : undefined,
+          }}
+        >
+          <Text style={{ color: colors.text, fontSize: 12, lineHeight: multiline ? 18 : undefined }}>
+            {value}
+          </Text>
+        </View>
+      )}
     </View>
   );
 }

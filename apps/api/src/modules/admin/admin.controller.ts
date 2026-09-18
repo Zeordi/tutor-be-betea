@@ -2,6 +2,7 @@ import {
   Controller,
   Get,
   Post,
+  Patch,
   Body,
   Param,
   Query,
@@ -22,6 +23,34 @@ export class AdminController {
   @Roles("SUPER_ADMIN", "SUPPORT_AGENT", "FINANCE", "VERIFICATION_OFFICER")
   getDashboardStats() {
     return this.adminService.getDashboardStats();
+  }
+
+  @Get("attendance")
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles("SUPER_ADMIN", "SUPPORT_AGENT")
+  getRecentAttendance(@Query("limit") limit = "50") {
+    return this.adminService.getRecentAttendance(parseInt(limit as any, 10) || 50);
+  }
+
+  @Get("analytics")
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles("SUPER_ADMIN", "FINANCE")
+  getAnalytics() {
+    return this.adminService.getAnalytics();
+  }
+
+  @Get("settings")
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles("SUPER_ADMIN")
+  getSettings() {
+    return this.adminService.getSettings();
+  }
+
+  @Patch("settings")
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles("SUPER_ADMIN")
+  updateSettings(@CurrentUser() user: any, @Body() body: any) {
+    return this.adminService.updateSettings(body, user.id);
   }
 
   @Get("audit-logs")
@@ -46,6 +75,21 @@ export class AdminController {
     @Param("userId") userId: string,
   ) {
     return this.adminService.approveVerification(userId, user.id);
+  }
+
+  @Post("verification/:userId/reject")
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles("SUPER_ADMIN", "VERIFICATION_OFFICER")
+  rejectVerification(
+    @CurrentUser() user: any,
+    @Param("userId") userId: string,
+    @Body() body: { reason?: string },
+  ) {
+    return this.adminService.rejectVerification(
+      userId,
+      body?.reason || "Documents rejected",
+      user.id,
+    );
   }
 
   @Post("risk-flag/:userId")
@@ -98,6 +142,17 @@ export class AdminController {
     return this.adminService.getPayoutLedger();
   }
 
+  @Patch("payout-ledger/:id")
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles("SUPER_ADMIN", "FINANCE")
+  updatePayout(
+    @CurrentUser() user: any,
+    @Param("id") payoutId: string,
+    @Body() body: { status?: string },
+  ) {
+    return this.adminService.updatePayout(payoutId, body.status, user.id);
+  }
+
   @Get("children/:parentId")
   @UseGuards(JwtAuthGuard, RolesGuard)
   @Roles("SUPER_ADMIN", "SUPPORT_AGENT")
@@ -118,5 +173,12 @@ export class AdminController {
       userId,
       body?.reason || "Support session",
     );
+  }
+
+  @Get("chat/flags")
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles("SUPER_ADMIN", "SUPPORT_AGENT")
+  getChatFlags(@Query("limit") limit = "50") {
+    return this.adminService.getChatFlags(parseInt(limit as any, 10) || 50);
   }
 }

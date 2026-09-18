@@ -6,35 +6,43 @@ import {
   TouchableOpacity,
   Alert,
   ScrollView,
+  ActivityIndicator,
 } from "react-native";
 import { useRouter } from "expo-router";
 import { useTheme } from "@/hooks/useTheme";
 import { SafeAreaView } from "react-native-safe-area-context";
+import { apiRequest, paths } from "@/lib/api";
 
 type QStatus = "queued" | "synced";
 
-const INITIAL = [
-  {
-    id: "off-1",
-    type: "CHECK_IN",
-    when: "Today 16:02",
-    note: "Signed payload · offlineId · Kazanchis",
-    status: "queued" as QStatus,
-  },
-  {
-    id: "off-2",
-    type: "CHECK_OUT",
-    when: "Today 17:31",
-    note: "GPS + duration cached · 89 min",
-    status: "queued" as QStatus,
-  },
-];
+type OfflineItem = {
+  id: string;
+  type: string;
+  when: string;
+  note: string;
+  status: QStatus;
+};
 
 export default function OfflineSessionScreen() {
   const { isDark } = useTheme();
   const router = useRouter();
   const [syncing, setSyncing] = useState(false);
-  const [items, setItems] = useState(INITIAL);
+  const [items, setItems] = useState<OfflineItem[]>([
+    {
+      id: "off-1",
+      type: "CHECK_IN",
+      when: "Today 16:02",
+      note: "Signed payload · offlineId · Kazanchis",
+      status: "queued",
+    },
+    {
+      id: "off-2",
+      type: "CHECK_OUT",
+      when: "Today 17:31",
+      note: "GPS + duration cached · 89 min",
+      status: "queued",
+    },
+  ]);
 
   const bg = isDark ? "#0A1628" : "#F8FAFC";
   const card = isDark ? "#112240" : "#FFFFFF";
@@ -44,20 +52,41 @@ export default function OfflineSessionScreen() {
   const border = isDark ? "#1E3A5F" : "#E2E8F0";
   const pending = items.filter((i) => i.status === "queued").length;
 
-  const retry = () => {
+  const retry = async () => {
     if (pending === 0) {
       Alert.alert("Up to date", "Nothing left to sync.");
       return;
     }
     setSyncing(true);
-    setTimeout(() => {
-      setItems((q) => q.map((x) => ({ ...x, status: "synced" as QStatus })));
-      setSyncing(false);
-      Alert.alert(
-        "Synced",
-        "Offline attendance payloads uploaded with signed offlineId (idempotent)."
+    try {
+      const results = await Promise.allSettled(
+        items
+          .filter((i) => i.status === "queued")
+          .map((item) =>
+            apiRequest(paths.offlineSyncAttendance, {
+              method: "POST",
+              body: JSON.stringify({
+                type: item.type,
+                contractId: "current-contract",
+                latitude: 9.02,
+                longitude: 38.75,
+                offlineId: item.id,
+                clientCreatedAt: new Date().toISOString(),
+              }),
+            }),
+          ),
       );
-    }, 1200);
+      const failed = results.filter((r) => r.status === "rejected").length;
+      setItems((q) => q.map((x) => ({ ...x, status: "synced" as QStatus })));
+      Alert.alert(
+        "Sync complete",
+        `Synced: ${results.length - failed} · Failed: ${failed}`,
+      );
+    } catch (e: any) {
+      Alert.alert("Sync failed", e.message || "Try again when online");
+    } finally {
+      setSyncing(false);
+    }
   };
 
   return (

@@ -15,8 +15,8 @@ import { SafeAreaView } from "react-native-safe-area-context";
 type SosState = "idle" | "holding" | "sent";
 
 const CONTACTS = [
-  { name: "Yeshi Haile (Parent)", phone: "+251 91 *** 2100", role: "Primary" },
-  { name: "Abebe Girma", phone: "+251 92 *** 4412", role: "Emergency" },
+  { name: "Primary contact", phone: "+251 91 *** ****", role: "Primary" },
+  { name: "Emergency contact", phone: "+251 92 *** ****", role: "Emergency" },
   { name: "TBB Safety Desk", phone: "911 · Platform", role: "Platform" },
 ];
 

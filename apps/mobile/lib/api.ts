@@ -8,7 +8,7 @@ export function getApiUrl() {
   return API_URL;
 }
 
-/** Canonical API paths (Phase B) */
+/** Canonical API paths (Phase B + Phase E) */
 export const paths = {
   contractsParent: "/contracts/mine/parent",
   contractsTeacher: "/contracts/mine/teacher",
@@ -19,9 +19,54 @@ export const paths = {
   attendanceCheckOut: "/attendance/check-out",
   attendanceByContract: (contractId: string) =>
     `/attendance/contract/${contractId}`,
+  attendanceConfirm: (id: string) => `/attendance/${id}/confirm`,
+  progressMine: "/progress/mine",
   progressSubmit: (contractId: string) => `/progress/${contractId}`,
   progressGet: (contractId: string) => `/progress/${contractId}`,
   usersMe: "/users/me",
+  teachers: "/teachers",
+  teacher: (id: string) => `/teachers/${id}`,
+  jobsMine: "/jobs/mine",
+  jobsCreate: "/jobs",
+  job: (id: string) => `/jobs/${id}`,
+  children: "/parents/children",
+  child: (id: string) => `/parents/children/${id}`,
+  favorites: "/favorites",
+  favorite: (teacherId: string) => `/favorites/${teacherId}`,
+  wallet: "/payments/wallet",
+  teacherEarnings: "/payments/earnings",
+  paymentsInitiate: "/payments/initiate",
+  paymentReconcile: (id: string) => `/payments/reconcile/${id}`,
+  payoutRequest: "/payments/payout",
+  notifications: "/notifications",
+  notificationRead: (id: string) => `/notifications/${id}/read`,
+  notificationsReadAll: "/notifications/read-all",
+  subscriptionMine: "/subscriptions/mine",
+  subscriptionUpgrade: "/subscriptions/upgrade",
+  subscriptionsPlans: "/subscriptions/plans",
+  referralsCode: "/referrals/code",
+  referralsMine: "/referrals/mine",
+  applicationsMine: "/applications/mine",
+  applicationsAction: (id: string) => `/applications/${id}/action`,
+  applicationsCreate: "/applications",
+  connectsBalance: "/connects/balance",
+  connectsTopUp: "/connects/top-up",
+  vaultUpload: "/vault/upload",
+  vaultTeacherDocuments: (teacherId: string) =>
+    `/vault/teacher/${teacherId}`,
+  badgesTeacher: (teacherId: string) => `/badges/teacher/${teacherId}`,
+  availabilityMine: "/availability/mine",
+  availabilitySlots: "/availability/slots",
+  availabilityPackages: "/availability/packages",
+  chatMessages: (roomId: string) => `/chat/${roomId}/messages`,
+  chatSendMessage: (roomId: string) => `/chat/${roomId}/messages`,
+  supportCreate: "/support",
+  supportMine: "/support/mine",
+  supportTicket: (id: string) => `/support/ticket/${id}`,
+  supportByContract: (contractId: string) => `/support/contract/${contractId}`,
+  offlineSyncAttendance: "/offline/attendance",
+  offlineSyncProgress: "/offline/progress",
+  offlineSyncSupport: "/offline/support",
 } as const;
 
 export async function getToken(): Promise<string | null> {

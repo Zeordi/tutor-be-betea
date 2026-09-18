@@ -1,9 +1,11 @@
-import { Controller, Post, Get, Body, UseGuards } from "@nestjs/common";
+import { Controller, Post, Get, Body, UseGuards, Param, Query, Req } from "@nestjs/common";
 import { PaymentsService } from "./payments.service";
 import { JwtAuthGuard } from "../../common/guards/jwt-auth.guard";
 import { RolesGuard } from "../../common/guards/roles.guard";
 import { Roles } from "../../common/decorators/roles.decorator";
 import { CurrentUser } from "../../common/decorators/current-user.decorator";
+import { isProviderConfigured, verifyTelebirrSignature, verifyCbeBirrSignature, verifyMpesaSignature, verifyStripeSignature, paymentConfig } from "../../config/payment.config";
+import { Request } from "express";
 
 @Controller("payments")
 export class PaymentsController {
@@ -47,17 +49,57 @@ export class PaymentsController {
   }
 
   @Post("webhook/telebirr")
-  handleTelebirrWebhook(@Body() body: any) {
+  handleTelebirrWebhook(@Req() req: Request, @Body() body: any) {
+    const raw = typeof req.body === "string" ? req.body : JSON.stringify(req.body || {});
+    const signature = req.headers["x-telebirr-signature"] as string | undefined;
+    if (!verifyTelebirrSignature(raw, signature, paymentConfig.telebirr.apiSecret)) {
+      return { ok: false, reason: "invalid_signature" };
+    }
     return this.paymentsService.handleWebhook("TELEBIRR", body);
   }
 
   @Post("webhook/cbe")
-  handleCbeWebhook(@Body() body: any) {
+  handleCbeWebhook(@Req() req: Request, @Body() body: any) {
+    const raw = typeof req.body === "string" ? req.body : JSON.stringify(req.body || {});
+    const signature = req.headers["x-cbe-signature"] as string | undefined;
+    if (!verifyCbeBirrSignature(raw, signature, paymentConfig.cbeBirr.apiKey)) {
+      return { ok: false, reason: "invalid_signature" };
+    }
     return this.paymentsService.handleWebhook("CBE_BIRR", body);
   }
 
   @Post("webhook/mpesa")
-  handleMpesaWebhook(@Body() body: any) {
+  handleMpesaWebhook(@Req() req: Request, @Body() body: any) {
+    const raw = typeof req.body === "string" ? req.body : JSON.stringify(req.body || {});
+    const signature = req.headers["x-mpesa-signature"] as string | undefined;
+    if (!verifyMpesaSignature(raw, signature, paymentConfig.mpesa.apiKey)) {
+      return { ok: false, reason: "invalid_signature" };
+    }
     return this.paymentsService.handleWebhook("MPESA", body);
+  }
+
+  @Get("status/:paymentId")
+  @UseGuards(JwtAuthGuard)
+  getStatus(@Param("paymentId") paymentId: string) {
+    return this.paymentsService.getPaymentStatus(paymentId);
+  }
+
+  @Post("reconcile/:paymentId")
+  @UseGuards(JwtAuthGuard)
+  reconcilePayment(@Param("paymentId") paymentId: string) {
+    return this.paymentsService.reconcilePayment(paymentId);
+  }
+
+  @Get("status/check")
+  checkProviders(@Query("provider") provider?: string) {
+    if (provider) {
+      return { provider: provider.toUpperCase(), available: isProviderConfigured(provider) };
+    }
+    return {
+      TELEBIRR: isProviderConfigured("TELEBIRR"),
+      CBE_BIRR: isProviderConfigured("CBE_BIRR"),
+      MPESA: isProviderConfigured("MPESA"),
+      STRIPE: isProviderConfigured("STRIPE"),
+    };
   }
 }

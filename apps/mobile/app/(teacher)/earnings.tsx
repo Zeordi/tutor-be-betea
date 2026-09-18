@@ -1,32 +1,158 @@
-import { View, Text, ScrollView, TouchableOpacity, StyleSheet, Alert } from "react-native";
+import { useState, useEffect, useMemo } from "react";
+import { View, Text, ScrollView, TouchableOpacity, StyleSheet, ActivityIndicator, Alert, TextInput } from "react-native";
 import { useRouter } from "expo-router";
 import { useTheme } from "@/hooks/useTheme";
 import { SafeAreaView } from "react-native-safe-area-context";
+import { apiRequest, paths } from "@/lib/api";
 
-const WEEK = [45, 60, 52, 78, 85, 90, 88];
-const TX = [
-  { t: "Session · Kidane Math", a: "+675 ETB", d: "Today", plus: true },
-  { t: "Payout to Telebirr", a: "−3,000 ETB", d: "Mon", plus: false },
-  { t: "Session · Liya Physics", a: "+500 ETB", d: "Sun", plus: true },
-  { t: "Session · Yonatan Chem", a: "+550 ETB", d: "Sat", plus: true },
-];
-const PAYOUTS = [
-  { date: "May 31", amount: "5,400 ETB", via: "Telebirr", status: "Received" },
-  { date: "May 15", amount: "3,600 ETB", via: "Telebirr", status: "Received" },
-  { date: "Apr 30", amount: "4,500 ETB", via: "CBE Bank", status: "Received" },
-];
+type Payout = {
+  id: string;
+  amount: string | number;
+  provider: string;
+  status: string;
+  createdAt: string;
+  paidAt?: string;
+};
+
+type TeacherEarnings = {
+  totalEarned: number;
+  pendingPayout: number;
+  payouts: Payout[];
+};
 
 export default function EarningsScreen() {
-  const { colors, isDark } = useTheme();
   const router = useRouter();
+  const { isDark } = useTheme();
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState("");
+  const [earnings, setEarnings] = useState<TeacherEarnings | null>(null);
+  const [withdrawAmount, setWithdrawAmount] = useState("");
+  const [withdrawProvider, setWithdrawProvider] = useState("TELEBIRR");
+  const [paying, setPaying] = useState(false);
 
-  const bg = colors.background ?? (isDark ? "#0A1628" : "#F8FAFC");
-  const card = colors.card ?? (isDark ? "#112240" : "#FFFFFF");
-  const text = colors.text ?? colors.foreground ?? (isDark ? "#F0FAFA" : "#0D2B2A");
-  const sub = colors.subtext ?? colors.mutedForeground ?? "#64748B";
-  const primary = colors.primary ?? "#0D9488";
-  const border = colors.border ?? (isDark ? "#1E3A5F" : "#E2E8F0");
+  const bg = isDark ? "#0A1628" : "#F8FAFC";
+  const card = isDark ? "#112240" : "#FFFFFF";
+  const text = isDark ? "#F0FAFA" : "#0D2B2A";
+  const sub = isDark ? "#94A3B8" : "#64748B";
+  const primary = "#0D9488";
+  const border = isDark ? "#1E3A5F" : "#E2E8F0";
   const surface = isDark ? "#1E293B" : "#F8FAFC";
+
+  const refresh = () => {
+    setLoading(true);
+    setError("");
+    apiRequest<TeacherEarnings>(paths.teacherEarnings)
+      .then(setEarnings)
+      .catch((e) => setError(e.message || "Failed to load earnings"))
+      .finally(() => setLoading(false));
+  };
+
+  useEffect(() => { refresh(); }, []);
+
+  const WEEK = useMemo(() => {
+    if (!earnings?.payouts?.length) return [30, 45, 40, 60, 55, 70, 65];
+    const buckets = Array(7).fill(0);
+    earnings.payouts.forEach((p, i) => {
+      const v = parseInt(String(p.amount).replace(/[^0-9]/g, ""), 10) || 0;
+      buckets[i % 7] = Math.max(buckets[i % 7], v / 100);
+    });
+    return buckets.map((v) => Math.min(100, Math.max(20, v)));
+  }, [earnings]);
+
+  const available = earnings ? `${earnings.pendingPayout.toLocaleString()} ETB` : "0 ETB";
+  const monthEarned = earnings ? `${earnings.totalEarned.toLocaleString()} ETB` : "0 ETB";
+  const payouts: Payout[] = earnings?.payouts?.length ? earnings.payouts : [];
+
+  const handleWithdrawAll = async () => {
+    if (!earnings || earnings.pendingPayout <= 0) {
+      Alert.alert("Unavailable", "No earnings available to withdraw.");
+      return;
+    }
+    setPaying(true);
+    try {
+      await apiRequest(paths.payoutRequest, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ amount: earnings.pendingPayout, provider: "TELEBIRR" }),
+      });
+      Alert.alert("Success", "Payout request submitted.");
+      refresh();
+    } catch (err: any) {
+      Alert.alert("Error", err.message || "Payout failed");
+    } finally {
+      setPaying(false);
+    }
+  };
+
+  const handleSchedulePayout = async () => {
+    if (!earnings || earnings.pendingPayout <= 0) {
+      Alert.alert("Unavailable", "No earnings available to withdraw.");
+      return;
+    }
+    const amount = Number(withdrawAmount);
+    if (!amount || amount <= 0) {
+      Alert.alert("Invalid", "Enter a valid amount.");
+      return;
+    }
+    if (amount > earnings.pendingPayout) {
+      Alert.alert("Invalid", "Amount exceeds available balance.");
+      return;
+    }
+    setPaying(true);
+    try {
+      await apiRequest(paths.payoutRequest, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ amount, provider: withdrawProvider }),
+      });
+      setWithdrawAmount("");
+      Alert.alert("Success", "Payout request submitted.");
+      refresh();
+    } catch (err: any) {
+      Alert.alert("Error", err.message || "Payout failed");
+    } finally {
+      setPaying(false);
+    }
+  };
+
+  if (loading) {
+    return (
+      <SafeAreaView style={{ flex: 1, backgroundColor: bg }} edges={["top"]}>
+        <View style={[styles.header, { borderBottomColor: border }]}>
+          <Text style={{ color: text, fontSize: 16, fontWeight: "800" }}>Earnings & Payout</Text>
+        </View>
+        <View style={{ flex: 1, alignItems: "center", justifyContent: "center" }}>
+          <ActivityIndicator size="large" color={primary} />
+        </View>
+      </SafeAreaView>
+    );
+  }
+
+  if (error) {
+    return (
+      <SafeAreaView style={{ flex: 1, backgroundColor: bg }} edges={["top"]}>
+        <View style={[styles.header, { borderBottomColor: border }]}>
+          <Text style={{ color: text, fontSize: 16, fontWeight: "800" }}>Earnings & Payout</Text>
+        </View>
+        <View style={{ padding: 24, alignItems: "center" }}>
+          <Text style={{ color: text, marginBottom: 12 }}>{error}</Text>
+          <TouchableOpacity
+            onPress={() => {
+              setError("");
+              setLoading(true);
+              apiRequest<TeacherEarnings>(paths.teacherEarnings)
+                .then((data) => setEarnings(data))
+                .catch((e) => setError(e.message))
+                .finally(() => setLoading(false));
+            }}
+            style={[styles.retryBtn, { backgroundColor: primary }]}
+          >
+            <Text style={{ color: "#fff", fontWeight: "700", fontSize: 13 }}>Retry</Text>
+          </TouchableOpacity>
+        </View>
+      </SafeAreaView>
+    );
+  }
 
   return (
     <SafeAreaView style={{ flex: 1, backgroundColor: bg }} edges={["top"]}>
@@ -43,22 +169,60 @@ export default function EarningsScreen() {
         <View style={styles.hero}>
           <Text style={styles.heroLabel}>Available to Withdraw</Text>
           <Text style={styles.heroAmount}>
-            8,450 <Text style={{ fontSize: 16, opacity: 0.8 }}>ETB</Text>
+            {available.split(" ")[0]} <Text style={{ fontSize: 16, opacity: 0.8 }}>ETB</Text>
           </Text>
           <View style={styles.heroMeta}>
-            <Text style={styles.heroMetaText}>+12,800 this month</Text>
-            <Text style={styles.heroMetaText}>−4,350 withdrawn</Text>
+            <Text style={styles.heroMetaText}>+{monthEarned} this month</Text>
+            <Text style={styles.heroMetaText}>Pending: {available}</Text>
           </View>
           <View style={{ flexDirection: "row", gap: 8, marginTop: 14 }}>
             <TouchableOpacity
               style={styles.heroBtn}
-              onPress={() => Alert.alert("Withdraw", "Payout request started")}
+              onPress={handleWithdrawAll}
+              disabled={paying}
             >
-              <Text style={styles.heroBtnText}>Withdraw All</Text>
+              <Text style={styles.heroBtnText}>{paying ? "Processing…" : "Withdraw All"}</Text>
             </TouchableOpacity>
-            <TouchableOpacity style={styles.heroBtn}>
-              <Text style={styles.heroBtnText}>Schedule Payout</Text>
+            <TouchableOpacity
+              style={styles.heroBtn}
+              onPress={handleSchedulePayout}
+              disabled={paying}
+            >
+              <Text style={styles.heroBtnText}>{paying ? "Processing…" : "Schedule Payout"}</Text>
             </TouchableOpacity>
+          </View>
+          <View style={{ marginTop: 10, gap: 6 }}>
+            <Text style={{ color: "rgba(255,255,255,0.7)", fontSize: 10 }}>Custom amount</Text>
+            <View style={{ flexDirection: "row", gap: 8 }}>
+              <TextInput
+                value={withdrawAmount}
+                onChangeText={setWithdrawAmount}
+                placeholder="Amount"
+                keyboardType="numeric"
+                style={{ flex: 1, borderRadius: 10, backgroundColor: "rgba(255,255,255,0.15)", paddingHorizontal: 12, paddingVertical: 8, color: "#fff" }}
+              />
+              <View style={{ flexDirection: "row", gap: 6 }}>
+                {["TELEBIRR", "CBE_BIRR", "MPESA"].map((p) => (
+                  <TouchableOpacity
+                    key={p}
+                    onPress={() => setWithdrawProvider(p)}
+                    style={[
+                      styles.providerChip,
+                      withdrawProvider === p && styles.providerChipActive,
+                    ]}
+                  >
+                    <Text
+                      style={[
+                        styles.providerChipText,
+                        withdrawProvider === p && styles.providerChipTextActive,
+                      ]}
+                    >
+                      {p.replace("_", " ")}
+                    </Text>
+                  </TouchableOpacity>
+                ))}
+              </View>
+            </View>
           </View>
         </View>
 
@@ -82,7 +246,7 @@ export default function EarningsScreen() {
           <View style={styles.statsRow}>
             {[
               ["32", "📚", "Sessions"],
-              ["12,800", "💰", "ETB Earned"],
+              [monthEarned.replace(" ETB", ""), "💰", "ETB Earned"],
               ["4.9", "⭐", "Avg Rating"],
             ].map(([v, icon, l]) => (
               <View key={l} style={[styles.stat, { backgroundColor: surface }]}>
@@ -125,12 +289,12 @@ export default function EarningsScreen() {
 
         <View style={[styles.card, { backgroundColor: card, borderColor: border }]}>
           <Text style={[styles.section, { color: sub }]}>PAYOUT HISTORY</Text>
-          {PAYOUTS.map((p) => (
-            <View key={p.date} style={[styles.methodRow, { borderBottomColor: border }]}>
+          {payouts.map((p) => (
+            <View key={p.id} style={[styles.methodRow, { borderBottomColor: border }]}>
               <View style={{ flex: 1 }}>
-                <Text style={{ color: text, fontWeight: "800", fontSize: 12 }}>{p.amount}</Text>
+                <Text style={{ color: text, fontWeight: "800", fontSize: 12 }}>{Number(p.amount).toLocaleString()} ETB</Text>
                 <Text style={{ color: sub, fontSize: 10 }}>
-                  {p.date} · via {p.via}
+                  {new Date(p.createdAt).toLocaleDateString()} · via {p.provider}
                 </Text>
               </View>
               <View style={[styles.pill, { backgroundColor: "#D1FAE5" }]}>
@@ -140,29 +304,10 @@ export default function EarningsScreen() {
               </View>
             </View>
           ))}
+          {payouts.length === 0 && (
+            <Text style={{ color: sub, fontSize: 12 }}>No payouts yet</Text>
+          )}
         </View>
-
-        <Text style={[styles.section, { color: sub }]}>RECENT ACTIVITY</Text>
-        {TX.map((x) => (
-          <View
-            key={x.t}
-            style={[styles.tx, { backgroundColor: card, borderColor: border }]}
-          >
-            <View style={{ flex: 1 }}>
-              <Text style={{ color: text, fontWeight: "700", fontSize: 12 }}>{x.t}</Text>
-              <Text style={{ color: sub, fontSize: 10 }}>{x.d}</Text>
-            </View>
-            <Text
-              style={{
-                color: x.plus ? "#10B981" : text,
-                fontWeight: "800",
-                fontSize: 13,
-              }}
-            >
-              {x.a}
-            </Text>
-          </View>
-        ))}
       </ScrollView>
     </SafeAreaView>
   );
@@ -193,6 +338,23 @@ const styles = StyleSheet.create({
     alignItems: "center",
   },
   heroBtnText: { color: "#fff", fontWeight: "800", fontSize: 12 },
+  providerChip: {
+    paddingHorizontal: 8,
+    paddingVertical: 6,
+    borderRadius: 8,
+    backgroundColor: "rgba(255,255,255,0.15)",
+  },
+  providerChipActive: {
+    backgroundColor: "rgba(255,255,255,0.35)",
+  },
+  providerChipText: {
+    color: "rgba(255,255,255,0.85)",
+    fontSize: 9,
+    fontWeight: "700",
+  },
+  providerChipTextActive: {
+    color: "#fff",
+  },
   card: { borderRadius: 16, padding: 14, borderWidth: 1 },
   section: {
     fontSize: 10,
@@ -232,4 +394,5 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
   },
+  retryBtn: { paddingVertical: 12, paddingHorizontal: 24, borderRadius: 12, alignItems: "center" },
 });

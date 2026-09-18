@@ -3,51 +3,45 @@ import { useLocalSearchParams, useRouter } from "expo-router";
 import { useState } from "react";
 import { useTheme } from "@/hooks/useTheme";
 import { SafeAreaView } from "react-native-safe-area-context";
-import { getToken } from "@/lib/api";
+import { apiRequest, paths } from "@/lib/api";
 
 export default function CreateContractScreen() {
   const { teacherId, studentId } = useLocalSearchParams();
   const { colors } = useTheme();
   const router = useRouter();
   const [loading, setLoading] = useState(false);
+  const [error, setError] = useState("");
 
   const handleCreate = async () => {
     try {
       setLoading(true);
-      const base =
-        process.env.EXPO_PUBLIC_API_URL ||
-        "https://tutor-be-betea.onrender.com";
-      const token = await getToken();
+      setError("");
 
-      const res = await fetch(`\( {base}/escrow/ \){contract.id}/hold`, {
+      const agreedAmount = 4500;
+      const startDate = new Date().toISOString();
+      const endDate = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString();
+
+      const contract = await apiRequest<{ id: string }>(paths.contractsCreate, {
         method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${token}`,
-        },
         body: JSON.stringify({
-          teacherId,
-          studentId,
-          agreedAmount: 4500, // In real app this comes from form
-          startDate: new Date().toISOString(),
-          endDate: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString(),
+          teacherId: String(teacherId),
+          studentId: String(studentId),
+          agreedAmount,
+          startDate,
+          endDate,
         }),
       });
 
-      if (!res.ok) throw new Error("Failed to create contract");
-
-      const contract = await res.json();
-
-      // Immediately fund escrow (or navigate to payment screen)
-      await fetch(`\( {process.env.EXPO_PUBLIC_API_URL}/contracts/ \){contract.id}/fund`, {
+      await apiRequest(paths.escrowHold(contract.id), {
         method: "POST",
-        headers: { Authorization: `Bearer ${token}` },
+        body: JSON.stringify({ amount: agreedAmount }),
       });
 
       Alert.alert("Success", "Contract created and escrow funded!");
       router.replace(`/(parent)/contract/${contract.id}`);
-    } catch (error: any) {
-      Alert.alert("Error", error.message);
+    } catch (err: any) {
+      setError(err.message || "Failed to create contract");
+      Alert.alert("Error", err.message || "Failed to create contract");
     } finally {
       setLoading(false);
     }
@@ -61,6 +55,8 @@ export default function CreateContractScreen() {
           You are about to create a contract. Funds will be held in escrow and only released
           after verified sessions. You are protected by a 14-day replacement guarantee.
         </Text>
+
+        {error ? <Text style={{ color: "#EF4444", marginTop: 12 }}>{error}</Text> : null}
 
         <Pressable
           style={[styles.button, { backgroundColor: colors.primary }]}

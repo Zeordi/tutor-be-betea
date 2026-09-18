@@ -1,18 +1,32 @@
-import { useState } from "react";
-import { View, Text, StyleSheet, ScrollView, TouchableOpacity, TextInput } from "react-native";
+import { useState, useEffect } from "react";
+import { View, Text, StyleSheet, ScrollView, TouchableOpacity, TextInput, ActivityIndicator } from "react-native";
 import { useTheme } from "@/hooks/useTheme";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useRouter } from "expo-router";
+import { apiRequest, paths } from "@/lib/api";
 
-const JOBS = [
-  { id: "1", title: "Grade 12 Physics Tutor", area: "Bole", dist: "1.5 km", rate: "500 ETB/hr", apps: 12, connects: 2, urgent: true, boost: true, subjects: ["Physics", "Math"] },
-  { id: "2", title: "Mathematics – Grade 9 & 10", area: "Kazanchis", dist: "3.2 km", rate: "400 ETB/hr", apps: 8, connects: 1, urgent: false, boost: false, subjects: ["Math"] },
-  { id: "3", title: "Chemistry + Biology Combo", area: "Arat Kilo", dist: "4.1 km", rate: "450 ETB/hr", apps: 5, connects: 1, urgent: true, boost: false, subjects: ["Chemistry", "Biology"] },
-];
+type Job = {
+  id: string;
+  title: string;
+  family: string;
+  loc: string;
+  cur: string;
+  hrs: string;
+  budget: string;
+  children: number;
+  urgency: string;
+  posted: string;
+  description: string;
+  requirements: string[];
+};
 
 export default function AvailableJobsScreen() {
   const { isDark } = useTheme();
   const router = useRouter();
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState("");
+  const [jobs, setJobs] = useState<Job[]>([]);
+  const [selected, setSelected] = useState(0);
   const [filter, setFilter] = useState(0);
   const filters = ["All", "Math", "Physics", "Chemistry", "Near Me"];
 
@@ -22,6 +36,66 @@ export default function AvailableJobsScreen() {
   const sub = isDark ? "#94A3B8" : "#64748B";
   const primary = "#0D9488";
   const border = isDark ? "#1E3A5F" : "#E2E8F0";
+
+  useEffect(() => {
+    let cancelled = false;
+    setLoading(true);
+    setError("");
+
+    apiRequest<Job[]>(paths.jobsMine)
+      .then((data) => {
+        if (!cancelled) setJobs(Array.isArray(data) ? data : []);
+      })
+      .catch((err) => {
+        if (!cancelled) setError(err.message || "Failed to load jobs");
+      })
+      .finally(() => {
+        if (!cancelled) setLoading(false);
+      });
+
+    return () => { cancelled = true; };
+  }, []);
+
+  const job = jobs[selected];
+
+  if (loading) {
+    return (
+      <SafeAreaView style={{ flex: 1, backgroundColor: bg }} edges={["top"]}>
+        <View style={{ padding: 14, borderBottomWidth: 1, borderBottomColor: border }}>
+          <Text style={{ color: text, fontSize: 18, fontWeight: "800" }}>Available Jobs</Text>
+        </View>
+        <View style={{ flex: 1, alignItems: "center", justifyContent: "center" }}>
+          <ActivityIndicator size="large" color={primary} />
+        </View>
+      </SafeAreaView>
+    );
+  }
+
+  if (error) {
+    return (
+      <SafeAreaView style={{ flex: 1, backgroundColor: bg }} edges={["top"]}>
+        <View style={{ padding: 14, borderBottomWidth: 1, borderBottomColor: border }}>
+          <Text style={{ color: text, fontSize: 18, fontWeight: "800" }}>Available Jobs</Text>
+        </View>
+        <View style={{ padding: 24, alignItems: "center" }}>
+          <Text style={{ color: text, marginBottom: 12 }}>{error}</Text>
+          <TouchableOpacity
+            onPress={() => {
+              setError("");
+              setLoading(true);
+              apiRequest<Job[]>(paths.jobsMine)
+                .then((data) => setJobs(Array.isArray(data) ? data : []))
+                .catch((e) => setError(e.message))
+                .finally(() => setLoading(false));
+            }}
+            style={[styles.retryBtn, { backgroundColor: primary }]}
+          >
+            <Text style={{ color: "#fff", fontWeight: "700", fontSize: 13 }}>Retry</Text>
+          </TouchableOpacity>
+        </View>
+      </SafeAreaView>
+    );
+  }
 
   return (
     <SafeAreaView style={{ flex: 1, backgroundColor: bg }} edges={["top"]}>
@@ -46,36 +120,44 @@ export default function AvailableJobsScreen() {
         </ScrollView>
       </View>
       <ScrollView contentContainerStyle={{ padding: 12, gap: 10 }}>
-        <Text style={{ color: sub, fontSize: 11 }}>38 jobs matching your profile</Text>
-        {JOBS.map((j) => (
+        <Text style={{ color: sub, fontSize: 11 }}>{jobs.length} jobs matching your profile</Text>
+        {jobs.map((j, i) => (
           <TouchableOpacity
             key={j.id}
             style={{ backgroundColor: card, borderRadius: 16, padding: 14 }}
-            onPress={() => router.push(`/(teacher)/apply/${j.id}`)}
+            onPress={() => {
+              setSelected(i);
+              router.push(`/(teacher)/apply/${j.id}`);
+            }}
           >
             <View style={{ flexDirection: "row", justifyContent: "space-between" }}>
               <View style={{ flexDirection: "row", gap: 4 }}>
-                {j.urgent && <Text style={{ fontSize: 10, backgroundColor: "#FEE2E2", color: "#DC2626", paddingHorizontal: 6, borderRadius: 99, overflow: "hidden", fontWeight: "700" }}>🔥 Urgent</Text>}
-                {j.boost && <Text style={{ fontSize: 10, backgroundColor: "#FEF3C7", color: "#D97706", paddingHorizontal: 6, borderRadius: 99, overflow: "hidden", fontWeight: "700" }}>🚀 Boost</Text>}
+                {j.urgency === "Urgent" && <Text style={{ fontSize: 10, backgroundColor: "#FEE2E2", color: "#DC2626", paddingHorizontal: 6, borderRadius: 99, overflow: "hidden", fontWeight: "700" }}>🔥 Urgent</Text>}
               </View>
-              <Text style={{ color: sub, fontSize: 10 }}>📍 {j.area} · {j.dist}</Text>
+              <Text style={{ color: sub, fontSize: 10 }}>📍 {j.loc}</Text>
             </View>
             <Text style={{ color: text, fontWeight: "800", marginTop: 8 }}>{j.title}</Text>
             <View style={{ flexDirection: "row", gap: 4, marginTop: 6, flexWrap: "wrap" }}>
-              {j.subjects.map((s) => (
+              {(j.requirements || []).slice(0, 3).map((s) => (
                 <Text key={s} style={{ fontSize: 10, backgroundColor: isDark ? "#1E3A5F" : "#F1F5F9", color: sub, paddingHorizontal: 8, paddingVertical: 2, borderRadius: 99, overflow: "hidden" }}>{s}</Text>
               ))}
             </View>
             <View style={{ flexDirection: "row", justifyContent: "space-between", marginTop: 10, alignItems: "center" }}>
-              <Text style={{ color: primary, fontWeight: "900" }}>{j.rate}</Text>
-              <Text style={{ color: sub, fontSize: 11 }}>{j.apps} applied · 🔗 {j.connects}</Text>
-            </View>
-            <View style={{ backgroundColor: primary, borderRadius: 12, paddingVertical: 10, alignItems: "center", marginTop: 10 }}>
-              <Text style={{ color: "#fff", fontWeight: "800", fontSize: 12 }}>Apply — Use {j.connects} Connect{j.connects > 1 ? "s" : ""}</Text>
+              <Text style={{ color: primary, fontWeight: "900" }}>{j.budget}</Text>
+              <TouchableOpacity style={{ backgroundColor: primary, borderRadius: 12, paddingVertical: 10, paddingHorizontal: 16 }} onPress={() => router.push(`/(teacher)/apply/${j.id}`)}>
+                <Text style={{ color: "#fff", fontWeight: "800", fontSize: 12 }}>Apply →</Text>
+              </TouchableOpacity>
             </View>
           </TouchableOpacity>
         ))}
+        {jobs.length === 0 && (
+          <Text style={{ color: sub, textAlign: "center", marginTop: 40 }}>No jobs available</Text>
+        )}
       </ScrollView>
     </SafeAreaView>
   );
 }
+
+const styles = StyleSheet.create({
+  retryBtn: { paddingVertical: 12, paddingHorizontal: 24, borderRadius: 12, alignItems: "center" },
+});

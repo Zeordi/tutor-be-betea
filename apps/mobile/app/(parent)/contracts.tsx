@@ -3,7 +3,7 @@ import { useEffect, useState, useCallback } from "react";
 import { useTheme } from "@/hooks/useTheme";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useRouter } from "expo-router";
-import { getToken } from "@/lib/api";
+import { apiRequest, paths } from "@/lib/api";
 import { EmptyState } from "@/components/EmptyState";
 import { LoadingSkeleton } from "@/components/LoadingSkeleton";
 
@@ -22,20 +22,15 @@ export default function ContractsListScreen() {
   const [contracts, setContracts] = useState<Contract[]>([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
+  const [error, setError] = useState("");
 
   const loadContracts = useCallback(async () => {
     try {
-      const token = await getToken();
-      const base =
-        process.env.EXPO_PUBLIC_API_URL ||
-        "https://tutor-be-betea.onrender.com";
-      const res = await fetch(`${base}/contracts/mine/parent`, {
-        headers: { Authorization: `Bearer ${token}` },
-      });
-      const data = await res.json();
+      setError("");
+      const data = await apiRequest<Contract[]>(paths.contractsParent);
       setContracts(Array.isArray(data) ? data : []);
-    } catch (error) {
-      console.error(error);
+    } catch (err: any) {
+      setError(err.message || "Failed to load contracts");
     } finally {
       setLoading(false);
       setRefreshing(false);
@@ -58,6 +53,22 @@ export default function ContractsListScreen() {
         return colors.textSecondary;
     }
   };
+
+  if (error && !loading) {
+    return (
+      <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]}>
+        <View style={styles.header}>
+          <Text style={[styles.title, { color: colors.text }]}>My Contracts</Text>
+        </View>
+        <View style={{ padding: 24, alignItems: "center" }}>
+          <Text style={{ color: colors.textSecondary, marginBottom: 12 }}>{error}</Text>
+          <Pressable onPress={loadContracts} style={[styles.retryBtn, { backgroundColor: colors.primary }]}>
+            <Text style={{ color: "#fff", fontWeight: "700", fontSize: 13 }}>Retry</Text>
+          </Pressable>
+        </View>
+      </SafeAreaView>
+    );
+  }
 
   return (
     <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]}>
@@ -124,4 +135,5 @@ const styles = StyleSheet.create({
     alignItems: "center",
   },
   amount: { fontSize: 17, fontWeight: "700" },
+  retryBtn: { paddingVertical: 12, paddingHorizontal: 24, borderRadius: 12, alignItems: "center" },
 });
