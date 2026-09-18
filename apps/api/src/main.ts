@@ -5,6 +5,7 @@ import { AppModule } from "./app.module";
 import { AllExceptionsFilter } from "./common/filters/http-exception.filter";
 import { validateCriticalSecrets } from "./config/env.validation";
 import { Logger } from "@nestjs/common";
+import { LoggingInterceptor } from "./common/interceptors/logging.interceptor";
 import * as express from "express";
 
 async function bootstrap() {
@@ -21,6 +22,8 @@ async function bootstrap() {
   );
 
   app.useGlobalFilters(new AllExceptionsFilter());
+
+  app.useGlobalInterceptors(new LoggingInterceptor());
 
   app.enableCors({
     origin: true,
