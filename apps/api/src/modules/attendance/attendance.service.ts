@@ -1,25 +1,12 @@
-import { Injectable, NotFoundException, BadRequestException } from "@nestjs/common";
+import { Injectable, NotFoundException } from "@nestjs/common";
 import { prisma } from "@tutor/database";
 import { randomUUID } from "crypto";
 import { calculateDistanceMeters, GEOFENCE_RADIUS_METERS } from "@tutor/geo";
+import { validateOfflineId, validateClientCreatedAt } from "@tutor/validators";
+import { OperationalException } from "../../common/exceptions/operational-exception";
 
 @Injectable()
 export class AttendanceService {
-  private validateOfflineId(offlineId?: string) {
-    if (!offlineId) return;
-    if (!offlineId.startsWith("off_") || offlineId.length < 10) {
-      throw new BadRequestException("Invalid offlineId format");
-    }
-  }
-
-  private validateClientCreatedAt(clientCreatedAt?: string) {
-    if (!clientCreatedAt) return;
-    const ageMs = Date.now() - new Date(clientCreatedAt).getTime();
-    if (ageMs > 24 * 60 * 60 * 1000) {
-      throw new BadRequestException("clientCreatedAt is too old (>24h)");
-    }
-  }
-
   async checkIn(
     contractId: string,
     teacherId: string,
@@ -35,8 +22,12 @@ export class AttendanceService {
     });
     if (!contract) throw new NotFoundException("Contract not found");
 
-    this.validateOfflineId(offlineId);
-    this.validateClientCreatedAt(clientCreatedAt);
+    if (!validateOfflineId(offlineId)) {
+      throw new OperationalException("Invalid offlineId format");
+    }
+    if (!validateClientCreatedAt(clientCreatedAt)) {
+      throw new OperationalException("clientCreatedAt is too old (>24h)");
+    }
 
     if (offlineId) {
       const existing = await prisma.attendanceLog.findUnique({
