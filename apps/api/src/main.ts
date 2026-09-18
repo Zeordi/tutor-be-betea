@@ -3,9 +3,12 @@ import { NestFactory } from "@nestjs/core";
 import { ValidationPipe } from "@nestjs/common";
 import { AppModule } from "./app.module";
 import { AllExceptionsFilter } from "./common/filters/http-exception.filter";
+import { validateCriticalSecrets } from "./config/env.validation";
 import * as express from "express";
 
 async function bootstrap() {
+  validateCriticalSecrets();
+
   const app = await NestFactory.create(AppModule);
 
   app.useGlobalPipes(

@@ -6,6 +6,7 @@ import {
 } from "@nestjs/common";
 import { ConfigModule } from "@nestjs/config";
 
+import { HealthModule } from "./common/health/health.module";
 import { SimpleRateLimitMiddleware } from "./common/middleware/simple-rate-limit.middleware";
 import { DatabaseModule } from "./database/database.module";
 
@@ -44,6 +45,7 @@ import { BlogModule } from "./modules/blog/blog.module";
   imports: [
     ConfigModule.forRoot({ isGlobal: true }),
     DatabaseModule,
+    HealthModule,
     AuthModule,
     UsersModule,
     TeachersModule,
