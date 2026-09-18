@@ -4,6 +4,7 @@ import {
   ConflictException,
   ForbiddenException,
   BadRequestException,
+  Logger,
 } from "@nestjs/common";
 import { JwtService } from "@nestjs/jwt";
 import { randomInt, randomBytes } from "crypto";
@@ -21,6 +22,8 @@ const memVerify = new Map<string, { id: string; exp: number }>();
 
 @Injectable()
 export class AuthService {
+  private readonly logger = new Logger("Auth");
+
   constructor(
     private readonly usersService: UsersService,
     private readonly jwtService: JwtService,
@@ -51,7 +54,7 @@ export class AuthService {
         redisOk = true;
       }
     } catch (e) {
-      console.error("[OTP] Redis SET failed, using memory fallback", e);
+      this.logger.error("Redis SET failed for OTP, using memory fallback", e instanceof Error ? e.stack : String(e));
     }
     memOtp.set(key, { code: String(code), exp: Date.now() + ttlSec * 1000 });
     return redisOk;
@@ -67,7 +70,7 @@ export class AuthService {
         if (raw != null && raw !== "") return String(raw);
       }
     } catch (e) {
-      console.error("[OTP] Redis GET failed", e);
+      this.logger.error("Redis GET failed for OTP", e instanceof Error ? e.stack : String(e));
     }
     const row = memOtp.get(key);
     if (!row) return null;
@@ -101,7 +104,7 @@ export class AuthService {
     const key = `otp:${identifier}`;
 
     await this.storeOtp(key, code, 300);
-    console.log(`[OTP] stored key=\( {key} redisEnv= \){!!process.env.UPSTASH_REDIS_REST_URL}`);
+    this.logger.log(`OTP stored for identifier`, { identifier, redisEnv: !!process.env.UPSTASH_REDIS_REST_URL });
 
     if (!isEmail) {
       const sent = await this.smsService.sendOtp(identifier, code);
@@ -109,7 +112,7 @@ export class AuthService {
         throw new BadRequestException("Failed to send SMS OTP");
       }
     } else if (!this.isProd()) {
-      console.log(`[DEV EMAIL OTP] ${identifier} => ${code}`);
+      this.logger.debug(`Dev email OTP generated`, { identifier });
     }
 
     return {
@@ -159,7 +162,7 @@ export class AuthService {
         await redis.set(tokenKey, identifier, { ex: 600 });
       }
     } catch (e) {
-      console.error("[OTP] Redis verify token SET failed", e);
+      this.logger.error("Redis verify token SET failed", e instanceof Error ? e.stack : String(e));
     }
     memVerify.set(tokenKey, {
       id: identifier,
@@ -224,10 +227,15 @@ export class AuthService {
         dto.email.trim().toLowerCase(),
       );
       if (!user || !user.passwordHash) {
+        this.logger.warn("Login failed: user not found or no password", { email: dto.email });
         throw new UnauthorizedException("Invalid email or password");
       }
       const ok = await bcrypt.compare(dto.password, user.passwordHash);
-      if (!ok) throw new UnauthorizedException("Invalid email or password");
+      if (!ok) {
+        this.logger.warn("Login failed: bad password", { userId: user.id });
+        throw new UnauthorizedException("Invalid email or password");
+      }
+      this.logger.log("Login success", { userId: user.id });
       return this.authResponse(user);
     }
 
@@ -236,10 +244,15 @@ export class AuthService {
       await this.consumeVerificationToken(dto.verificationToken, phone);
       const user = await this.usersService.findByPhone(phone);
       if (!user || !user.passwordHash) {
+        this.logger.warn("Login failed: user not found or no password", { phone });
         throw new UnauthorizedException("Invalid phone or password");
       }
       const ok = await bcrypt.compare(dto.password, user.passwordHash);
-      if (!ok) throw new UnauthorizedException("Invalid phone or password");
+      if (!ok) {
+        this.logger.warn("Login failed: bad password", { userId: user.id });
+        throw new UnauthorizedException("Invalid phone or password");
+      }
+      this.logger.log("Login success", { userId: user.id });
       return this.authResponse(user);
     }
 
@@ -280,6 +293,7 @@ export class AuthService {
       emailVerified: false,
     });
 
+    this.logger.log("User registered", { userId: user.id });
     return this.authResponse(user);
   }
 
@@ -306,6 +320,7 @@ export class AuthService {
     if (!user) throw new UnauthorizedException("User not found");
     const passwordHash = await bcrypt.hash(dto.newPassword, 10);
     await this.usersService.updateProfile(user.id, { passwordHash });
+    this.logger.log("Password reset", { userId: user.id });
     return { message: "Password updated" };
   }
 

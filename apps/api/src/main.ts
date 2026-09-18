@@ -4,6 +4,7 @@ import { ValidationPipe } from "@nestjs/common";
 import { AppModule } from "./app.module";
 import { AllExceptionsFilter } from "./common/filters/http-exception.filter";
 import { validateCriticalSecrets } from "./config/env.validation";
+import { Logger } from "@nestjs/common";
 import * as express from "express";
 
 async function bootstrap() {
@@ -32,7 +33,7 @@ async function bootstrap() {
 
   const port = process.env.PORT || 4000;
   await app.listen(port);
-  console.log(`🚀 Tutor Be Betea API running on http://localhost:${port}`);
+  new Logger("Bootstrap").log(`Tutor Be Betea API running on http://localhost:${port}`);
 }
 
 bootstrap();

@@ -7,6 +7,7 @@ import {
 import { ConfigModule } from "@nestjs/config";
 
 import { HealthModule } from "./common/health/health.module";
+import { LoggerModule } from "./common/logging/logger.module";
 import {
   AuthRateLimitMiddleware,
   PaymentRateLimitMiddleware,
@@ -50,6 +51,7 @@ import { BlogModule } from "./modules/blog/blog.module";
     ConfigModule.forRoot({ isGlobal: true }),
     DatabaseModule,
     HealthModule,
+    LoggerModule,
     AuthModule,
     UsersModule,
     TeachersModule,

@@ -1,9 +1,11 @@
-import { Injectable, NotFoundException, BadRequestException } from "@nestjs/common";
+import { Injectable, NotFoundException, BadRequestException, Logger } from "@nestjs/common";
 import { prisma } from "@tutor/database";
 import { createHmac } from "crypto";
 
 @Injectable()
 export class EscrowService {
+  private readonly logger = new Logger("Escrow");
+
   private chainSecret(): string {
     return (
       process.env.AUDIT_CHAIN_SECRET ||
@@ -104,6 +106,13 @@ export class EscrowService {
       reason: `Manual escrow release for contract ${contractId}`,
     });
 
+    this.logger.log("Escrow released", {
+      contractId,
+      adminId: adminId || "system",
+      teacherId: contract.teacherId,
+      amount: contract.escrowHeldAmount,
+    });
+
     return updated;
   }
 
@@ -153,6 +162,12 @@ export class EscrowService {
       await this.writeAudit({
         actionType: "AUTO_RELEASE_ESCROW",
         reason: `Auto-released expired contract ${contract.id}`,
+      });
+
+      this.logger.log("Escrow auto-released", {
+        contractId: contract.id,
+        teacherId: contract.teacherId,
+        amount: contract.escrowHeldAmount,
       });
 
       results.push(updated);

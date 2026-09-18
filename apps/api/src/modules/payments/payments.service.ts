@@ -1,4 +1,4 @@
-import { Injectable, BadRequestException, NotFoundException } from "@nestjs/common";
+import { Injectable, BadRequestException, NotFoundException, Logger } from "@nestjs/common";
 import { prisma } from "@tutor/database";
 import { stripe } from "../../lib/stripe";
 import {
@@ -11,6 +11,8 @@ import {
 
 @Injectable()
 export class PaymentsService {
+  private readonly logger = new Logger("Payments");
+
   async getParentWallet(userId: string) {
     const payments = await prisma.payment.findMany({
       where: { userId },
@@ -103,6 +105,13 @@ export class PaymentsService {
           meta: { client_secret: intent.client_secret, externalRef },
         },
       });
+      this.logger.log("Payment initiated", {
+        paymentId: payment.id,
+        provider,
+        amount: input.amount,
+        userId: input.userId,
+        contractId: input.contractId,
+      });
       return {
         payment,
         clientSecret: intent.client_secret,
@@ -164,6 +173,14 @@ export class PaymentsService {
         },
       });
     }
+
+    this.logger.log("Payment initiated", {
+      paymentId: payment.id,
+      provider,
+      amount: input.amount,
+      userId: input.userId,
+      contractId: input.contractId,
+    });
 
     return {
       payment,
@@ -235,7 +252,7 @@ export class PaymentsService {
     } else if (provider === "MPESA") {
       const checkout = await requestMpesaCheckout({
         amount: Number(payment.amount),
-        currency: payment.currency,
+        currency: "ETB",
         merchantId: paymentConfig.mpesa.merchantId,
         notifyUrl: paymentConfig.mpesa.notifyUrl,
         externalRef: payment.externalRef,
@@ -250,8 +267,20 @@ export class PaymentsService {
         where: { id: payment.id },
         data: { status: "FAILED" },
       });
+      this.logger.warn("Payment reconciliation failed", {
+        paymentId: payment.id,
+        provider,
+        externalRef: payment.externalRef,
+      });
       return { id: payment.id, status: "FAILED", reconciled: true };
     }
+
+    this.logger.log("Payment reconciled", {
+      paymentId: payment.id,
+      provider,
+      externalRef: payment.externalRef,
+      status: payment.status,
+    });
 
     return { id: payment.id, status: payment.status, reconciled: true };
   }
@@ -270,6 +299,11 @@ export class PaymentsService {
     }
 
     if (existing.status === "SUCCESS") {
+      this.logger.log("Webhook already processed", {
+        paymentId: existing.id,
+        provider,
+        externalRef: ref,
+      });
       return { ok: true, alreadyProcessed: true, paymentId: existing.id };
     }
 
@@ -293,6 +327,13 @@ export class PaymentsService {
         data: { status: "ACTIVE" },
       });
     }
+
+    this.logger.log("Payment webhook processed", {
+      paymentId: updated.id,
+      provider,
+      externalRef: ref,
+      status: updated.status,
+    });
 
     return { ok: true, paymentId: updated.id, status: updated.status };
   }
@@ -347,6 +388,13 @@ export class PaymentsService {
         status: "PENDING",
         externalRef,
       },
+    });
+
+    this.logger.log("Payout requested", {
+      payoutId: payout.id,
+      teacherId,
+      amount,
+      provider: payoutProvider,
     });
 
     return payout;
