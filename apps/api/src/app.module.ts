@@ -7,7 +7,11 @@ import {
 import { ConfigModule } from "@nestjs/config";
 
 import { HealthModule } from "./common/health/health.module";
-import { SimpleRateLimitMiddleware } from "./common/middleware/simple-rate-limit.middleware";
+import {
+  AuthRateLimitMiddleware,
+  PaymentRateLimitMiddleware,
+  GeneralRateLimitMiddleware,
+} from "./common/middleware/simple-rate-limit.middleware";
 import { DatabaseModule } from "./database/database.module";
 
 import { AuthModule } from "./modules/auth/auth.module";
@@ -77,17 +81,30 @@ import { BlogModule } from "./modules/blog/blog.module";
     ReplacementsModule,
     BlogModule,
   ],
-  providers: [SimpleRateLimitMiddleware],
+  providers: [
+    AuthRateLimitMiddleware,
+    PaymentRateLimitMiddleware,
+    GeneralRateLimitMiddleware,
+  ],
 })
 export class AppModule implements NestModule {
   configure(consumer: MiddlewareConsumer) {
     consumer
-      .apply(SimpleRateLimitMiddleware)
+      .apply(AuthRateLimitMiddleware)
       .forRoutes(
         { path: "auth/otp/send", method: RequestMethod.POST },
         { path: "auth/otp/verify", method: RequestMethod.POST },
         { path: "auth/login", method: RequestMethod.POST },
         { path: "auth/register", method: RequestMethod.POST },
+        { path: "verification/:id/revoke", method: RequestMethod.POST },
+      )
+      .apply(PaymentRateLimitMiddleware)
+      .forRoutes(
+        { path: "payments/initiate", method: RequestMethod.POST },
+      )
+      .apply(GeneralRateLimitMiddleware)
+      .forRoutes(
+        { path: "verification/:id/request-more", method: RequestMethod.POST },
         { path: "vault/upload", method: RequestMethod.POST },
         { path: "offline/attendance", method: RequestMethod.POST },
       );
