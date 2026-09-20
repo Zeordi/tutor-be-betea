@@ -1,10 +1,19 @@
-# Phase E — Mobile Wire Audit Gaps
+# Phase E — Mobile Wire Audit Summary
 
-**Branch**: `kilo/jovial-latch-ahe`  
+**Branch**: `kilo/celestial-haven-jpr`  
 **Date**: 2026-09-20  
-**Status**: Saved for later implementation
+**Status**: Mobile shell is complete; most screens are static or miswired
 
-## Gaps Identified
+## Existing Mobile (Working)
+
+| Area | Status | Details |
+|------|--------|---------|
+| `lib/api.ts` | ✅ | `apiRequest<T>` with SecureStore token, JSON headers, error throwing |
+| `lib/api.ts` paths | ✅ | Canonical path constants for contracts, payments, jobs, etc. |
+| Auth layouts | ⚠️ Partial | Tab layouts exist but do not check auth or redirect to login |
+| Parent/teacher shells | ✅ | Tab navigations, theme provider, shared components exist |
+
+## Gaps
 
 ### 1. Parent Job Detail — Applicants endpoint 404
 - **File**: `apps/mobile/app/(parent)/job/[id].tsx:47`
@@ -52,7 +61,7 @@
 - **File**: `apps/mobile/app/(teacher)/(tabs)/jobs.tsx:45`
 - **Issue**: Calls `GET /jobs/mine` which is `@Roles("PARENT")`
 - **Expected**: Teachers should call `GET /jobs/open`
-- **Fix**: Change to `paths.jobsOpen` or `"/jobs/open"`
+- **Fix**: Change to `"/jobs/open"`
 
 ### 9. Teacher Applications — 404
 - **File**: `apps/mobile/app/(teacher)/applications.tsx:43`
@@ -105,19 +114,27 @@
 - **Issue**: Missing auth redirect if no token
 - **Fix**: Add token check and redirect to login
 
-### 17. Inline Fetch Bypassing api.ts (2 files)
+### 17. Inline Fetch Bypassing `apiRequest` (4 additional files)
 - **Files**:
   - `apps/mobile/app/(parent)/children/add.tsx:26`
   - `apps/mobile/app/(teacher)/location.tsx:47`
-- **Issue**: Uses raw `fetch` instead of `apiRequest`
+  - `apps/mobile/hooks/usePushNotifications.ts:67`
+  - `apps/mobile/app/(shared)/notifications.tsx:24`
+  - `apps/mobile/lib/video/index.ts:19`
+- **Issue**: Uses raw `fetch` with hardcoded `process.env.EXPO_PUBLIC_API_URL` instead of `apiRequest` from `lib/api.ts`
 - **Fix**: Refactor to use canonical `apiRequest` from `lib/api.ts`
 
----
+### 18. Mobile `paths` contains non-existent or wrong routes
+- **File**: `apps/mobile/lib/api.ts:29, 49-52`
+- **Issue**:
+  - `jobsMine: "/jobs/mine"` — this route is `@Roles("PARENT")`; teachers calling it get 403
+  - `applicationsMine: "/applications/mine"` — no such controller exists
+  - `applicationsAction` / `applicationsCreate` — no such controllers exist
+- **Fix**: Remove or correct these paths to match backend (`/jobs/open`, `/jobs/applications/mine`, `/jobs/:jobId/apply`).
 
-## Phase E Summary
+## Summary
 
-- **Total gaps**: 17
-- **404/endpoint mismatches**: 6 (#1, #2, #8, #9, #10, #15)
+- **404/endpoint mismatches**: 7 (#1, #2, #8, #9, #10, #15, #18)
 - **Static shells**: 7 (#3, #4, #5, #6, #11, #13, #14)
 - **Shared gaps**: 2 (#7, #12 — chat rooms list)
 - **Auth/pattern issues**: 2 (#16, #17)
