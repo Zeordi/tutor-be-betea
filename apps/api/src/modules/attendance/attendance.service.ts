@@ -1,6 +1,9 @@
 import { Injectable, NotFoundException } from "@nestjs/common";
 import { prisma } from "@tutor/database";
 import { randomUUID } from "crypto";
+import { calculateDistanceMeters, GEOFENCE_RADIUS_METERS } from "@tutor/geo";
+import { validateOfflineId, validateClientCreatedAt } from "@tutor/validators";
+import { OperationalException } from "../../common/exceptions/operational-exception";
 
 @Injectable()
 export class AttendanceService {
@@ -10,11 +13,21 @@ export class AttendanceService {
     latitude: number,
     longitude: number,
     offlineId?: string,
+    clientCreatedAt?: string,
+    parentLat?: number,
+    parentLng?: number,
   ) {
     const contract = await prisma.tutoringContract.findFirst({
       where: { id: contractId, teacherId },
     });
     if (!contract) throw new NotFoundException("Contract not found");
+
+    if (!validateOfflineId(offlineId)) {
+      throw new OperationalException("Invalid offlineId format");
+    }
+    if (!validateClientCreatedAt(clientCreatedAt)) {
+      throw new OperationalException("clientCreatedAt is too old (>24h)");
+    }
 
     if (offlineId) {
       const existing = await prisma.attendanceLog.findUnique({
@@ -23,13 +36,25 @@ export class AttendanceService {
       if (existing) return existing;
     }
 
+    let distanceMeters = 0;
+    let isVerifiedGeofence = true;
+
+    const centerLat = parentLat ?? contract.sessionLatitude?.toNumber() ?? null;
+    const centerLng = parentLng ?? contract.sessionLongitude?.toNumber() ?? null;
+
+    if (centerLat != null && centerLng != null) {
+      distanceMeters = calculateDistanceMeters(latitude, longitude, centerLat, centerLng);
+      isVerifiedGeofence = distanceMeters <= GEOFENCE_RADIUS_METERS;
+    }
+
     const log = await prisma.attendanceLog.create({
       data: {
         contractId,
         teacherId,
         checkInTime: new Date(),
-        distanceMeters: 0,
-        isVerifiedGeofence: true,
+        distanceMeters,
+        isVerifiedGeofence,
+        requiresManualConfirm: !isVerifiedGeofence,
         parentConfirmed: false,
         offlineId: offlineId || randomUUID(),
         teacherLatitude: latitude,
@@ -59,10 +84,29 @@ export class AttendanceService {
     });
     if (!log) throw new NotFoundException("Active check-in not found");
 
-    return prisma.attendanceLog.update({
+    const now = new Date();
+    const checkIn = log.checkInTime;
+    const maxDurationMs = 4 * 60 * 60 * 1000;
+    const durationMs = now.getTime() - checkIn.getTime();
+    const exceedsMax = durationMs > maxDurationMs;
+
+    const updated = await prisma.attendanceLog.update({
       where: { id: log.id },
-      data: { checkOutTime: new Date() },
+      data: { checkOutTime: now },
     });
+
+    if (exceedsMax) {
+      await prisma.riskFlag.create({
+        data: {
+          userId: teacherId,
+          createdBy: "system",
+          severity: "MEDIUM",
+          reason: `Session exceeded 4h max duration (${Math.round(durationMs / 3600000)}h)`,
+        },
+      });
+    }
+
+    return updated;
   }
 
   async getContractAttendance(contractId: string) {

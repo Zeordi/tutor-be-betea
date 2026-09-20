@@ -1,57 +1,66 @@
-import React, { useState } from "react";
-import {
-  View,
-  Text,
-  ScrollView,
-  TouchableOpacity,
-  StyleSheet,
-  Alert,
-} from "react-native";
+import { useEffect, useState } from "react";
+import { View, Text, ScrollView, TouchableOpacity, StyleSheet, ActivityIndicator, Alert } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import { useTheme } from "@/hooks/useTheme";
+import { apiRequest, paths } from "@/lib/api";
 
-const APPLICANTS = [
-  {
-    id: "1",
-    name: "Selamawit Tadesse",
-    rate: 500,
-    rating: 4.9,
-    status: "New",
-    nationalId: true,
-    degree: true,
-    gold: true,
-    exp: "7 yrs · Math & Physics",
-  },
-  {
-    id: "2",
-    name: "Bereket Solomon",
-    rate: 480,
-    rating: 4.8,
-    status: "Reviewed",
-    nationalId: true,
-    degree: true,
-    gold: false,
-    exp: "5 yrs · Physics & Chemistry",
-  },
-  {
-    id: "3",
-    name: "Dawit Bekele",
-    rate: 420,
-    rating: 4.6,
-    status: "Shortlisted",
-    nationalId: true,
-    degree: false,
-    gold: false,
-    exp: "4 yrs · Physics",
-  },
-];
+type Job = {
+  id: string;
+  title: string;
+  description: string;
+  budget: number;
+  location: string;
+  status: string;
+  urgent: boolean;
+  boost: boolean;
+  postedAt: string;
+  applicationsCount: number;
+};
+
+type Applicant = {
+  id: string;
+  fullName: string;
+  rating: number;
+  hourlyRate: number;
+  status: string;
+};
 
 export default function ParentJobDetailScreen() {
   const router = useRouter();
   const { id } = useLocalSearchParams<{ id: string }>();
   const { colors, isDark } = useTheme();
   const [tab, setTab] = useState<"details" | "applicants">("applicants");
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState("");
+  const [job, setJob] = useState<Job | null>(null);
+  const [applicants, setApplicants] = useState<Applicant[]>([]);
+
+  useEffect(() => {
+    if (!id) return;
+    let cancelled = false;
+    setLoading(true);
+    setError("");
+
+    Promise.all([
+      apiRequest<Job>(paths.job(id)),
+      apiRequest<Applicant[]>(`/jobs/${id}/applications`),
+    ])
+      .then(([jobData, appsData]) => {
+        if (!cancelled) {
+          setJob(jobData);
+          setApplicants(appsData || []);
+        }
+      })
+      .catch((err) => {
+        if (!cancelled) setError(err.message || "Failed to load job");
+      })
+      .finally(() => {
+        if (!cancelled) setLoading(false);
+      });
+
+    return () => { cancelled = true; };
+  }, [id]);
 
   const bg = colors.background ?? (isDark ? "#0A1628" : "#F8FAFC");
   const card = colors.card ?? (isDark ? "#112240" : "#FFFFFF");
@@ -67,6 +76,48 @@ export default function ParentJobDetailScreen() {
     return { bg: isDark ? "#334155" : "#F1F5F9", fg: sub };
   };
 
+  if (loading) {
+    return (
+      <SafeAreaView style={[styles.safe, { backgroundColor: bg }]} edges={["top"]}>
+        <View style={[styles.header, { backgroundColor: card, borderBottomColor: border }]}>
+          <TouchableOpacity onPress={() => router.back()}>
+            <Text style={{ color: sub, fontSize: 16 }}>←</Text>
+          </TouchableOpacity>
+          <View style={{ flex: 1, marginLeft: 10 }}>
+            <Text style={[styles.headerTitle, { color: text }]}>Job Details</Text>
+            <Text style={{ color: sub, fontSize: 10 }}>#{id ?? "job"}</Text>
+          </View>
+        </View>
+        <View style={{ flex: 1, alignItems: "center", justifyContent: "center", gap: 12 }}>
+          <ActivityIndicator size="large" color={primary} />
+          <Text style={{ color: sub, fontSize: 13 }}>Loading…</Text>
+        </View>
+      </SafeAreaView>
+    );
+  }
+
+  if (error || !job) {
+    return (
+      <SafeAreaView style={[styles.safe, { backgroundColor: bg }]} edges={["top"]}>
+        <View style={[styles.header, { backgroundColor: card, borderBottomColor: border }]}>
+          <TouchableOpacity onPress={() => router.back()}>
+            <Text style={{ color: sub, fontSize: 16 }}>←</Text>
+          </TouchableOpacity>
+          <View style={{ flex: 1, marginLeft: 10 }}>
+            <Text style={[styles.headerTitle, { color: text }]}>Job Details</Text>
+          </View>
+        </View>
+        <View style={{ flex: 1, alignItems: "center", justifyContent: "center", gap: 12, padding: 24 }}>
+          <Text style={{ fontSize: 32 }}>⚠️</Text>
+          <Text style={{ color: text, fontWeight: "700", textAlign: "center" }}>{error || "Job not found"}</Text>
+          <TouchableOpacity onPress={() => router.back()} style={[styles.retry, { backgroundColor: primary }]}>
+            <Text style={styles.retryText}>Go Back</Text>
+          </TouchableOpacity>
+        </View>
+      </SafeAreaView>
+    );
+  }
+
   return (
     <SafeAreaView style={[styles.safe, { backgroundColor: bg }]} edges={["top"]}>
       <View style={[styles.header, { backgroundColor: card, borderBottomColor: border }]}>
@@ -75,15 +126,11 @@ export default function ParentJobDetailScreen() {
         </TouchableOpacity>
         <View style={{ flex: 1, marginLeft: 10 }}>
           <Text style={[styles.headerTitle, { color: text }]}>Job Details</Text>
-          <Text style={{ color: sub, fontSize: 10 }}>#{id ?? "job"}</Text>
+          <Text style={{ color: sub, fontSize: 10 }}>#{job.id}</Text>
         </View>
         <View style={styles.badgeRow}>
-          <View style={styles.urgent}>
-            <Text style={styles.urgentText}>🔥 Urgent</Text>
-          </View>
-          <View style={styles.boost}>
-            <Text style={styles.boostText}>🚀 Boosted</Text>
-          </View>
+          {job.urgent && <View style={styles.urgent}><Text style={styles.urgentText}>🔥 Urgent</Text></View>}
+          {job.boost && <View style={styles.boost}><Text style={styles.boostText}>🚀 Boosted</Text></View>}
         </View>
       </View>
 
@@ -105,7 +152,7 @@ export default function ParentJobDetailScreen() {
                 textTransform: "capitalize",
               }}
             >
-              {t === "applicants" ? `Applicants (${APPLICANTS.length})` : "Details"}
+              {t === "applicants" ? `Applicants (${applicants.length})` : "Details"}
             </Text>
           </TouchableOpacity>
         ))}
@@ -115,37 +162,24 @@ export default function ParentJobDetailScreen() {
         {tab === "details" && (
           <>
             <View style={[styles.card, { backgroundColor: card, borderColor: border }]}>
-              <Text style={{ color: text, fontWeight: "800", fontSize: 16 }}>
-                Grade 12 Physics Tutor Needed
-              </Text>
+              <Text style={{ color: text, fontWeight: "800", fontSize: 16 }}>{job.title}</Text>
               <Text style={{ color: sub, fontSize: 12, marginTop: 4 }}>
-                📍 Bole, Addis Ababa · Posted 2h ago
+                📍 {job.location} · Posted {job.postedAt}
               </Text>
-              <View style={styles.chipRow}>
-                {["Physics", "Grade 12", "Home Visit", "Online OK"].map((t) => (
-                  <View key={t} style={[styles.chip, { backgroundColor: surface }]}>
-                    <Text style={{ color: sub, fontSize: 10 }}>{t}</Text>
-                  </View>
-                ))}
-              </View>
+              <Text style={{ color: text, fontSize: 12, lineHeight: 18, marginTop: 8 }}>{job.description}</Text>
               <View style={styles.grid}>
                 {[
-                  ["500 ETB/hr", "💰", "Budget"],
-                  ["2–3x/week", "📅", "Frequency"],
-                  ["3 months", "⏱️", "Duration"],
-                  [String(APPLICANTS.length), "👥", "Applicants"],
+                  [`${job.budget} ETB/hr`, "💰", "Budget"],
+                  [String(applicants.length), "👥", "Applicants"],
+                  [job.status, "📌", "Status"],
                 ].map(([v, icon, l]) => (
-                  <View key={l} style={[styles.gridItem, { backgroundColor: surface }]}>
+                  <View key={String(l)} style={[styles.gridItem, { backgroundColor: surface }]}>
                     <Text style={{ fontSize: 14 }}>{icon}</Text>
                     <Text style={{ color: text, fontWeight: "800", fontSize: 11 }}>{v}</Text>
                     <Text style={{ color: sub, fontSize: 9 }}>{l}</Text>
                   </View>
                 ))}
               </View>
-              <Text style={{ color: text, fontSize: 12, lineHeight: 18, marginTop: 8 }}>
-                Looking for an experienced Physics tutor for Grade 12 national exam prep. Fayda ID
-                verified preferred. Home visits in Bole or online.
-              </Text>
             </View>
             <View style={styles.row}>
               <TouchableOpacity
@@ -165,7 +199,7 @@ export default function ParentJobDetailScreen() {
         )}
 
         {tab === "applicants" &&
-          APPLICANTS.map((a) => {
+          applicants.map((a) => {
             const sc = statusColor(a.status);
             return (
               <View
@@ -174,38 +208,22 @@ export default function ParentJobDetailScreen() {
               >
                 <View style={styles.row}>
                   <View style={[styles.avatar, { backgroundColor: primary }]}>
-                    <Text style={{ color: "#fff", fontWeight: "800" }}>{a.name[0]}</Text>
+                    <Text style={{ color: "#fff", fontWeight: "800" }}>{a.fullName[0]}</Text>
                   </View>
                   <View style={{ flex: 1 }}>
                     <View style={styles.rowBetween}>
-                      <Text style={{ color: text, fontWeight: "800", fontSize: 13 }}>
-                        {a.name}
-                      </Text>
+                      <Text style={{ color: text, fontWeight: "800", fontSize: 13 }}>{a.fullName}</Text>
                       <View style={[styles.statusPill, { backgroundColor: sc.bg }]}>
-                        <Text style={{ color: sc.fg, fontSize: 9, fontWeight: "700" }}>
-                          {a.status}
-                        </Text>
+                        <Text style={{ color: sc.fg, fontSize: 9, fontWeight: "700" }}>{a.status}</Text>
                       </View>
                     </View>
-                    <Text style={{ color: sub, fontSize: 10, marginTop: 2 }}>{a.exp}</Text>
-                    <Text style={{ color: sub, fontSize: 10, marginTop: 2 }}>
-                      ⭐ {a.rating} · {a.rate} ETB/hr
-                    </Text>
-                    <View style={styles.badgeRow}>
-                      {a.nationalId && (
-                        <Text style={styles.trust}>🛡️ ID</Text>
-                      )}
-                      {a.degree && <Text style={styles.trust}>🎓 Degree</Text>}
-                      {a.gold && <Text style={styles.trust}>🥇 Gold</Text>}
-                    </View>
+                    <Text style={{ color: sub, fontSize: 10, marginTop: 2 }}>⭐ {a.rating} · {a.hourlyRate} ETB/hr</Text>
                   </View>
                 </View>
                 <View style={[styles.row, { marginTop: 10 }]}>
                   <TouchableOpacity
                     style={[styles.btnPrimary, { backgroundColor: primary, flex: 1 }]}
-                    onPress={() =>
-                      Alert.alert("Hire", `Start contract flow with ${a.name}`)
-                    }
+                    onPress={() => Alert.alert("Hire", `Start contract flow with ${a.fullName}`)}
                   >
                     <Text style={styles.btnPrimaryText}>Hire</Text>
                   </TouchableOpacity>
@@ -213,9 +231,7 @@ export default function ParentJobDetailScreen() {
                     style={[styles.btnOutline, { borderColor: primary, flex: 1 }]}
                     onPress={() => router.push(`/(parent)/tutor/${a.id}`)}
                   >
-                    <Text style={{ color: primary, fontWeight: "700", fontSize: 12 }}>
-                      Profile
-                    </Text>
+                    <Text style={{ color: primary, fontWeight: "700", fontSize: 12 }}>Profile</Text>
                   </TouchableOpacity>
                   <TouchableOpacity
                     style={[styles.btnOutline, { borderColor: border, width: 44 }]}
@@ -267,8 +283,6 @@ const styles = StyleSheet.create({
     justifyContent: "space-between",
     alignItems: "center",
   },
-  chipRow: { flexDirection: "row", flexWrap: "wrap", gap: 6, marginTop: 10 },
-  chip: { paddingHorizontal: 10, paddingVertical: 4, borderRadius: 999 },
   grid: { flexDirection: "row", flexWrap: "wrap", gap: 8, marginTop: 12 },
   gridItem: {
     width: "47%",
@@ -286,7 +300,6 @@ const styles = StyleSheet.create({
     justifyContent: "center",
   },
   statusPill: { paddingHorizontal: 8, paddingVertical: 3, borderRadius: 999 },
-  trust: { fontSize: 10, marginRight: 6, marginTop: 4 },
   btnPrimary: {
     borderRadius: 12,
     paddingVertical: 11,
@@ -299,4 +312,6 @@ const styles = StyleSheet.create({
     alignItems: "center",
     borderWidth: 1,
   },
+  retry: { paddingVertical: 12, paddingHorizontal: 24, borderRadius: 12, alignItems: "center" },
+  retryText: { color: "#fff", fontWeight: "800", fontSize: 13 },
 });

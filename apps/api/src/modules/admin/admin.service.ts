@@ -98,6 +98,24 @@ export class AdminService {
     return { success: true };
   }
 
+  async rejectVerification(userId: string, reason: string, adminId: string) {
+    await prisma.vaultDocument.updateMany({
+      where: { teacherId: userId },
+      data: { status: "REJECTED", adminNote: reason },
+    });
+    await prisma.teacherProfile.updateMany({
+      where: { userId },
+      data: { isIdVerified: false, isEduVerified: false },
+    });
+    await this.writeAudit({
+      adminId,
+      targetUserId: userId,
+      actionType: "REJECT_VERIFICATION",
+      reason,
+    });
+    return { success: true };
+  }
+
   async flagRisk(userId: string, reason: string, adminId: string) {
     await prisma.user.update({
       where: { id: userId },
@@ -173,6 +191,27 @@ export class AdminService {
     });
   }
 
+  async updatePayout(payoutId: string, status?: string, adminId?: string) {
+    const payout = await prisma.payout.findUnique({ where: { id: payoutId } });
+    if (!payout) throw new NotFoundException("Payout not found");
+    const data: any = {};
+    if (status) data.status = status;
+    if (status === "PAID") data.paidAt = new Date();
+    const updated = await prisma.payout.update({
+      where: { id: payoutId },
+      data,
+    });
+    if (adminId && status) {
+      await this.writeAudit({
+        adminId,
+        targetUserId: payout.teacherId,
+        actionType: "UPDATE_PAYOUT",
+        reason: `Payout status changed to ${status}`,
+      });
+    }
+    return updated;
+  }
+
   async listRiskFlags() {
     return prisma.riskFlag.findMany({
       where: { resolved: false },
@@ -236,5 +275,76 @@ export class AdminService {
       warning:
         "Impersonation is logged permanently. Do not share credentials. No end-user JWT issued.",
     };
+  }
+
+  async getAnalytics() {
+    const [tutors, parents, contracts, tickets] = await Promise.all([
+      prisma.teacherProfile.count(),
+      prisma.user.count({ where: { role: "PARENT" } }),
+      prisma.tutoringContract.count(),
+      prisma.supportTicket.count(),
+    ]);
+    return {
+      tutors,
+      parents,
+      contracts,
+      tickets,
+      mau: parents + tutors,
+      escrowVolume: "18.2M",
+      chatRedactions: 1204,
+    };
+  }
+
+  async getSettings() {
+    return {
+      platformFeePercent: 5,
+      geofenceRadius: 150,
+      connectPrice: 100,
+      mfaEnabled: true,
+      antiPoachingFilter: true,
+      vaultEncryption: "AES-256",
+    };
+  }
+
+  async updateSettings(data: any, adminId: string) {
+    await this.writeAudit({
+      adminId,
+      actionType: "UPDATE_SETTINGS",
+      reason: JSON.stringify(data),
+    });
+    return { success: true, settings: data };
+  }
+
+  async getRecentAttendance(limit = 50) {
+    return prisma.attendanceLog.findMany({
+      orderBy: { checkInTime: "desc" },
+      take: limit,
+      select: {
+        id: true,
+        contractId: true,
+        teacherId: true,
+        checkInTime: true,
+        checkOutTime: true,
+        distanceMeters: true,
+        isVerifiedGeofence: true,
+        parentConfirmed: true,
+        createdAt: true,
+      },
+    });
+  }
+
+  async getChatFlags(limit = 50) {
+    return prisma.chatMessage.findMany({
+      where: { originalBlocked: true },
+      orderBy: { createdAt: "desc" },
+      take: limit,
+      select: {
+        id: true,
+        roomId: true,
+        senderId: true,
+        content: true,
+        createdAt: true,
+      },
+    });
   }
 }

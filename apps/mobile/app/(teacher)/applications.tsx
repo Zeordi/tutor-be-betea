@@ -1,60 +1,58 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import {
   View,
   Text,
   StyleSheet,
   ScrollView,
   TouchableOpacity,
+  ActivityIndicator,
 } from "react-native";
 import { useRouter } from "expo-router";
 import { useTheme } from "@/hooks/useTheme";
 import { SafeAreaView } from "react-native-safe-area-context";
+import { apiRequest, paths } from "@/lib/api";
 
-const APPS = [
-  {
-    id: "1",
-    title: "Grade 12 Physics Tutor",
-    parent: "Yeshi H.",
-    area: "Bole",
-    rate: "500 ETB/hr",
-    status: "Shortlisted",
-    when: "2h ago",
-  },
-  {
-    id: "2",
-    title: "Mathematics Grade 9",
-    parent: "Abebe G.",
-    area: "Kazanchis",
-    rate: "400 ETB/hr",
-    status: "Hired",
-    when: "1d ago",
-  },
-  {
-    id: "3",
-    title: "Chemistry – Grade 11",
-    parent: "Hiwot T.",
-    area: "Arat Kilo",
-    rate: "450 ETB/hr",
-    status: "Pending",
-    when: "2d ago",
-  },
-  {
-    id: "4",
-    title: "University Calculus",
-    parent: "Girma B.",
-    area: "Sidist Kilo",
-    rate: "600 ETB/hr",
-    status: "Declined",
-    when: "5d ago",
-  },
-];
+type Application = {
+  id: string;
+  status: "SUBMITTED" | "REVIEWING" | "HIRED" | "DECLINED";
+  job: {
+    title: string;
+    family: string;
+    loc: string;
+    rate: string;
+  };
+  appliedAt: string;
+  coverNote: string;
+};
 
-const TABS = ["All", "Pending", "Shortlisted", "Hired", "Declined"];
+const TABS = ["All", "SUBMITTED", "REVIEWING", "HIRED", "DECLINED"];
 
 export default function MyApplicationsScreen() {
   const { colors, isDark } = useTheme();
   const router = useRouter();
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState("");
+  const [applications, setApplications] = useState<Application[]>([]);
   const [tab, setTab] = useState("All");
+
+  useEffect(() => {
+    let cancelled = false;
+    setLoading(true);
+    setError("");
+
+    apiRequest<Application[]>(paths.applicationsMine)
+      .then((data) => {
+        if (!cancelled) setApplications(Array.isArray(data) ? data : []);
+      })
+      .catch((err) => {
+        if (!cancelled) setError(err.message || "Failed to load applications");
+      })
+      .finally(() => {
+        if (!cancelled) setLoading(false);
+      });
+
+    return () => { cancelled = true; };
+  }, []);
 
   const bg = colors.background ?? (isDark ? "#0A1628" : "#F8FAFC");
   const card = colors.card ?? (isDark ? "#112240" : "#FFFFFF");
@@ -64,14 +62,52 @@ export default function MyApplicationsScreen() {
   const border = colors.border ?? (isDark ? "#1E3A5F" : "#E2E8F0");
 
   const statusStyle = (s: string) => {
-    if (s === "Hired") return { bg: "#D1FAE5", fg: "#047857" };
-    if (s === "Shortlisted") return { bg: "#CCFBF1", fg: "#0F766E" };
-    if (s === "Declined") return { bg: "#FEE2E2", fg: "#DC2626" };
+    if (s === "HIRED") return { bg: "#D1FAE5", fg: "#047857" };
+    if (s === "REVIEWING") return { bg: "#CCFBF1", fg: "#0F766E" };
+    if (s === "DECLINED") return { bg: "#FEE2E2", fg: "#DC2626" };
     return { bg: isDark ? "#1E293B" : "#F1F5F9", fg: sub };
   };
 
-  const list =
-    tab === "All" ? APPS : APPS.filter((a) => a.status === tab);
+  const list = tab === "All" ? applications : applications.filter((a) => a.status === tab);
+
+  if (loading) {
+    return (
+      <SafeAreaView style={[styles.container, { backgroundColor: bg }]} edges={["top"]}>
+        <View style={[styles.header, { borderBottomColor: border }]}>
+          <Text style={[styles.title, { color: text }]}>My Applications</Text>
+        </View>
+        <View style={{ flex: 1, alignItems: "center", justifyContent: "center" }}>
+          <ActivityIndicator size="large" color={primary} />
+        </View>
+      </SafeAreaView>
+    );
+  }
+
+  if (error) {
+    return (
+      <SafeAreaView style={[styles.container, { backgroundColor: bg }]} edges={["top"]}>
+        <View style={[styles.header, { borderBottomColor: border }]}>
+          <Text style={[styles.title, { color: text }]}>My Applications</Text>
+        </View>
+        <View style={{ padding: 24, alignItems: "center" }}>
+          <Text style={{ color: text, marginBottom: 12 }}>{error}</Text>
+          <TouchableOpacity
+            onPress={() => {
+              setError("");
+              setLoading(true);
+              apiRequest<Application[]>(paths.applicationsMine)
+                .then((data) => setApplications(Array.isArray(data) ? data : []))
+                .catch((e) => setError(e.message))
+                .finally(() => setLoading(false));
+            }}
+            style={[styles.retryBtn, { backgroundColor: primary }]}
+          >
+            <Text style={{ color: "#fff", fontWeight: "700", fontSize: 13 }}>Retry</Text>
+          </TouchableOpacity>
+        </View>
+      </SafeAreaView>
+    );
+  }
 
   return (
     <SafeAreaView style={[styles.container, { backgroundColor: bg }]} edges={["top"]}>
@@ -81,7 +117,7 @@ export default function MyApplicationsScreen() {
         </TouchableOpacity>
         <View style={{ flex: 1 }}>
           <Text style={[styles.title, { color: text }]}>My Applications</Text>
-          <Text style={{ color: sub, fontSize: 11 }}>8 applications · 3 active</Text>
+          <Text style={{ color: sub, fontSize: 11 }}>{applications.length} applications</Text>
         </View>
       </View>
 
@@ -124,7 +160,7 @@ export default function MyApplicationsScreen() {
               style={[styles.card, { backgroundColor: card, borderColor: border }]}
             >
               <View style={styles.rowBetween}>
-                <Text style={[styles.job, { color: text }]}>{a.title}</Text>
+                <Text style={[styles.job, { color: text }]}>{a.job.title}</Text>
                 <View style={[styles.pill, { backgroundColor: st.bg }]}>
                   <Text style={{ color: st.fg, fontWeight: "800", fontSize: 10 }}>
                     {a.status}
@@ -132,39 +168,14 @@ export default function MyApplicationsScreen() {
                 </View>
               </View>
               <Text style={{ color: sub, fontSize: 11, marginTop: 4 }}>
-                📍 {a.area} · {a.rate} · Applied {a.when}
+                📍 {a.job.loc} · {a.job.rate} · Applied {new Date(a.appliedAt).toLocaleDateString()}
               </Text>
-              <Text style={{ color: sub, fontSize: 10, marginTop: 2 }}>
-                Parent: {a.parent}
-              </Text>
-              {a.status === "Hired" && (
+              {a.status === "HIRED" && (
                 <TouchableOpacity
                   style={[styles.btn, { backgroundColor: primary }]}
                   onPress={() => router.push("/(teacher)/(tabs)/contracts")}
                 >
                   <Text style={styles.btnText}>View Contract →</Text>
-                </TouchableOpacity>
-              )}
-              {a.status === "Shortlisted" && (
-                <Text
-                  style={{
-                    color: primary,
-                    fontSize: 11,
-                    fontWeight: "700",
-                    marginTop: 8,
-                  }}
-                >
-                  ✓ Parent is reviewing your profile
-                </Text>
-              )}
-              {a.status === "Pending" && (
-                <TouchableOpacity
-                  style={[styles.outline, { borderColor: border }]}
-                  onPress={() => router.push(`/(teacher)/job/${a.id}`)}
-                >
-                  <Text style={{ color: sub, fontWeight: "700", fontSize: 12 }}>
-                    View job
-                  </Text>
                 </TouchableOpacity>
               )}
             </View>
@@ -213,11 +224,5 @@ const styles = StyleSheet.create({
     alignItems: "center",
   },
   btnText: { color: "#fff", fontWeight: "800", fontSize: 12 },
-  outline: {
-    marginTop: 10,
-    borderRadius: 10,
-    paddingVertical: 10,
-    alignItems: "center",
-    borderWidth: 1,
-  },
+  retryBtn: { paddingVertical: 12, paddingHorizontal: 24, borderRadius: 12, alignItems: "center" },
 });

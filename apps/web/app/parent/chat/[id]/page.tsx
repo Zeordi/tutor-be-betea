@@ -3,13 +3,14 @@
 import { useParams, useRouter } from "next/navigation";
 import { useMemo, useState } from "react";
 import Link from "next/link";
+import { apiFetch } from "@/lib/api";
 
 type Msg = {
   id: string;
   from: "me" | "them";
   text: string;
   time: string;
-  redacted?: boolean;
+  originalBlocked?: boolean;
 };
 
 const SEED: Msg[] = [
@@ -28,23 +29,11 @@ const SEED: Msg[] = [
   {
     id: "3",
     from: "them",
-    text: "Please message only here. Sharing [RESTRICTED CONTACT INFO] is blocked.",
+    text: "[RESTRICTED CONTACT INFO]",
     time: "09:16",
-    redacted: true,
+    originalBlocked: true,
   },
 ];
-
-const RESTRICTED =
-  /(\+251[\d\s-]{8,}|\b09\d{8}\b|\b07\d{8}\b|@[\w.]{3,}|[\w.-]+@[\w.-]+\.\w+|\b\d{10,16}\b)/gi;
-
-function sanitize(input: string): { text: string; redacted: boolean } {
-  let redacted = false;
-  const text = input.replace(RESTRICTED, () => {
-    redacted = true;
-    return "[RESTRICTED CONTACT INFO]";
-  });
-  return { text, redacted };
-}
 
 export default function ParentChatThreadPage() {
   const params = useParams();
@@ -59,24 +48,45 @@ export default function ParentChatThreadPage() {
     return "Berhane Alemu";
   }, [id]);
 
-  const send = () => {
+  const send = async () => {
     const raw = draft.trim();
     if (!raw) return;
-    const { text, redacted } = sanitize(raw);
-    setMessages((prev) => [
-      ...prev,
-      {
-        id: String(Date.now()),
-        from: "me",
-        text,
-        time: new Date().toLocaleTimeString([], {
-          hour: "2-digit",
-          minute: "2-digit",
-        }),
-        redacted,
-      },
-    ]);
+    const tempId = `temp-${Date.now()}`;
+    const optimistic: Msg = {
+      id: tempId,
+      from: "me",
+      text: raw,
+      time: new Date().toLocaleTimeString([], {
+        hour: "2-digit",
+        minute: "2-digit",
+      }),
+    };
+    setMessages((prev) => [...prev, optimistic]);
     setDraft("");
+    try {
+      const saved = await apiFetch<{ id: string; content: string; originalBlocked?: boolean }>(
+        `/chat/${id}/messages`,
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ content: raw }),
+        },
+      );
+      setMessages((prev) =>
+        prev.map((m) =>
+          m.id === tempId
+            ? {
+                ...m,
+                id: saved.id || tempId,
+                text: saved.content,
+                originalBlocked: saved.originalBlocked || false,
+              }
+            : m,
+        ),
+      );
+    } catch {
+      setMessages((prev) => prev.filter((m) => m.id !== tempId));
+    }
   };
 
   return (
@@ -121,18 +131,18 @@ export default function ParentChatThreadPage() {
                 }`}
               >
                 <p className="leading-relaxed">{m.text}</p>
-                <div
-                  className={`mt-1 flex items-center gap-2 text-[10px] ${
-                    m.from === "me" ? "text-white/70" : "text-[var(--secondary)]"
-                  }`}
-                >
-                  <span>{m.time}</span>
-                  {m.redacted && (
-                    <span className="rounded bg-black/10 px-1.5 py-0.5 font-bold">
-                      Contact info blocked
-                    </span>
-                  )}
-                </div>
+                 <div
+                   className={`mt-1 flex items-center gap-2 text-[10px] ${
+                     m.from === "me" ? "text-white/70" : "text-[var(--secondary)]"
+                   }`}
+                 >
+                   <span>{m.time}</span>
+                   {m.originalBlocked && (
+                     <span className="rounded bg-black/10 px-1.5 py-0.5 font-bold">
+                       Contact info blocked
+                     </span>
+                   )}
+                 </div>
               </div>
             </div>
           ))}

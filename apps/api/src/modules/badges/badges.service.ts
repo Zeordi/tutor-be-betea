@@ -30,4 +30,13 @@ export class BadgesService {
       orderBy: { issuedAt: "desc" },
     });
   }
+
+  async revokeBadge(teacherId: string, badgeType: string) {
+    const existing = await prisma.trustBadge.findFirst({
+      where: { teacherId, badgeType },
+    });
+    if (!existing) return { deleted: false };
+    await prisma.trustBadge.delete({ where: { id: existing.id } });
+    return { deleted: true };
+  }
 }

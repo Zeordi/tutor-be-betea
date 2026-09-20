@@ -1,59 +1,95 @@
-import { useState } from "react";
-import { View, Text, TextInput, ScrollView, Pressable, StyleSheet } from "react-native";
+import { useEffect, useState } from "react";
+import { View, Text, TextInput, ScrollView, Pressable, StyleSheet, ActivityIndicator } from "react-native";
 import { useRouter } from "expo-router";
 import { useTheme } from "@/hooks/useTheme";
+import { apiRequest, paths } from "@/lib/api";
+
+type Teacher = {
+  id: string;
+  fullName: string;
+  hourlyRate: number;
+  teacherProfile: {
+    rating: number;
+    subCity: string | null;
+    isVerified: boolean;
+    degreeVerified: boolean;
+    badgeLevel: string;
+    subjects: string[];
+  } | null;
+};
 
 const FILTERS = ["All", "Math", "Physics", "Chemistry", "English"];
-const TUTORS = [
-  {
-    id: "1",
-    name: "Selamawit Tadesse",
-    sub: "Mathematics · Physics",
-    rate: 450,
-    rating: 4.9,
-    dist: "1.2 km",
-    idOk: true,
-    deg: true,
-    gold: true,
-  },
-  {
-    id: "2",
-    name: "Bereket Solomon",
-    sub: "Physics · Chemistry",
-    rate: 500,
-    rating: 4.8,
-    dist: "2.1 km",
-    idOk: true,
-    deg: true,
-    gold: false,
-  },
-  {
-    id: "3",
-    name: "Tigist Haile",
-    sub: "Mathematics · Stats",
-    rate: 380,
-    rating: 4.7,
-    dist: "3.4 km",
-    idOk: true,
-    deg: false,
-    gold: false,
-  },
-];
 
 export default function FindTutorsScreen() {
   const router = useRouter();
   const { colors, isDark } = useTheme();
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState("");
+  const [teachers, setTeachers] = useState<Teacher[]>([]);
   const [active, setActive] = useState(0);
   const [q, setQ] = useState("");
   const [verifiedOnly, setVerifiedOnly] = useState(false);
 
-  const filtered = TUTORS.filter((t) => {
-    if (verifiedOnly && !t.idOk) return false;
-    if (active > 0 && !t.sub.toLowerCase().includes(FILTERS[active].toLowerCase())) return false;
-    if (q && !t.name.toLowerCase().includes(q.toLowerCase()) && !t.sub.toLowerCase().includes(q.toLowerCase()))
+  useEffect(() => {
+    let cancelled = false;
+    setLoading(true);
+    setError("");
+
+    apiRequest<Teacher[]>(paths.teachers)
+      .then((data) => {
+        if (!cancelled) setTeachers(data || []);
+      })
+      .catch((err) => {
+        if (!cancelled) setError(err.message || "Failed to load tutors");
+      })
+      .finally(() => {
+        if (!cancelled) setLoading(false);
+      });
+
+    return () => { cancelled = true; };
+  }, []);
+
+  const filtered = teachers.filter((t) => {
+    const tp = t.teacherProfile;
+    const sub = tp?.subjects?.join(" ") || "";
+    const mustVerified = verifiedOnly && (!tp?.isVerified || !tp?.degreeVerified);
+    if (mustVerified) return false;
+    if (active > 0 && !sub.toLowerCase().includes(FILTERS[active].toLowerCase())) return false;
+    if (q && !t.fullName.toLowerCase().includes(q.toLowerCase()) && !sub.toLowerCase().includes(q.toLowerCase()))
       return false;
     return true;
   });
+
+  if (loading) {
+    return (
+      <View style={[styles.root, { backgroundColor: colors.background }]}>
+        <View style={[styles.header, { backgroundColor: colors.card, borderBottomColor: colors.border }]}>
+          <Text style={[styles.title, { color: colors.foreground }]}>Find Tutors</Text>
+        </View>
+        <View style={{ flex: 1, alignItems: "center", justifyContent: "center", gap: 12 }}>
+          <ActivityIndicator size="large" color={colors.primary} />
+          <Text style={{ color: colors.mutedForeground, fontSize: 13 }}>Loading tutors…</Text>
+        </View>
+      </View>
+    );
+  }
+
+  if (error) {
+    return (
+      <View style={[styles.root, { backgroundColor: colors.background }]}>
+        <View style={[styles.header, { backgroundColor: colors.card, borderBottomColor: colors.border }]}>
+          <Text style={[styles.title, { color: colors.foreground }]}>Find Tutors</Text>
+        </View>
+        <View style={{ flex: 1, alignItems: "center", justifyContent: "center", gap: 12, padding: 24 }}>
+          <Text style={{ fontSize: 32 }}>⚠️</Text>
+          <Text style={{ color: colors.foreground, fontWeight: "700", textAlign: "center" }}>{error}</Text>
+          <Pressable onPress={() => window.location.reload()} style={[styles.retry, { backgroundColor: colors.primary }]}>
+            <Text style={styles.retryText}>Retry</Text>
+          </Pressable>
+        </View>
+      </View>
+    );
+  }
 
   return (
     <View style={[styles.root, { backgroundColor: colors.background }]}>
@@ -103,60 +139,66 @@ export default function FindTutorsScreen() {
       </View>
 
       <ScrollView contentContainerStyle={{ padding: 16, gap: 12, paddingBottom: 100 }}>
-        {filtered.map((t) => (
-          <Pressable
-            key={t.id}
-            style={[styles.card, { backgroundColor: colors.card, borderColor: colors.border }]}
-            onPress={() => router.push(`/(parent)/tutor/${t.id}`)}
-          >
-            <View style={{ flexDirection: "row", gap: 12 }}>
-              <View style={[styles.avatar, { backgroundColor: colors.primary }]}>
-                <Text style={{ color: "#fff", fontWeight: "800" }}>
-                  {t.name
-                    .split(" ")
-                    .map((n) => n[0])
-                    .slice(0, 2)
-                    .join("")}
-                </Text>
-              </View>
-              <View style={{ flex: 1 }}>
-                <View style={styles.rowBetween}>
-                  <Text style={[styles.name, { color: colors.foreground }]}>{t.name}</Text>
-                  <Text style={{ color: colors.primary, fontWeight: "800" }}>{t.rate} ETB/hr</Text>
+        <Text style={{ color: colors.mutedForeground, fontSize: 12 }}>
+          {filtered.length} tutors nearby
+        </Text>
+
+        {filtered.map((t) => {
+          const tp = t.teacherProfile;
+          const sub = tp?.subjects?.slice(0, 2).join(" · ") || "Tutor";
+          const dist = tp?.subCity || "";
+          return (
+            <Pressable
+              key={t.id}
+              style={[styles.card, { backgroundColor: colors.card, borderColor: colors.border }]}
+              onPress={() => router.push(`/(parent)/tutor/${t.id}`)}
+            >
+              <View style={{ flexDirection: "row", gap: 12 }}>
+                <View style={[styles.avatar, { backgroundColor: colors.primary }]}>
+                  <Text style={{ color: "#fff", fontWeight: "800" }}>
+                    {t.fullName.split(" ").map((n) => n[0]).slice(0, 2).join("")}
+                  </Text>
                 </View>
-                <Text style={{ color: colors.mutedForeground, fontSize: 12 }}>{t.sub}</Text>
-                <Text style={{ color: colors.mutedForeground, fontSize: 11, marginTop: 2 }}>
-                  ⭐ {t.rating} · 📍 {t.dist}
-                </Text>
-                <View style={{ flexDirection: "row", gap: 6, marginTop: 6, flexWrap: "wrap" }}>
-                  {t.idOk && <MiniBadge text="🛡️ ID" />}
-                  {t.deg && <MiniBadge text="🎓 Degree" />}
-                  {t.gold && <MiniBadge text="🥇 Gold" gold />}
+                <View style={{ flex: 1 }}>
+                  <View style={styles.rowBetween}>
+                    <Text style={[styles.name, { color: colors.foreground }]}>{t.fullName}</Text>
+                    <Text style={{ color: colors.primary, fontWeight: "800" }}>{t.hourlyRate} ETB/hr</Text>
+                  </View>
+                  <Text style={{ color: colors.mutedForeground, fontSize: 12 }}>{sub}</Text>
+                  <Text style={{ color: colors.mutedForeground, fontSize: 11, marginTop: 2 }}>
+                    ⭐ {tp?.rating?.toFixed(1) || "—"} · 📍 {dist || "—"}
+                  </Text>
+                  <View style={{ flexDirection: "row", gap: 6, marginTop: 6, flexWrap: "wrap" }}>
+                    {tp?.isVerified && <MiniBadge text="🛡️ ID" />}
+                    {tp?.degreeVerified && <MiniBadge text="🎓 Degree" />}
+                    {tp?.badgeLevel === "GOLD" && <MiniBadge text="🥇 Gold" gold />}
+                  </View>
                 </View>
               </View>
-            </View>
-            <View style={{ flexDirection: "row", gap: 8, marginTop: 12 }}>
-              <Pressable
-                style={[styles.btn, { backgroundColor: colors.primary, flex: 1 }]}
-                onPress={() => router.push(`/(parent)/tutor/${t.id}`)}
-              >
-                <Text style={styles.btnText}>Book</Text>
-              </Pressable>
-              <Pressable
-                style={[styles.btnOutline, { borderColor: colors.primary, flex: 1 }]}
-                onPress={() => router.push(`/(parent)/tutor/${t.id}`)}
-              >
-                <Text style={[styles.btnOutlineText, { color: colors.primary }]}>Profile</Text>
-              </Pressable>
-            </View>
-          </Pressable>
-        ))}
+              <View style={{ flexDirection: "row", gap: 8, marginTop: 12 }}>
+                <Pressable
+                  style={[styles.btn, { backgroundColor: colors.primary, flex: 1 }]}
+                  onPress={() => router.push(`/(parent)/tutor/${t.id}`)}
+                >
+                  <Text style={styles.btnText}>Book</Text>
+                </Pressable>
+                <Pressable
+                  style={[styles.btnOutline, { borderColor: colors.primary, flex: 1 }]}
+                  onPress={() => router.push(`/(parent)/tutor/${t.id}`)}
+                >
+                  <Text style={[styles.btnOutlineText, { color: colors.primary }]}>Profile</Text>
+                </Pressable>
+              </View>
+            </Pressable>
+          );
+        })}
+
         {filtered.length === 0 && (
           <View style={{ alignItems: "center", paddingVertical: 40 }}>
             <Text style={{ fontSize: 32 }}>🔍</Text>
             <Text style={[styles.name, { color: colors.foreground, marginTop: 8 }]}>No tutors found</Text>
             <Text style={{ color: colors.mutedForeground, fontSize: 13, textAlign: "center", marginTop: 4 }}>
-              Try adjusting filters or search nearby areas like Bole or Kazanchis.
+              Try adjusting filters or search nearby areas.
             </Text>
           </View>
         )}
@@ -195,4 +237,6 @@ const styles = StyleSheet.create({
   btnText: { color: "#fff", fontWeight: "700", fontSize: 13 },
   btnOutline: { paddingVertical: 10, borderRadius: 10, borderWidth: 1.5, alignItems: "center" },
   btnOutlineText: { fontWeight: "700", fontSize: 13 },
+  retry: { paddingVertical: 12, paddingHorizontal: 24, borderRadius: 12, alignItems: "center" },
+  retryText: { color: "#fff", fontWeight: "800", fontSize: 13 },
 });

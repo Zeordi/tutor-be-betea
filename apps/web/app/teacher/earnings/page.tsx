@@ -1,102 +1,172 @@
+"use client";
+
+import { useEffect, useState } from "react";
+import { apiFetch, paths } from "@/lib/api";
+
+type Payout = {
+  id: string;
+  amount: number;
+  provider: string;
+  status: string;
+  createdAt: string;
+  paidAt?: string;
+};
+
+type TeacherEarnings = {
+  totalEarned: number;
+  pendingPayout: number;
+  payouts: Payout[];
+};
+
 export default function TeacherEarningsPage() {
-  const months = ["Mar", "Apr", "May", "Jun", "Jul", "Aug"];
-  const values = [8200, 9400, 10800, 9600, 11200, 12800];
-  const maxVal = Math.max(...values);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState("");
+  const [earnings, setEarnings] = useState<TeacherEarnings | null>(null);
+  const [withdrawAmount, setWithdrawAmount] = useState("");
+  const [withdrawProvider, setWithdrawProvider] = useState("TELEBIRR");
+  const [submitting, setSubmitting] = useState(false);
+
+  useEffect(() => {
+    let cancelled = false;
+    setLoading(true);
+    setError("");
+
+    apiFetch<TeacherEarnings>(paths.teacherEarnings)
+      .then((data) => {
+        if (!cancelled) setEarnings(data);
+      })
+      .catch((err) => {
+        if (!cancelled) setError(err.message || "Failed to load earnings");
+      })
+      .finally(() => {
+        if (!cancelled) setLoading(false);
+      });
+
+    return () => { cancelled = true; };
+  }, []);
+
+  const handleWithdraw = async () => {
+    if (!earnings) return;
+    const amount = Number(withdrawAmount);
+    if (!amount || amount <= 0) {
+      setError("Enter a valid amount");
+      return;
+    }
+    if (amount > earnings.pendingPayout) {
+      setError("Amount exceeds available balance");
+      return;
+    }
+    setSubmitting(true);
+    setError("");
+    try {
+      await apiFetch(paths.payoutRequest, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ amount, provider: withdrawProvider }),
+      });
+      setWithdrawAmount("");
+      setError("");
+      const updated = await apiFetch<TeacherEarnings>(paths.teacherEarnings);
+      setEarnings(updated);
+      alert("Payout request submitted");
+    } catch (err: any) {
+      setError(err.message || "Payout failed");
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
+  if (loading) {
+    return (
+      <div className="space-y-5 p-6">
+        <div className="h-6 w-48 animate-pulse rounded bg-slate-200 dark:bg-slate-800" />
+        <div className="rounded-2xl h-32 animate-pulse bg-slate-100 dark:bg-slate-800" />
+      </div>
+    );
+  }
+
+  if (error && !earnings) {
+    return (
+      <div className="p-6">
+        <p className="text-sm text-red-600">{error}</p>
+        <button
+          type="button"
+          onClick={() => window.location.reload()}
+          className="mt-3 rounded-xl bg-teal-600 px-4 py-2 text-sm font-bold text-white"
+        >
+          Retry
+        </button>
+      </div>
+    );
+  }
+
+  if (!earnings) {
+    return <div className="p-6"><p className="text-sm text-[var(--secondary)]">No earnings data</p></div>;
+  }
 
   return (
     <div className="space-y-5 p-6">
       <h2 className="text-xl font-extrabold text-slate-800 dark:text-white">Earnings & Payouts</h2>
       <div className="grid gap-4 md:grid-cols-3">
         <div className="rounded-2xl bg-gradient-to-br from-teal-700 to-teal-900 p-5 text-white">
-          <p className="mb-1 text-sm opacity-70">This Month</p>
+          <p className="mb-1 text-sm opacity-70">Available to Withdraw</p>
           <p className="mb-1 text-3xl font-extrabold">
-            12,800 <span className="text-base opacity-70">ETB</span>
+            {earnings.pendingPayout.toLocaleString()} <span className="text-base opacity-70">ETB</span>
           </p>
-          <p className="mb-4 text-xs opacity-60">↑ 14% vs last month</p>
-          <button className="w-full rounded-xl bg-white/15 py-2 text-sm font-bold">Withdraw Now</button>
+          <p className="mb-4 text-xs opacity-60">
+            {earnings.totalEarned.toLocaleString()} ETB total earned
+          </p>
+          <div className="flex flex-col gap-2">
+            <input
+              type="number"
+              value={withdrawAmount}
+              onChange={(e) => setWithdrawAmount(e.target.value)}
+              placeholder="Amount"
+              className="rounded-xl bg-white/10 px-3 py-2 text-sm text-white placeholder-white/60 outline-none"
+            />
+            <select
+              value={withdrawProvider}
+              onChange={(e) => setWithdrawProvider(e.target.value)}
+              className="rounded-xl bg-white/10 px-3 py-2 text-sm text-white outline-none"
+            >
+              <option value="TELEBIRR" className="text-black">Telebirr</option>
+              <option value="CBE_BIRR" className="text-black">CBE Birr</option>
+              <option value="MPESA" className="text-black">M-Pesa</option>
+            </select>
+            <button
+              type="button"
+              onClick={handleWithdraw}
+              disabled={submitting}
+              className="w-full rounded-xl bg-white/15 py-2 text-sm font-bold disabled:opacity-70"
+            >
+              {submitting ? "Requesting…" : "Withdraw"}
+            </button>
+          </div>
+          {error && <p className="mt-2 text-xs text-red-200">{error}</p>}
         </div>
         <div className="rounded-2xl border border-slate-100 bg-white p-5 dark:border-slate-800 dark:bg-[#112240] md:col-span-2">
-          <h3 className="mb-4 font-bold text-slate-800 dark:text-white">6-Month Trend</h3>
-          <div className="flex h-32 items-end gap-2">
-            {months.map((m, i) => (
-              <div key={m} className="flex flex-1 flex-col items-center gap-1">
-                <p className="text-[9px] text-slate-400">{(values[i] / 1000).toFixed(1)}k</p>
-                <div
-                  className="w-full overflow-hidden rounded-lg bg-teal-100 dark:bg-teal-900/30"
-                  style={{ height: `${(values[i] / maxVal) * 90}px` }}
-                >
-                  <div className="h-full rounded-lg bg-gradient-to-t from-teal-700 to-teal-400" />
-                </div>
-                <p className="text-[9px] text-slate-400">{m}</p>
-              </div>
-            ))}
-          </div>
-        </div>
-      </div>
-
-      <div className="grid gap-4 md:grid-cols-2">
-        <div className="rounded-2xl border border-slate-100 bg-white p-5 dark:border-slate-800 dark:bg-[#112240]">
-          <h3 className="mb-4 font-bold text-slate-800 dark:text-white">Payout Methods</h3>
-          <div className="space-y-3">
-            {[
-              ["📱", "Telebirr", "**** 4521", true],
-              ["🏦", "CBE Birr", "**** 8823", true],
-              ["📲", "M-Pesa", "Not linked", false],
-            ].map(([icon, name, num, active]) => (
-              <div
-                key={String(name)}
-                className="flex items-center gap-3 rounded-xl border border-slate-100 p-3 dark:border-slate-700"
-              >
-                <span className="text-xl">{icon}</span>
-                <div className="flex-1">
-                  <p className="text-sm font-semibold text-slate-700 dark:text-slate-200">{name}</p>
-                  <p className="text-xs text-slate-400">{num}</p>
-                </div>
-                <span
-                  className={`rounded-full px-2 py-0.5 text-[10px] font-bold ${
-                    active
-                      ? "bg-emerald-50 text-emerald-700 dark:bg-emerald-900/30"
-                      : "bg-slate-100 text-slate-500 dark:bg-slate-800"
-                  }`}
-                >
-                  {active ? "Active" : "Link"}
-                </span>
-              </div>
-            ))}
-          </div>
-        </div>
-        <div className="rounded-2xl border border-slate-100 bg-white p-5 dark:border-slate-800 dark:bg-[#112240]">
-          <h3 className="mb-4 font-bold text-slate-800 dark:text-white">Recent Transactions</h3>
+          <h3 className="mb-4 font-bold text-slate-800 dark:text-white">Recent Payouts</h3>
+          {earnings.payouts.length === 0 && (
+            <p className="text-sm text-slate-400">No payouts yet.</p>
+          )}
           <div className="space-y-2">
-            {[
-              { desc: "Payout to Telebirr", amount: "8,000", sign: "-", date: "Aug 25" },
-              { desc: "Session earnings (10)", amount: "4,800", sign: "+", date: "Aug 20" },
-              { desc: "Session earnings (8)", amount: "3,840", sign: "+", date: "Aug 15" },
-              { desc: "Connects purchase (20)", amount: "2,000", sign: "-", date: "Aug 10" },
-            ].map((tx) => (
-              <div
-                key={tx.desc}
-                className="flex items-center gap-2 border-b border-slate-100 py-2 last:border-0 dark:border-slate-800"
-              >
-                <div
-                  className={`flex h-8 w-8 items-center justify-center rounded-lg text-sm ${
-                    tx.sign === "+" ? "bg-emerald-50 dark:bg-emerald-900/20" : "bg-slate-50 dark:bg-slate-800"
-                  }`}
-                >
-                  {tx.sign === "+" ? "💚" : "📤"}
+            {earnings.payouts.map((p) => (
+              <div key={p.id} className="flex items-center justify-between border-b border-slate-100 py-2 last:border-0 dark:border-slate-800">
+                <div>
+                  <p className="text-sm font-semibold text-slate-700 dark:text-slate-200">
+                    {Number(p.amount).toLocaleString()} ETB
+                  </p>
+                  <p className="text-[10px] text-slate-400">
+                    {new Date(p.createdAt).toLocaleDateString()} · {p.provider}
+                  </p>
                 </div>
-                <div className="flex-1">
-                  <p className="text-xs font-semibold text-slate-700 dark:text-slate-200">{tx.desc}</p>
-                  <p className="text-[10px] text-slate-400">{tx.date}</p>
-                </div>
-                <p
-                  className={`text-sm font-bold ${
-                    tx.sign === "+" ? "text-emerald-600" : "text-slate-700 dark:text-slate-300"
-                  }`}
-                >
-                  {tx.sign}
-                  {tx.amount}
-                </p>
+                <span className={`rounded-full px-2 py-0.5 text-[10px] font-bold ${
+                  p.status === "PAID" ? "bg-emerald-50 text-emerald-700" :
+                  p.status === "PROCESSING" ? "bg-amber-50 text-amber-700" :
+                  "bg-slate-100 text-slate-600"
+                }`}>
+                  {p.status}
+                </span>
               </div>
             ))}
           </div>

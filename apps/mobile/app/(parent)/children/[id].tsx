@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import {
   View,
   Text,
@@ -6,22 +6,112 @@ import {
   TouchableOpacity,
   StyleSheet,
   Alert,
+  ActivityIndicator,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useRouter, useLocalSearchParams } from "expo-router";
 import { useTheme } from "../../../hooks/useTheme";
+import { apiRequest, paths } from "@/lib/api";
 
-const SUBJECTS = ["Mathematics", "Physics", "Chemistry", "English"];
-const TUTORS = [
-  { name: "Hana Bekele", sub: "Mathematics", rating: 4.9 },
-  { name: "Abel Tesfaye", sub: "Physics", rating: 4.8 },
-];
+type ChildDetail = {
+  id: string;
+  studentName: string;
+  gradeLevel: string;
+  curriculum: string;
+  subjects: string[];
+  specialLearningNotes: string | null;
+};
 
 export default function ChildProfileScreen() {
   const router = useRouter();
   const { id } = useLocalSearchParams<{ id: string }>();
   const { colors, isDark } = useTheme();
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState("");
+  const [child, setChild] = useState<ChildDetail | null>(null);
   const [curriculum, setCurriculum] = useState<"national" | "cambridge">("national");
+  const [saving, setSaving] = useState(false);
+
+  useEffect(() => {
+    if (!id) return;
+    let cancelled = false;
+    setLoading(true);
+    setError("");
+
+    apiRequest<ChildDetail>(paths.child(id))
+      .then((data) => {
+        if (!cancelled) {
+          setChild(data);
+          const cur = data.curriculum || "";
+          setCurriculum(cur === "NATIONAL_MINISTRY" ? "national" : "cambridge");
+        }
+      })
+      .catch((err) => {
+        if (!cancelled) setError(err.message || "Failed to load child");
+      })
+      .finally(() => {
+        if (!cancelled) setLoading(false);
+      });
+
+    return () => { cancelled = true; };
+  }, [id]);
+
+  const handleSave = async () => {
+    if (!child) return;
+    try {
+      setSaving(true);
+      await apiRequest(paths.child(child.id), {
+        method: "PATCH",
+        body: JSON.stringify({
+          curriculum: curriculum === "national" ? "NATIONAL_MINISTRY" : "CAMBRIDGE",
+        }),
+      });
+      Alert.alert("Saved", "Child profile updated");
+    } catch (err: any) {
+      Alert.alert("Error", err.message || "Failed to save");
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  if (loading) {
+    return (
+      <SafeAreaView style={[styles.safe, { backgroundColor: colors.bg }]} edges={["top"]}>
+        <View style={[styles.header, { backgroundColor: colors.card, borderBottomColor: colors.border }]}>
+          <TouchableOpacity onPress={() => router.back()}>
+            <Text style={{ color: colors.sub, fontSize: 16 }}>←</Text>
+          </TouchableOpacity>
+          <Text style={[styles.headerTitle, { color: colors.text, flex: 1, marginLeft: 10 }]}>
+            Child Profile
+          </Text>
+        </View>
+        <View style={{ flex: 1, alignItems: "center", justifyContent: "center" }}>
+          <ActivityIndicator size="large" color={colors.primary} />
+        </View>
+      </SafeAreaView>
+    );
+  }
+
+  if (error || !child) {
+    return (
+      <SafeAreaView style={[styles.safe, { backgroundColor: colors.bg }]} edges={["top"]}>
+        <View style={[styles.header, { backgroundColor: colors.card, borderBottomColor: colors.border }]}>
+          <TouchableOpacity onPress={() => router.back()}>
+            <Text style={{ color: colors.sub, fontSize: 16 }}>←</Text>
+          </TouchableOpacity>
+          <Text style={[styles.headerTitle, { color: colors.text, flex: 1, marginLeft: 10 }]}>
+            Child Profile
+          </Text>
+        </View>
+        <View style={{ padding: 24, alignItems: "center" }}>
+          <Text style={{ color: colors.text, marginBottom: 12 }}>{error || "Child not found"}</Text>
+          <TouchableOpacity onPress={() => router.back()} style={[styles.retryBtn, { backgroundColor: colors.primary }]}>
+            <Text style={{ color: "#fff", fontWeight: "700" }}>Go Back</Text>
+          </TouchableOpacity>
+        </View>
+      </SafeAreaView>
+    );
+  }
 
   return (
     <SafeAreaView style={[styles.safe, { backgroundColor: colors.bg }]} edges={["top"]}>
@@ -32,29 +122,33 @@ export default function ChildProfileScreen() {
         <Text style={[styles.headerTitle, { color: colors.text, flex: 1, marginLeft: 10 }]}>
           Child Profile
         </Text>
-        <TouchableOpacity onPress={() => Alert.alert("Saved", "Child profile updated")}>
-          <Text style={{ color: colors.primary, fontWeight: "700", fontSize: 13 }}>Save</Text>
+        <TouchableOpacity onPress={handleSave} disabled={saving}>
+          <Text style={{ color: colors.primary, fontWeight: "700", fontSize: 13 }}>
+            {saving ? "Saving..." : "Save"}
+          </Text>
         </TouchableOpacity>
       </View>
 
       <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
         <View style={[styles.card, { backgroundColor: colors.card, borderColor: colors.border, alignItems: "center" }]}>
           <View style={[styles.avatarXl, { backgroundColor: colors.primary }]}>
-            <Text style={{ color: "#fff", fontSize: 22, fontWeight: "800" }}>LT</Text>
+            <Text style={{ color: "#fff", fontSize: 22, fontWeight: "800" }}>
+              {child.studentName.split(" ").map((n) => n[0]).join("").slice(0, 2)}
+            </Text>
           </View>
           <Text style={{ color: colors.text, fontWeight: "800", fontSize: 16, marginTop: 10 }}>
-            Liya Tadesse
+            {child.studentName}
           </Text>
-          <Text style={{ color: colors.sub, fontSize: 11 }}>Age 15 · Grade 10 · #{id}</Text>
+          <Text style={{ color: colors.sub, fontSize: 11 }}>
+            {child.gradeLevel} · {curriculum === "national" ? "National" : "Cambridge"} · #{child.id}
+          </Text>
         </View>
 
         <View style={[styles.card, { backgroundColor: colors.card, borderColor: colors.border }]}>
           <Text style={[styles.label, { color: colors.sub }]}>BASIC INFORMATION</Text>
           {[
-            ["Full Name", "Liya Tadesse"],
-            ["Date of Birth", "March 14, 2009"],
-            ["School", "Bole International School"],
-            ["Grade Level", "Grade 10"],
+            ["Full Name", child.studentName],
+            ["Grade Level", child.gradeLevel],
           ].map(([label, val]) => (
             <View key={label} style={{ marginBottom: 10 }}>
               <Text style={{ color: colors.sub, fontSize: 10, fontWeight: "600", marginBottom: 4 }}>
@@ -118,96 +212,39 @@ export default function ChildProfileScreen() {
         </View>
 
         <View style={[styles.card, { backgroundColor: colors.card, borderColor: colors.border }]}>
-          <View style={styles.rowBetween}>
-            <Text style={[styles.label, { color: colors.sub }]}>SUBJECTS</Text>
-            <TouchableOpacity>
-              <Text style={{ color: colors.primary, fontSize: 11, fontWeight: "700" }}>+ Add</Text>
-            </TouchableOpacity>
-          </View>
+          <Text style={[styles.label, { color: colors.sub }]}>SUBJECTS</Text>
           <View style={{ flexDirection: "row", flexWrap: "wrap", gap: 8 }}>
-            {SUBJECTS.map((s, i) => (
+            {child.subjects.map((s, i) => (
               <View
                 key={s}
                 style={[
                   styles.tag,
                   {
-                    borderColor: i < 3 ? colors.primary : colors.border,
-                    backgroundColor:
-                      i < 3 ? (isDark ? "#134e4a44" : "#f0fdfa") : "transparent",
+                    borderColor: colors.primary,
+                    backgroundColor: isDark ? "#134e4a44" : "#f0fdfa",
                   },
                 ]}
               >
                 <Text
                   style={{
-                    color: i < 3 ? colors.primary : colors.sub,
+                    color: colors.primary,
                     fontSize: 11,
                     fontWeight: "600",
                   }}
                 >
-                  {s}
-                  {i < 3 ? " ×" : ""}
+                  {s} ×
                 </Text>
               </View>
             ))}
           </View>
         </View>
 
-        <View style={[styles.card, { backgroundColor: colors.card, borderColor: colors.border }]}>
-          <View style={styles.rowBetween}>
-            <Text style={[styles.label, { color: colors.sub }]}>ASSIGNED TUTORS</Text>
-            <TouchableOpacity onPress={() => router.push("/(parent)/(tabs)/find-tutors")}>
-              <Text style={{ color: colors.primary, fontSize: 11, fontWeight: "700" }}>
-                + Add Tutor
-              </Text>
-            </TouchableOpacity>
-          </View>
-          {TUTORS.map((t) => (
-            <View
-              key={t.name}
-              style={[styles.tutorRow, { backgroundColor: isDark ? "#1e293b99" : "#f8fafc" }]}
-            >
-              <View style={[styles.avatarSm, { backgroundColor: colors.primary }]}>
-                <Text style={{ color: "#fff", fontWeight: "700", fontSize: 12 }}>{t.name[0]}</Text>
-              </View>
-              <View style={{ flex: 1 }}>
-                <Text style={{ color: colors.text, fontWeight: "700", fontSize: 12 }}>{t.name}</Text>
-                <Text style={{ color: colors.sub, fontSize: 10 }}>
-                  {t.sub} · {t.rating} ⭐
-                </Text>
-              </View>
-              <TouchableOpacity style={styles.removeBtn}>
-                <Text style={{ color: "#ef4444", fontSize: 11, fontWeight: "600" }}>Remove</Text>
-              </TouchableOpacity>
-            </View>
-          ))}
-        </View>
-
-        <View style={[styles.card, { backgroundColor: colors.card, borderColor: colors.border }]}>
-          <Text style={{ color: colors.sub, fontSize: 10, fontWeight: "600", marginBottom: 6 }}>
-            Learning Notes for Tutors
-          </Text>
-          <View
-            style={[
-              styles.notesBox,
-              {
-                backgroundColor: isDark ? "#1e293b" : "#f8fafc",
-                borderColor: colors.border,
-              },
-            ]}
-          >
-            <Text style={{ color: colors.text, fontSize: 11, lineHeight: 17 }}>
-              Liya learns best with visual examples and diagrams. She is shy at first but opens up
-              quickly. Prefers structured lessons with clear goals. Family speaks Amharic at home —
-              tutor may use simple Amharic to clarify concepts.
-            </Text>
-          </View>
-        </View>
-
         <TouchableOpacity
           style={[styles.cta, { backgroundColor: colors.primary }]}
-          onPress={() => Alert.alert("Saved", "Child profile updated")}
+          onPress={handleSave}
+          disabled={saving}
         >
-          <Text style={styles.ctaText}>Save Changes</Text>
+          <Text style={styles.ctaText}>{saving ? "Saving..." : "Save Changes"}</Text>
         </TouchableOpacity>
       </ScrollView>
     </SafeAreaView>
@@ -243,29 +280,7 @@ const styles = StyleSheet.create({
     borderRadius: 999,
     borderWidth: 1,
   },
-  tutorRow: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 10,
-    padding: 10,
-    borderRadius: 12,
-    marginBottom: 8,
-  },
-  avatarSm: {
-    width: 36,
-    height: 36,
-    borderRadius: 18,
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  removeBtn: {
-    borderWidth: 1,
-    borderColor: "#fecaca",
-    paddingHorizontal: 8,
-    paddingVertical: 4,
-    borderRadius: 8,
-  },
-  notesBox: { borderRadius: 12, borderWidth: 1, padding: 12 },
   cta: { borderRadius: 16, paddingVertical: 14, alignItems: "center" },
   ctaText: { color: "#fff", fontWeight: "800", fontSize: 14 },
+  retryBtn: { paddingVertical: 12, paddingHorizontal: 24, borderRadius: 12, alignItems: "center" },
 });

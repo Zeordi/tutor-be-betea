@@ -11,20 +11,10 @@ export interface EncryptedPayload {
 
 export function getVaultKey(): Buffer {
   const secret = process.env.VAULT_MASTER_KEY || process.env.ENCRYPTION_KEY;
-  const isProd = process.env.NODE_ENV === "production";
 
   if (!secret) {
-    if (isProd) {
-      throw new Error(
-        "VAULT_MASTER_KEY or ENCRYPTION_KEY must be set in production",
-      );
-    }
-    console.warn(
-      "[SECURITY] Using development fallback vault key. Never use this in production.",
-    );
-    return Buffer.from(
-      "0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef",
-      "hex",
+    throw new Error(
+      "VAULT_MASTER_KEY or ENCRYPTION_KEY must be set before the vault can operate",
     );
   }
 

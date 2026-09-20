@@ -1,52 +1,91 @@
 "use client";
 
+import { useEffect, useState } from "react";
 import Link from "next/link";
+import { apiFetch, paths } from "@/lib/api";
 
 const MILESTONES = ["Funded", "In Escrow", "Sessions", "Released"] as const;
 
-const CONTRACTS = [
-  {
-    id: "c1",
-    family: "Mulugeta Family",
-    child: "Kidist",
-    subject: "Math · Grade 11",
-    rate: "450 ETB/hr",
-    status: "ACTIVE",
-    escrowHeld: 3600,
-    sessionsDone: 6,
-    sessionsTotal: 8,
-    nextSession: "Today · 10:00 AM",
-    milestoneIndex: 2,
-  },
-  {
-    id: "c2",
-    family: "Hailu Family",
-    child: "Yonas",
-    subject: "Physics · Grade 10",
-    rate: "480 ETB/hr",
-    status: "ACTIVE",
-    escrowHeld: 2400,
-    sessionsDone: 3,
-    sessionsTotal: 6,
-    nextSession: "Tomorrow · 2:00 PM",
-    milestoneIndex: 2,
-  },
-  {
-    id: "c3",
-    family: "Bekele Family",
-    child: "Sara",
-    subject: "Chemistry · Grade 12",
-    rate: "500 ETB/hr",
-    status: "COMPLETED",
-    escrowHeld: 0,
-    sessionsDone: 10,
-    sessionsTotal: 10,
-    nextSession: "—",
-    milestoneIndex: 3,
-  },
-];
+type Contract = {
+  id: string;
+  family: string;
+  child: string;
+  subject: string;
+  rate: string;
+  status: "ACTIVE" | "COMPLETED" | "PAUSED" | "INACTIVE";
+  escrowHeld: number;
+  sessionsDone: number;
+  sessionsTotal: number;
+  nextSession: string;
+  milestoneIndex: number;
+};
 
 export default function TeacherContractsPage() {
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState("");
+  const [contracts, setContracts] = useState<Contract[]>([]);
+
+  useEffect(() => {
+    let cancelled = false;
+    setLoading(true);
+    setError("");
+
+    apiFetch<Contract[]>(paths.contractsTeacher)
+      .then((data) => {
+        if (!cancelled) setContracts(data || []);
+      })
+      .catch((err) => {
+        if (!cancelled) setError(err.message || "Failed to load contracts");
+      })
+      .finally(() => {
+        if (!cancelled) setLoading(false);
+      });
+
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  const activeCount = contracts.filter((c) => c.status === "ACTIVE").length;
+  const totalEscrow = contracts
+    .filter((c) => c.status === "ACTIVE")
+    .reduce((sum, c) => sum + (c.escrowHeld || 0), 0);
+  const completedCount = contracts.filter((c) => c.status === "COMPLETED").length;
+
+  if (loading) {
+    return (
+      <div>
+        <div className="mb-6 h-8 w-56 animate-pulse rounded bg-slate-200 dark:bg-slate-800" />
+        <div className="mb-6 h-4 w-64 animate-pulse rounded bg-slate-200 dark:bg-slate-800" />
+        <div className="mb-6 grid gap-3 sm:grid-cols-3">
+          {[1, 2, 3].map((i) => (
+            <div key={i} className="h-20 animate-pulse rounded-2xl bg-slate-100 dark:bg-slate-800" />
+          ))}
+        </div>
+        <div className="space-y-4">
+          {[1, 2].map((i) => (
+            <div key={i} className="h-56 animate-pulse rounded-2xl bg-slate-100 dark:bg-slate-800" />
+          ))}
+        </div>
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="p-6">
+        <p className="text-sm text-red-600">{error}</p>
+        <button
+          type="button"
+          onClick={() => window.location.reload()}
+          className="mt-3 rounded-xl bg-teal-600 px-4 py-2 text-sm font-bold text-white"
+        >
+          Retry
+        </button>
+      </div>
+    );
+  }
+
   return (
     <div>
       <div className="mb-6">
@@ -58,9 +97,9 @@ export default function TeacherContractsPage() {
 
       <div className="mb-6 grid gap-3 sm:grid-cols-3">
         {[
-          ["2", "Active"],
-          ["6,000 ETB", "In escrow"],
-          ["1", "Completed"],
+          [String(activeCount), "Active"],
+          [`${totalEscrow.toLocaleString()} ETB`, "In escrow"],
+          [String(completedCount), "Completed"],
         ].map(([v, l]) => (
           <div
             key={l}
@@ -73,8 +112,8 @@ export default function TeacherContractsPage() {
       </div>
 
       <div className="space-y-4">
-        {CONTRACTS.map((c) => {
-          const pct = Math.round((c.sessionsDone / c.sessionsTotal) * 100);
+        {contracts.map((c) => {
+          const pct = c.sessionsTotal > 0 ? Math.round((c.sessionsDone / c.sessionsTotal) * 100) : 0;
           return (
             <div
               key={c.id}
@@ -98,7 +137,6 @@ export default function TeacherContractsPage() {
                 </span>
               </div>
 
-              {/* Escrow milestone timeline */}
               <div className="mb-5 flex items-center gap-1">
                 {MILESTONES.map((m, i) => {
                   const done = i <= c.milestoneIndex;
@@ -142,17 +180,17 @@ export default function TeacherContractsPage() {
               <div className="mb-4 grid gap-3 sm:grid-cols-3">
                 <div className="rounded-xl bg-[var(--muted)] p-3">
                   <p className="text-[11px] text-[var(--secondary)]">Rate</p>
-                  <p className="font-mono font-bold text-[var(--primary)]">{c.rate}</p>
+                  <p className="font-mono font-bold text-[var(--primary)]">{c.rate || c.escrowHeld + " ETB"}</p>
                 </div>
                 <div className="rounded-xl bg-[var(--muted)] p-3">
                   <p className="text-[11px] text-[var(--secondary)]">Escrow held</p>
                   <p className="font-mono font-bold text-[var(--foreground)]">
-                    {c.escrowHeld.toLocaleString()} ETB
+                    {(c.escrowHeld || 0).toLocaleString()} ETB
                   </p>
                 </div>
                 <div className="rounded-xl bg-[var(--muted)] p-3">
                   <p className="text-[11px] text-[var(--secondary)]">Next session</p>
-                  <p className="font-bold text-[var(--foreground)]">{c.nextSession}</p>
+                  <p className="font-bold text-[var(--foreground)]">{c.nextSession || "—"}</p>
                 </div>
               </div>
 
@@ -186,6 +224,9 @@ export default function TeacherContractsPage() {
             </div>
           );
         })}
+        {contracts.length === 0 && (
+          <p className="text-sm text-[var(--secondary)]">No contracts found.</p>
+        )}
       </div>
     </div>
   );

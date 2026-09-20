@@ -5,6 +5,7 @@ import {
   Param,
   Body,
   UseGuards,
+  Query,
 } from "@nestjs/common";
 import { ContractsService } from "./contracts.service";
 import { JwtAuthGuard } from "../../common/guards/jwt-auth.guard";
@@ -36,6 +37,14 @@ export class ContractsController {
   @Roles("TEACHER")
   listTeacher(@CurrentUser() user: any) {
     return this.contractsService.listForTeacher(user.id);
+  }
+
+  /** Admin-only – list all contracts with optional status filter */
+  @Get()
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles("SUPER_ADMIN", "SUPPORT_AGENT", "FINANCE")
+  async listAll(@Query("status") status?: string) {
+    return this.contractsService.listAll(status as any);
   }
 
   @Get(":id")

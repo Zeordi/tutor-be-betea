@@ -1,41 +1,115 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import Link from "next/link";
 import { useParams } from "next/navigation";
+import { apiFetch, paths } from "@/lib/api";
 
-const REVIEWS = [
-  {
-    name: "Hana T.",
-    text: "My daughter improved from 65% to 88% in 6 weeks!",
-    stars: 5,
-    child: "Grade 11 Math",
-  },
-  {
-    name: "Abel M.",
-    text: "Always prepared and patient. Highly recommend.",
-    stars: 5,
-    child: "Grade 9 Physics",
-  },
-  {
-    name: "Tigist K.",
-    text: "Very professional with clear explanations.",
-    stars: 4,
-    child: "Grade 10 Math",
-  },
-];
+type Review = {
+  id: string;
+  rating: number;
+  comment: string | null;
+  createdAt: string;
+  author: { fullName: string; avatarUrl: string | null };
+};
 
-const PACKS = [
-  { label: "Single Session", detail: "450 ETB/hr · 60 or 90 min", popular: false },
-  { label: "8-hr Pack", detail: "2,400 ETB · Save 800", popular: false },
-  { label: "Monthly (20hr)", detail: "4,800 ETB · Popular", popular: true },
-];
+type Package = {
+  id: string;
+  name: string;
+  sessions: number;
+  priceEtb: number;
+  description: string | null;
+};
+
+type Availability = {
+  dayOfWeek: number;
+  startTime: string;
+  endTime: string;
+};
+
+type TeacherProfile = {
+  id: string;
+  fullName: string;
+  avatarUrl: string | null;
+  subCity: string | null;
+  status: string;
+  bio: string | null;
+  bioAm: string | null;
+  videoIntroUrl: string | null;
+  teachingStyles: string[];
+  hourlyRate: number;
+  monthlyRate: number;
+  weekendRate: number | null;
+  subjects: string[];
+  grades: string[];
+  rating: number;
+  totalReviews: number;
+  totalHoursTaught: number;
+  badgeTier: string | null;
+  isIdVerified: boolean;
+  isEduVerified: boolean;
+  isAvailable: boolean;
+  maxTravelKm: number;
+  packages: Package[];
+  availability: Availability[];
+  trustBadges: { type: string; issuedAt: string }[];
+  reviews: Review[];
+};
+
+type Tab = "overview" | "reviews" | "schedule";
 
 export default function ParentTutorProfilePage() {
   const params = useParams();
   const id = (params?.id as string) || "1";
-  const [tab, setTab] = useState<"overview" | "reviews" | "schedule">("overview");
-  const [pack, setPack] = useState(2);
+  const [tab, setTab] = useState<Tab>("overview");
+  const [pack, setPack] = useState(0);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState("");
+  const [profile, setProfile] = useState<TeacherProfile | null>(null);
+
+  useEffect(() => {
+    let cancelled = false;
+    setLoading(true);
+    setError("");
+
+    apiFetch<TeacherProfile>(paths.teacher(id))
+      .then((data) => {
+        if (!cancelled) setProfile(data);
+      })
+      .catch((err) => {
+        if (!cancelled) setError(err.message || "Failed to load tutor");
+      })
+      .finally(() => {
+        if (!cancelled) setLoading(false);
+      });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [id]);
+
+  if (loading) {
+    return (
+      <div className="space-y-4 p-6">
+        <div className="h-8 w-48 animate-pulse rounded bg-slate-200 dark:bg-slate-800" />
+        <div className="h-64 animate-pulse rounded-2xl bg-slate-100 dark:bg-slate-800" />
+      </div>
+    );
+  }
+
+  if (error || !profile) {
+    return (
+      <div className="p-6">
+        <p className="text-sm text-red-600">{error || "Tutor not found"}</p>
+        <Link
+          href="/parent/tutors"
+          className="mt-3 inline-flex text-sm font-semibold text-[var(--secondary)] hover:text-[var(--primary)]"
+        >
+          ← Back to Find Tutors
+        </Link>
+      </div>
+    );
+  }
 
   return (
     <div>
@@ -51,52 +125,75 @@ export default function ParentTutorProfilePage() {
         <div className="rounded-2xl border border-[var(--border)] bg-[var(--card)] p-6 md:p-7">
           <div className="mb-5 flex flex-col gap-4 md:flex-row md:items-center">
             <div className="flex h-20 w-20 shrink-0 items-center justify-center rounded-full bg-gradient-to-br from-[var(--primary)] to-teal-300 text-4xl">
-              👨‍🏫
+              {profile.avatarUrl ? (
+                <img
+                  src={profile.avatarUrl}
+                  alt={profile.fullName}
+                  className="h-full w-full rounded-full object-cover"
+                />
+              ) : (
+                "👨‍🏫"
+              )}
             </div>
             <div className="min-w-0 flex-1">
               <h1 className="text-2xl font-black text-[var(--foreground)]">
-                Berhane Alemu
+                {profile.fullName}
               </h1>
               <p className="mb-2 text-sm text-[var(--secondary)]">
-                Mathematics & Physics · Grade 9–12 · Bole
+                {profile.subjects.join(", ")} · {profile.grades.join(", ")} ·{" "}
+                {profile.subCity || "Online"}
               </p>
               <div className="flex flex-wrap gap-1.5">
-                <span className="rounded-full bg-[#00A389] px-2.5 py-1 text-[11px] font-bold text-white">
-                  🪪 Fayda ID
-                </span>
-                <span className="rounded-full bg-teal-50 px-2.5 py-1 text-[11px] font-bold text-[var(--primary)] dark:bg-teal-950/40">
-                  🎓 Degree
-                </span>
-                <span className="rounded-full bg-teal-50 px-2.5 py-1 text-[11px] font-bold text-[var(--primary)] dark:bg-teal-950/40">
-                  👮 BG Check
-                </span>
+                {profile.isIdVerified && (
+                  <span className="rounded-full bg-[#00A389] px-2.5 py-1 text-[11px] font-bold text-white">
+                    🪪 Fayda ID
+                  </span>
+                )}
+                {profile.isEduVerified && (
+                  <span className="rounded-full bg-teal-50 px-2.5 py-1 text-[11px] font-bold text-[var(--primary)] dark:bg-teal-950/40">
+                    🎓 Degree
+                  </span>
+                )}
+                {profile.badgeTier && (
+                  <span className="rounded-full bg-teal-50 px-2.5 py-1 text-[11px] font-bold text-[var(--primary)] dark:bg-teal-950/40">
+                    👮 BG Check
+                  </span>
+                )}
               </div>
             </div>
             <div className="flex gap-5">
-              {[["4.9", "Rating"], ["312", "Sessions"], ["6 yrs", "Exp."]].map(
-                ([v, l]) => (
-                  <div key={l} className="text-center">
-                    <p className="text-xl font-black text-[var(--primary)]">{v}</p>
-                    <p className="text-[11px] text-[var(--secondary)]">{l}</p>
-                  </div>
-                )
-              )}
+              {[
+                [profile.rating.toFixed(1), "Rating"],
+                [String(profile.totalHoursTaught || 0), "Sessions"],
+                [profile.totalHoursTaught ? `${Math.floor(profile.totalHoursTaught / 10)} yrs` : "—", "Exp."],
+              ].map(([v, l]) => (
+                <div key={l} className="text-center">
+                  <p className="text-xl font-black text-[var(--primary)]">{v}</p>
+                  <p className="text-[11px] text-[var(--secondary)]">{l}</p>
+                </div>
+              ))}
             </div>
           </div>
 
           {/* Video */}
-          <div className="relative mb-5 flex h-44 cursor-pointer items-center justify-center overflow-hidden rounded-xl border border-[var(--border)] bg-[var(--muted)]">
-            <div className="absolute inset-0 bg-gradient-to-br from-[var(--primary)]/10 to-teal-300/10" />
-            <div className="relative text-center">
-              <div className="mx-auto mb-2 flex h-12 w-12 items-center justify-center rounded-full bg-[var(--primary)] text-white">
-                ▶
+          {profile.videoIntroUrl ? (
+            <div className="relative mb-5 flex h-44 cursor-pointer items-center justify-center overflow-hidden rounded-xl border border-[var(--border)] bg-[var(--muted)]">
+              <div className="absolute inset-0 bg-gradient-to-br from-[var(--primary)]/10 to-teal-300/10" />
+              <div className="relative text-center">
+                <div className="mx-auto mb-2 flex h-12 w-12 items-center justify-center rounded-full bg-[var(--primary)] text-white">
+                  ▶
+                </div>
+                <p className="text-sm font-bold text-[var(--foreground)]">
+                  Intro Video · 58 sec
+                </p>
+                <p className="text-xs text-[var(--secondary)]">Amharic & English</p>
               </div>
-              <p className="text-sm font-bold text-[var(--foreground)]">
-                Intro Video · 58 sec
-              </p>
-              <p className="text-xs text-[var(--secondary)]">Amharic & English</p>
             </div>
-          </div>
+          ) : (
+            <div className="relative mb-5 flex h-44 items-center justify-center rounded-xl border border-dashed border-[var(--border)] bg-[var(--muted)]">
+              <p className="text-sm text-[var(--secondary)]">No intro video yet</p>
+            </div>
+          )}
 
           <div className="mb-5 flex gap-1 border-b border-[var(--border)]">
             {(["overview", "reviews", "schedule"] as const).map((t) => (
@@ -116,28 +213,48 @@ export default function ParentTutorProfilePage() {
           </div>
 
           {tab === "overview" && (
-            <p className="text-sm leading-relaxed text-[var(--secondary)]">
-              BSc in Mathematics from AAU. 6+ years tutoring Grades 9–12. Specializes
-              in National Curriculum exam preparation. AI-generated session reports after
-              every class. In-person (Bole) and online. Profile id: {id}
-            </p>
+            <div className="space-y-4">
+              <p className="text-sm leading-relaxed text-[var(--secondary)]">
+                {profile.bio || "No bio provided yet."}
+              </p>
+              {profile.bioAm && (
+                <p className="text-sm leading-relaxed text-[var(--secondary)]">
+                  {profile.bioAm}
+                </p>
+              )}
+              <div className="flex flex-wrap gap-2">
+                {profile.teachingStyles.map((style) => (
+                  <span
+                    key={style}
+                    className="rounded-full bg-slate-100 px-3 py-1 text-xs font-semibold text-slate-600 dark:bg-slate-800 dark:text-slate-300"
+                  >
+                    {style}
+                  </span>
+                ))}
+              </div>
+            </div>
           )}
 
           {tab === "reviews" && (
             <div className="space-y-4">
-              {REVIEWS.map((r) => (
+              {profile.reviews.length === 0 && (
+                <p className="text-sm text-slate-400">No reviews yet.</p>
+              )}
+              {profile.reviews.map((r) => (
                 <div
-                  key={r.name}
+                  key={r.id}
                   className="border-b border-[var(--border)] pb-4 last:border-0"
                 >
-                  <p className="text-sm text-amber-500">{"★".repeat(r.stars)}</p>
+                  <p className="text-sm text-amber-500">{"★".repeat(r.rating)}</p>
                   <p className="mt-1 text-sm font-bold text-[var(--foreground)]">
-                    {r.name}{" "}
+                    {r.author.fullName}{" "}
                     <span className="font-normal text-[var(--secondary)]">
-                      · {r.child}
+                      · {new Date(r.createdAt).toLocaleDateString()}
                     </span>
                   </p>
-                  <p className="mt-1 text-sm text-[var(--secondary)]">{r.text}</p>
+                  <p className="mt-1 text-sm text-[var(--secondary)]">
+                    {r.comment || "No comment"}
+                  </p>
                 </div>
               ))}
             </div>
@@ -151,7 +268,12 @@ export default function ParentTutorProfilePage() {
                     {d}
                   </p>
                   {["9AM", "10AM", "11AM", "2PM", "3PM"].map((s, si) => {
-                    const av = [0, 2, 4].includes(di) && [0, 1, 3].includes(si);
+                    const av = profile.availability.some(
+                      (a) =>
+                        a.dayOfWeek === di + 1 &&
+                        a.startTime <= s &&
+                        a.endTime >= s,
+                    );
                     return (
                       <div
                         key={s}
@@ -176,12 +298,12 @@ export default function ParentTutorProfilePage() {
           <div className="rounded-2xl border border-[var(--border)] bg-[var(--card)] p-5 shadow-sm">
             <p className="text-[13px] text-[var(--secondary)]">From</p>
             <p className="mb-4 font-mono text-3xl font-black text-[var(--primary)]">
-              450 ETB<span className="text-sm font-semibold text-[var(--secondary)]">/hr</span>
+              {profile.hourlyRate} ETB<span className="text-sm font-semibold text-[var(--secondary)]">/hr</span>
             </p>
             <div className="mb-4 space-y-2">
-              {PACKS.map((p, i) => (
+              {profile.packages.map((p, i) => (
                 <button
-                  key={p.label}
+                  key={p.id}
                   type="button"
                   onClick={() => setPack(i)}
                   className={`w-full rounded-[10px] border p-3 text-left ${
@@ -195,9 +317,11 @@ export default function ParentTutorProfilePage() {
                       pack === i ? "text-[var(--primary)]" : "text-[var(--foreground)]"
                     }`}
                   >
-                    {p.label}
+                    {p.name}
                   </p>
-                  <p className="text-xs text-[var(--secondary)]">{p.detail}</p>
+                  <p className="text-xs text-[var(--secondary)]">
+                    {p.sessions} sessions · {p.priceEtb.toLocaleString()} ETB
+                  </p>
                 </button>
               ))}
             </div>
@@ -234,7 +358,8 @@ export default function ParentTutorProfilePage() {
               Already a student?
             </p>
             <p className="mb-3 text-xs text-[var(--secondary)]">
-              Kidist is assigned to Berhane. View progress reports.
+              {profile.fullName} is assigned to one of your children. View progress
+              reports.
             </p>
             <Link
               href="/parent/progress"
