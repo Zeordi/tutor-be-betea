@@ -1,7 +1,6 @@
 # Phase B — Shared API Client Audit
 
-**Branch**: `kilo/celestial-haven-jpr`  
-**Date**: 2026-09-20  
+  
 **Status**: Core client utilities exist; multiple pages bypass or misuse them
 
 ## Existing Client (Working)
