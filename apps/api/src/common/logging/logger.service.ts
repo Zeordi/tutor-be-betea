@@ -11,9 +11,18 @@ export class StructuredLogger {
   private readonly context: string;
   private readonly logger: Logger;
 
-  constructor(context: string = "app") {
-    this.context = context;
-    this.logger = new Logger(context);
+  /** No constructor DI args — Nest must not inject String */
+  constructor() {
+    this.context = "app";
+    this.logger = new Logger(this.context);
+  }
+
+  /** Optional: scoped logger without DI */
+  static for(context: string): StructuredLogger {
+    const instance = new StructuredLogger();
+    (instance as any).context = context;
+    (instance as any).logger = new Logger(context);
+    return instance;
   }
 
   private format(
@@ -21,14 +30,13 @@ export class StructuredLogger {
     event: string,
     metadata?: LogMetadata,
   ): string {
-    const payload = {
+    return JSON.stringify({
       timestamp: new Date().toISOString(),
       level,
       event,
       context: this.context,
       ...metadata,
-    };
-    return JSON.stringify(payload);
+    });
   }
 
   private log(
@@ -39,11 +47,8 @@ export class StructuredLogger {
   ): void {
     const message = this.format(level, event, metadata);
     if (level === "error") {
-      if (trace) {
-        this.logger.error(message, trace);
-      } else {
-        this.logger.error(message);
-      }
+      if (trace) this.logger.error(message, trace);
+      else this.logger.error(message);
     } else if (level === "warn") {
       this.logger.warn(message);
     } else if (level === "debug") {
