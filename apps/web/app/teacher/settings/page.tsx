@@ -116,13 +116,11 @@ export default function TeacherSettingsPage() {
     setSaved(false);
 
     try {
-      await apiFetch(paths.usersMe, {
+      await apiFetch(paths.teachersMeProfile || "/teachers/me/profile", {
         method: "PATCH",
         body: JSON.stringify({
-          teacherProfile: {
-            language: lang,
-            notificationPrefs: toggles,
-          },
+          language: lang,
+          notificationPrefs: toggles,
         }),
       });
       setSaved(true);

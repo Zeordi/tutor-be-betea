@@ -60,7 +60,7 @@ export default function TeacherAvailabilityPage() {
     setLoading(true);
     setError("");
 
-    apiFetch<Availability>(paths.availability)
+    apiFetch<Availability>(paths.availabilityMine)
       .then((data) => {
         if (!cancelled) {
           if (data?.weeklySchedule) setSchedule(data.weeklySchedule);
@@ -108,13 +108,16 @@ export default function TeacherAvailabilityPage() {
 
   const save = async () => {
     try {
-      await apiFetch(paths.availability, {
-        method: "PATCH",
+      await apiFetch(paths.availabilitySlots, {
+        method: "PUT",
         body: JSON.stringify({
-          weeklySchedule: schedule,
+          slots: schedule,
           blockedDates: blocked,
-          packages: packages,
         }),
+      });
+      await apiFetch(paths.availabilityPackages, {
+        method: "POST",
+        body: JSON.stringify({ packages }),
       });
       alert("Availability saved.");
     } catch (err: any) {

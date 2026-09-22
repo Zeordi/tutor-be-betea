@@ -4,6 +4,8 @@ const API_URL =
   process.env.EXPO_PUBLIC_API_URL ||
   "https://tutor-be-betea.onrender.com";
 
+const REQUEST_TIMEOUT = 25_000;
+
 export function getApiUrl() {
   return API_URL;
 }
@@ -131,11 +133,15 @@ async function tryRefresh(): Promise<string | null> {
 
   const promise = (async (): Promise<string | null> => {
     try {
+      const controller = new AbortController();
+      const timer = setTimeout(() => controller.abort(), REQUEST_TIMEOUT);
       const res = await fetch(API_URL + "/auth/refresh", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ refreshToken }),
+        signal: controller.signal,
       });
+      clearTimeout(timer);
       if (!res.ok) throw new Error("Refresh failed");
       const data = await res.json();
       const newToken = data.accessToken;
@@ -160,6 +166,8 @@ export async function logout(): Promise<void> {
   const refreshToken = await getRefreshToken();
   if (token) {
     try {
+      const controller = new AbortController();
+      const timer = setTimeout(() => controller.abort(), REQUEST_TIMEOUT);
       await fetch(API_URL + "/auth/logout", {
         method: "POST",
         headers: {
@@ -167,7 +175,9 @@ export async function logout(): Promise<void> {
           Authorization: "Bearer " + token,
         },
         body: JSON.stringify({ refreshToken }),
+        signal: controller.signal,
       });
+      clearTimeout(timer);
     } catch {
       // ignore logout API errors
     }
@@ -193,7 +203,11 @@ export async function apiRequest<T = any>(
   }
 
   const url = API_URL + (endpoint.startsWith("/") ? endpoint : "/" + endpoint);
-  const response = await fetch(url, { ...options, headers });
+
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), REQUEST_TIMEOUT);
+  const response = await fetch(url, { ...options, headers, signal: controller.signal });
+  clearTimeout(timer);
 
   if (!response.ok) {
     const errorData = await response.json().catch(() => ({}));
@@ -201,7 +215,10 @@ export async function apiRequest<T = any>(
       const newToken = await tryRefresh();
       if (newToken) {
         headers.Authorization = "Bearer " + newToken;
-        const retryRes = await fetch(url, { ...options, headers });
+        const retryController = new AbortController();
+        const retryTimer = setTimeout(() => retryController.abort(), REQUEST_TIMEOUT);
+        const retryRes = await fetch(url, { ...options, headers, signal: retryController.signal });
+        clearTimeout(retryTimer);
         if (!retryRes.ok) {
           const retryError = await retryRes.json().catch(() => ({}));
           throw new Error(

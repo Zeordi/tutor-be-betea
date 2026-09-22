@@ -2,7 +2,6 @@
 
 import Link from "next/link";
 import { useEffect, useState } from "react";
-import { apiFetch, paths } from "@/lib/api";
 
 type StepStatus = "done" | "issue" | "pending" | "locked";
 
@@ -81,21 +80,6 @@ export default function TeacherOnboardingPage() {
   useEffect(() => {
     let cancelled = false;
     setLoading(true);
-
-    apiFetch<OnboardingStep[]>(paths.onboardingStatus)
-      .then((data) => {
-        if (!cancelled && data && data.length > 0) {
-          setSteps(data);
-        }
-      })
-      .catch(() => {
-        if (!cancelled) {
-          // keep defaults
-        }
-      })
-      .finally(() => {
-        if (!cancelled) setLoading(false);
-      });
 
     return () => {
       cancelled = true;

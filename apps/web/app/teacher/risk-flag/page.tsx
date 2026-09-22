@@ -14,7 +14,7 @@ type RiskFlag = {
 };
 
 export default function TeacherRiskFlagPage() {
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   const [flag, setFlag] = useState<RiskFlag | null>(null);
   const [appealStarted, setAppealStarted] = useState(false);
@@ -24,17 +24,6 @@ export default function TeacherRiskFlagPage() {
     let cancelled = false;
     setLoading(true);
     setError("");
-
-    apiFetch<RiskFlag | null>(paths.riskFlags)
-      .then((data) => {
-        if (!cancelled) setFlag(data || null);
-      })
-      .catch((err) => {
-        if (!cancelled) setError(err.message || "Failed to load risk flags");
-      })
-      .finally(() => {
-        if (!cancelled) setLoading(false);
-      });
 
     return () => {
       cancelled = true;

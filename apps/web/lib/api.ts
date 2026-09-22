@@ -11,6 +11,8 @@ const API_URL =
   process.env.NEXT_PUBLIC_API_URL ||
   "https://tutor-be-betea.onrender.com";
 
+const REQUEST_TIMEOUT = 25_000;
+
 export {
   getToken,
   setToken,
@@ -63,8 +65,13 @@ export const paths = {
 
   // jobs
   jobsMine: "/jobs/mine",
+  jobsOpen: "/jobs/open",
   jobsCreate: "/jobs",
   job: (id: string) => `/jobs/${id}`,
+  jobApply: (jobId: string) => `/jobs/${jobId}/apply`,
+
+  // applications (teacher view of applications they submitted)
+  jobsApplicationsMine: "/jobs/applications/mine",
 
   // children
   children: "/parents/children",
@@ -103,27 +110,37 @@ export const paths = {
     supportMine: "/support/mine",
     supportCreate: "/support",
 
-    // risk / safety (teacher view of flags and restrictions)
-    riskFlags: "/risk-flags",
-
     // matching
     matchingTutors: "/matching/tutors",
-
-    // analytics
-    analyticsMine: "/analytics/mine",
-
-    // onboarding
-    onboardingStatus: "/onboarding/status",
 
     // verification
     verificationStatus: "/verification/status",
 
     // availability
-    availability: "/teacher/availability",
+    availabilityMine: "/availability/mine",
+    availabilitySlots: "/availability/slots",
+    availabilityPackages: "/availability/packages",
 
-    // applications (teacher view of applications they submitted / received)
-    applicationsMine: "/applications/mine",
-    applicationsAction: (id: string) => `/applications/${id}/action`,
+    // teachers profile endpoints
+    teachersMeProfile: "/teachers/me/profile",
+    teachersMeLocation: "/teachers/me/location",
+    teachersProfile: "/teachers/profile",
+
+    // connects
+    connectsBalance: "/connects/balance",
+    connectsTopUp: "/connects/top-up",
+
+    // video
+    videoRoom: (contractId: string) => `/video/${contractId}/room`,
+    videoJoin: (roomId: string) => `/video/${roomId}/join`,
+    videoEnd: (contractId: string) => `/video/${contractId}/end`,
+
+    // reviews
+    reviewsTeacher: (teacherId: string) => `/reviews/teacher/${teacherId}`,
+
+    // replacements
+    replacements: "/replacements",
+    replacementsMine: "/replacements/mine",
 
   // auth
   authLogin: "/auth/login",
@@ -145,11 +162,15 @@ async function tryRefresh(): Promise<string | null> {
 
   const promise = (async (): Promise<string | null> => {
     try {
+      const controller = new AbortController();
+      const timer = setTimeout(() => controller.abort(), REQUEST_TIMEOUT);
       const res = await fetch(API_URL + "/auth/refresh", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ refreshToken }),
+        signal: controller.signal,
       });
+      clearTimeout(timer);
       if (!res.ok) throw new Error("Refresh failed");
       const data = await res.json();
       const newToken = data.accessToken;
@@ -175,6 +196,8 @@ export async function logout() {
   const refreshToken = getRefreshToken();
   if (token) {
     try {
+      const controller = new AbortController();
+      const timer = setTimeout(() => controller.abort(), REQUEST_TIMEOUT);
       await fetch(API_URL + "/auth/logout", {
         method: "POST",
         headers: {
@@ -182,7 +205,9 @@ export async function logout() {
           Authorization: `Bearer ${token}`,
         },
         body: JSON.stringify({ refreshToken }),
+        signal: controller.signal,
       });
+      clearTimeout(timer);
     } catch {
       // ignore logout API errors
     }
@@ -211,11 +236,16 @@ export async function apiFetch<T = any>(
 
   const url = API_URL + (path.startsWith("/") ? path : "/" + path);
 
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), REQUEST_TIMEOUT);
+
   const res = await fetch(url, {
     ...options,
     headers,
+    signal: controller.signal,
   });
 
+  clearTimeout(timer);
   const data = await res.json().catch(() => ({}));
 
   if (!res.ok) {
@@ -223,10 +253,14 @@ export async function apiFetch<T = any>(
       const newToken = await tryRefresh();
       if (newToken) {
         (headers as any)["Authorization"] = `Bearer ${newToken}`;
+        const retryController = new AbortController();
+        const retryTimer = setTimeout(() => retryController.abort(), REQUEST_TIMEOUT);
         const retryRes = await fetch(url, {
           ...options,
           headers,
+          signal: retryController.signal,
         });
+        clearTimeout(retryTimer);
         const retryData = await retryRes.json().catch(() => ({}));
         if (!retryRes.ok) {
           throw new Error(

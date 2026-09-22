@@ -34,7 +34,7 @@ export default function TeacherApplicationsPage() {
     setLoading(true);
     setError("");
 
-    apiFetch<Application[]>(paths.applicationsMine)
+    apiFetch<Application[]>(paths.jobsApplicationsMine)
       .then((data) => {
         if (!cancelled) setApplications(data || []);
       })

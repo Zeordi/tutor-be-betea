@@ -22,16 +22,7 @@ export default function TeacherAnalyticsPage() {
     setLoading(true);
     setError("");
 
-    apiFetch<Analytics>(paths.analyticsMine)
-      .then((d) => {
-        if (!cancelled) setData(d);
-      })
-      .catch((err) => {
-        if (!cancelled) setError(err.message || "Failed to load analytics");
-      })
-      .finally(() => {
-        if (!cancelled) setLoading(false);
-      });
+    setData(null);
 
     return () => {
       cancelled = true;
@@ -73,7 +64,7 @@ export default function TeacherAnalyticsPage() {
   if (!data) {
     return (
       <div className="p-6">
-        <p className="text-sm text-[var(--secondary)]">No analytics data available.</p>
+        <p className="text-sm text-[var(--secondary)]">No analytics data available yet.</p>
       </div>
     );
   }

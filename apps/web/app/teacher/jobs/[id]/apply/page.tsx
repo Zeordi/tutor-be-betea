@@ -23,7 +23,7 @@ export default function ApplyJobPage() {
 
     try {
       const jobId = encodeURIComponent(id);
-      await apiFetch(paths.applicationsAction(jobId), {
+      await apiFetch(paths.jobApply(jobId), {
         method: "POST",
         body: JSON.stringify({
           coverMessage,

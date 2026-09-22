@@ -101,25 +101,19 @@ export default function TeacherProfilePage() {
   const handleSave = async () => {
     if (!me) return;
     const tp = me.teacherProfile;
-    const updates = {
-      fullName: me.fullName,
-      teacherProfile: tp
-        ? {
-            hourlyRate: tp.hourlyRate,
-            subjects: tp.subjects,
-            gradeLevels: tp.gradeLevels,
-            teachingStyles: activeStyles,
-            bioEn: tp.bioEn,
-            bioAm: tp.bioAm,
-            tagline: tp.tagline,
-          }
-        : {},
-    };
 
     try {
-      await apiFetch(paths.usersMe, {
+      await apiFetch(paths.teachersMeProfile || "/teachers/me/profile", {
         method: "PATCH",
-        body: JSON.stringify(updates),
+        body: JSON.stringify({
+          hourlyRate: tp?.hourlyRate,
+          subjects: tp?.subjects,
+          gradeLevels: tp?.gradeLevels,
+          teachingStyles: activeStyles,
+          bioEn: tp?.bioEn,
+          bioAm: tp?.bioAm,
+          tagline: tp?.tagline,
+        }),
       });
       setSaved(true);
       setTimeout(() => setSaved(false), 2000);
