@@ -94,12 +94,14 @@ export default function RegisterScreen() {
 
       if (!data.accessToken) throw new Error("No access token returned");
 
+      const typed = data as any;
       await setSession(
-        data.accessToken,
-        data.user?.role || role,
-        JSON.stringify(data.user || {}),
+        typed.accessToken,
+        typed.refreshToken,
+        typed.user?.role || role,
+        JSON.stringify(typed.user || {}),
       );
-      await login(data.accessToken, data.user as any);
+      await login(typed.accessToken, typed.user as any, typed.refreshToken);
 
       router.replace(
         (data.user?.role || role) === "TEACHER"

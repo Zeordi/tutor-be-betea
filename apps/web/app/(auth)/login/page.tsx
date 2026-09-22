@@ -67,7 +67,11 @@ export default function LoginPage() {
         });
         const data = await res.json().catch(() => ({}));
         if (!res.ok) throw new Error((data as any).message || "Login failed");
-        setSession((data as any).accessToken, (data as any).user?.role);
+        setSession(
+          (data as any).accessToken,
+          (data as any).refreshToken,
+          (data as any).user?.role,
+        );
         redirectByRole((data as any).user?.role);
         return;
       }
@@ -121,6 +125,7 @@ export default function LoginPage() {
       }
       setSession(
         (loginData as any).accessToken,
+        (loginData as any).refreshToken,
         (loginData as any).user?.role,
       );
       redirectByRole((loginData as any).user?.role);

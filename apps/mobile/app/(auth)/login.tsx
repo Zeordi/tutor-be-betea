@@ -113,13 +113,15 @@ export default function LoginScreen() {
         throw new Error("No access token returned");
       }
 
+      const typed = data as any;
       await setSession(
-        data.accessToken,
-        data.user?.role,
-        JSON.stringify(data.user || {}),
+        typed.accessToken,
+        typed.refreshToken,
+        typed.user?.role,
+        JSON.stringify(typed.user || {}),
       );
-      await login(data.accessToken, data.user as any);
-      redirectByRole(data.user?.role);
+      await login(typed.accessToken, typed.user as any, typed.refreshToken);
+      redirectByRole(typed.user?.role);
     } catch (e: any) {
       Alert.alert("Login failed", e.message || "Try again");
     } finally {

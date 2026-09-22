@@ -116,7 +116,11 @@ export default function RegisterPage() {
         throw new Error((data as any).message || "Registration failed");
       }
       if ((data as any).accessToken) {
-        setSession((data as any).accessToken, (data as any).user?.role);
+        setSession(
+          (data as any).accessToken,
+          (data as any).refreshToken,
+          (data as any).user?.role,
+        );
         router.push(role === "TEACHER" ? "/teacher" : "/parent");
         return;
       }

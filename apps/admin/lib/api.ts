@@ -19,6 +19,24 @@ export function clearToken() {
   localStorage.removeItem("admin_token");
 }
 
+export async function logout() {
+  const token = getToken();
+  if (token) {
+    try {
+      await fetch(API_URL + "/auth/logout", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+        },
+      });
+    } catch {
+      // ignore logout API errors
+    }
+  }
+  clearToken();
+}
+
 export async function apiFetch<T = any>(
   path: string,
   options: RequestInit = {},

@@ -2,7 +2,7 @@
 
 import { Suspense, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
-import { setToken } from "@/lib/api";
+import { setSession } from "@/lib/api";
 
 const API_URL =
   process.env.NEXT_PUBLIC_API_URL ||
@@ -54,7 +54,7 @@ function OtpForm() {
           throw new Error((err as any).message || "Registration failed");
         }
         const data = await registerRes.json();
-        if (data.accessToken) setToken(data.accessToken);
+        if (data.accessToken) setSession(data.accessToken, data.refreshToken);
         router.push(role === "TEACHER" ? "/teacher" : "/parent");
       } else {
         const loginRes = await fetch(`${API_URL}/auth/login`, {
@@ -71,7 +71,7 @@ function OtpForm() {
           throw new Error((err as any).message || "Login failed");
         }
         const data = await loginRes.json();
-        if (data.accessToken) setToken(data.accessToken);
+        if (data.accessToken) setSession(data.accessToken, data.refreshToken);
         router.push(
           data.user?.role === "TEACHER" ? "/teacher" : "/parent",
         );

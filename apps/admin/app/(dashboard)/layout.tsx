@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { useEffect, useMemo, useState } from "react";
-import { getToken, clearToken, apiFetch } from "@/lib/api";
+import { getToken, clearToken, apiFetch, logout } from "@/lib/api";
 
 type AdminRole = "super" | "verification" | "support" | "finance";
 
@@ -216,9 +216,8 @@ export default function AdminDashboardLayout({
           </div>
           <button
             type="button"
-            onClick={() => {
-              localStorage.removeItem("admin_token");
-              localStorage.removeItem("token");
+            onClick={async () => {
+              await logout();
               router.push("/login");
             }}
             className="w-full rounded-xl border border-slate-700 py-2 text-xs font-semibold text-slate-400 hover:text-white"

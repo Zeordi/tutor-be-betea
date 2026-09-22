@@ -2,7 +2,7 @@
 
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
-import { apiFetch, paths } from "@/lib/api";
+import { apiFetch, paths, logout } from "@/lib/api";
 
 type TeacherMe = {
   id: string;
@@ -300,8 +300,8 @@ export default function TeacherSettingsPage() {
         </button>
         <button
           type="button"
-          onClick={() => {
-            localStorage.removeItem("token");
+          onClick={async () => {
+            await logout();
             router.push("/login");
           }}
           className="rounded-xl border border-[var(--border)] px-6 py-3 text-sm font-bold text-[var(--foreground)]"

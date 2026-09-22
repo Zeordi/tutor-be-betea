@@ -23,6 +23,8 @@ const memVerify = new Map<string, { id: string; exp: number }>();
 @Injectable()
 export class AuthService {
   private readonly logger = new Logger("Auth");
+  private readonly ACCESS_TOKEN_TTL = 900;
+  private readonly REFRESH_TOKEN_TTL = 604800;
 
   constructor(
     private readonly usersService: UsersService,
@@ -378,6 +380,14 @@ export class AuthService {
 
   private async authResponse(user: any) {
     const tokens = await this.generateTokens(user.id, user.role);
+
+    try {
+      await redis.set(`refresh_token:${tokens.refreshJti}`, String(user.id), { ex: this.REFRESH_TOKEN_TTL });
+    } catch (e) {
+      this.logger.error("Failed to store refresh token", e instanceof Error ? e.stack : String(e));
+    }
+
+    const { refreshJti, ...tokenResponse } = tokens;
     return {
       user: {
         id: user.id,
@@ -389,16 +399,59 @@ export class AuthService {
         emailVerified: user.emailVerified,
         phoneVerified: user.phoneVerified,
       },
-      ...tokens,
+      ...tokenResponse,
     };
   }
 
   private async generateTokens(userId: string, role: string) {
-    const payload = { sub: userId, role };
+    const accessJti = randomBytes(16).toString("hex");
+    const refreshJti = randomBytes(16).toString("hex");
     const [accessToken, refreshToken] = await Promise.all([
-      this.jwtService.signAsync(payload, { expiresIn: "15m" }),
-      this.jwtService.signAsync(payload, { expiresIn: "7d" }),
+      this.jwtService.signAsync({ sub: userId, role, jti: accessJti }, { expiresIn: "15m" }),
+      this.jwtService.signAsync({ sub: userId, role, jti: refreshJti }, { expiresIn: "7d" }),
     ]);
-    return { accessToken, refreshToken };
+    return { accessToken, refreshToken, refreshJti };
+  }
+
+  async refresh(refreshToken: string) {
+    let payload: { sub: string; role: string; jti: string };
+    try {
+      payload = await this.jwtService.verifyAsync(refreshToken);
+    } catch {
+      throw new UnauthorizedException("Invalid or expired refresh token");
+    }
+
+    const storedUserId = await redis.get(`refresh_token:${payload.jti}`);
+    if (!storedUserId || storedUserId !== String(payload.sub)) {
+      throw new UnauthorizedException("Refresh token not found or already used");
+    }
+
+    await redis.del(`refresh_token:${payload.jti}`);
+
+    const user = await this.usersService.findById(payload.sub);
+    if (!user || user.status === "BANNED" || user.status === "SUSPENDED") {
+      throw new UnauthorizedException("User is not allowed to access the system");
+    }
+
+    return this.authResponse(user);
+  }
+
+  async logout(userId: string, accessTokenJti: string | undefined, refreshToken?: string) {
+    if (accessTokenJti) {
+      try {
+        await redis.set(`revoked_access:${accessTokenJti}`, "1", { ex: this.ACCESS_TOKEN_TTL });
+      } catch (e) {
+        this.logger.error("Failed to revoke access token", e instanceof Error ? e.stack : String(e));
+      }
+    }
+
+    if (refreshToken) {
+      try {
+        const payload = await this.jwtService.verifyAsync(refreshToken);
+        await redis.del(`refresh_token:${payload.jti}`);
+      } catch {
+        // ignore invalid refresh token
+      }
+    }
   }
 }

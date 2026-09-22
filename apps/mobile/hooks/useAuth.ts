@@ -1,6 +1,10 @@
 import { useState, useEffect } from "react";
 import * as SecureStore from "expo-secure-store";
 
+const API_URL =
+  process.env.EXPO_PUBLIC_API_URL ||
+  "https://tutor-be-betea.onrender.com";
+
 export interface User {
   id: string;
   fullName: string;
@@ -35,18 +39,39 @@ export function useAuth() {
     }
   }
 
-  async function login(newToken: string, newUser: User) {
+  async function login(newToken: string, newUser: User, newRefreshToken?: string) {
     setTokenState(newToken);
     setUser(newUser);
     await SecureStore.setItemAsync("auth_token", newToken);
     await SecureStore.setItemAsync("auth_user", JSON.stringify(newUser));
+    if (newRefreshToken) {
+      await SecureStore.setItemAsync("refresh_token", newRefreshToken);
+    }
   }
 
   async function logout() {
     setTokenState(null);
     setUser(null);
-    await SecureStore.deleteItemAsync("auth_token");
-    await SecureStore.deleteItemAsync("auth_user");
+    try {
+      const token = await SecureStore.getItemAsync("auth_token");
+      const refreshToken = await SecureStore.getItemAsync("refresh_token");
+      if (token) {
+        await fetch(API_URL + "/auth/logout", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: "Bearer " + token,
+          },
+          body: JSON.stringify({ refreshToken }),
+        });
+      }
+    } catch {
+      // ignore logout API errors
+    } finally {
+      await SecureStore.deleteItemAsync("auth_token");
+      await SecureStore.deleteItemAsync("auth_user");
+      await SecureStore.deleteItemAsync("refresh_token");
+    }
   }
 
   return {

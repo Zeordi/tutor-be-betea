@@ -93,13 +93,15 @@ export default function OTPScreen() {
 
       // Login path needs password on login screen — prefer in-screen OTP there.
       // If API ever returns session on verify:
-      if (verify.accessToken && verify.user) {
+      const verifyData = verify as any;
+      if (verifyData.accessToken && verifyData.user) {
         await setSession(
-          verify.accessToken,
-          verify.user?.role,
-          JSON.stringify(verify.user),
+          verifyData.accessToken,
+          verifyData.refreshToken,
+          verifyData.user?.role,
+          JSON.stringify(verifyData.user),
         );
-        await login(verify.accessToken, verify.user);
+        await login(verifyData.accessToken, verifyData.user, verifyData.refreshToken);
         router.replace(
           verify.user?.role === "TEACHER"
             ? "/(teacher)/(tabs)"
