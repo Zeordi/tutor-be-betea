@@ -116,7 +116,7 @@ export default function TeacherSettingsPage() {
     setSaved(false);
 
     try {
-      await apiFetch(paths.teachersMeProfile || "/teachers/me/profile", {
+      await apiFetch(paths.teachersProfileUpdate, {
         method: "PATCH",
         body: JSON.stringify({
           language: lang,

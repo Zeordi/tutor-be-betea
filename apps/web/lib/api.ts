@@ -124,7 +124,7 @@ export const paths = {
     // teachers profile endpoints
     teachersMeProfile: "/teachers/me/profile",
     teachersMeLocation: "/teachers/me/location",
-    teachersProfile: "/teachers/profile",
+    teachersProfileUpdate: "/teachers/profile",
 
     // connects
     connectsBalance: "/connects/balance",

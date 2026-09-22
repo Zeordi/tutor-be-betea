@@ -103,7 +103,7 @@ export default function TeacherProfilePage() {
     const tp = me.teacherProfile;
 
     try {
-      await apiFetch(paths.teachersMeProfile || "/teachers/me/profile", {
+      await apiFetch(paths.teachersProfileUpdate, {
         method: "PATCH",
         body: JSON.stringify({
           hourlyRate: tp?.hourlyRate,
