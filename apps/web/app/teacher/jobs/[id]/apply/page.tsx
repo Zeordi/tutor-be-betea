@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { useParams, useRouter } from "next/navigation";
 import Link from "next/link";
+import { apiFetch, paths } from "@/lib/api";
 
 export default function ApplyJobPage() {
   const params = useParams();
@@ -21,25 +22,14 @@ export default function ApplyJobPage() {
     setError("");
 
     try {
-      const token =
-        typeof window !== "undefined" ? localStorage.getItem("token") : null;
-      const base = process.env.NEXT_PUBLIC_API_URL || "";
-      const res = await fetch(`\( {base}/jobs/ \){id}/apply`, {
+      const jobId = encodeURIComponent(id);
+      await apiFetch(paths.applicationsAction(jobId), {
         method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          ...(token ? { Authorization: `Bearer ${token}` } : {}),
-        },
         body: JSON.stringify({
           coverMessage,
           proposedRate: Number(proposedRate),
         }),
       });
-
-      if (!res.ok) {
-        const err = await res.json().catch(() => ({}));
-        throw new Error((err as { message?: string }).message || "Failed to apply");
-      }
 
       setMessage("Application submitted. 2 Connects used.");
       setTimeout(() => router.push("/teacher/applications"), 800);

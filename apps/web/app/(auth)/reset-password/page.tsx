@@ -4,9 +4,7 @@ import { Suspense, useMemo, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
 
-const API_URL =
-  process.env.NEXT_PUBLIC_API_URL ||
-  "https://tutor-be-betea.onrender.com";
+import { getApiUrl, paths } from "@/lib/api";
 
 function ResetForm() {
   const router = useRouter();
@@ -51,7 +49,7 @@ function ResetForm() {
       const code = otpDigits.join("");
       if (code.length !== 6) throw new Error("Enter 6-digit OTP");
 
-      const verifyRes = await fetch(`${API_URL}/auth/otp/verify`, {
+      const verifyRes = await fetch(getApiUrl() + paths.authOtpVerify, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ phoneNumber: phoneNumber.trim(), code }),
@@ -61,7 +59,7 @@ function ResetForm() {
         throw new Error((verifyData as any).message || "Invalid OTP");
       }
 
-      const res = await fetch(`${API_URL}/auth/password/reset`, {
+      const res = await fetch(getApiUrl() + paths.authPasswordReset, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({

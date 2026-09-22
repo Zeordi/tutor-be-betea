@@ -126,6 +126,12 @@ export const paths = {
     applicationsAction: (id: string) => `/applications/${id}/action`,
 
   // auth
+  authLogin: "/auth/login",
+  authRegister: "/auth/register",
+  authOtpSend: "/auth/otp/send",
+  authOtpVerify: "/auth/otp/verify",
+  authPasswordForgot: "/auth/password/forgot",
+  authPasswordReset: "/auth/password/reset",
   authRefresh: "/auth/refresh",
   authLogout: "/auth/logout",
 } as const;
