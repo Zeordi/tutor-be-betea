@@ -72,9 +72,9 @@ export default function TeacherJobDetailScreen() {
 
   const onApply = async () => {
     try {
-      await apiRequest(paths.applicationsCreate, {
+      await apiRequest(paths.jobApply(id), {
         method: "POST",
-        body: JSON.stringify({ jobId: id }),
+        body: JSON.stringify({ coverNote: cover }),
       });
       setApplied(true);
       Alert.alert("Application submitted", "2 Connects used");

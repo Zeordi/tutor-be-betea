@@ -42,7 +42,7 @@ export default function AvailableJobsScreen() {
     setLoading(true);
     setError("");
 
-    apiRequest<Job[]>(paths.jobsMine)
+    apiRequest<Job[]>(paths.jobsOpen)
       .then((data) => {
         if (!cancelled) setJobs(Array.isArray(data) ? data : []);
       })
@@ -83,7 +83,7 @@ export default function AvailableJobsScreen() {
             onPress={() => {
               setError("");
               setLoading(true);
-              apiRequest<Job[]>(paths.jobsMine)
+              apiRequest<Job[]>(paths.jobsOpen)
                 .then((data) => setJobs(Array.isArray(data) ? data : []))
                 .catch((e) => setError(e.message))
                 .finally(() => setLoading(false));

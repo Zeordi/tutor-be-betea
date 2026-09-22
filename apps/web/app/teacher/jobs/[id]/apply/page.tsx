@@ -9,7 +9,7 @@ export default function ApplyJobPage() {
   const params = useParams();
   const router = useRouter();
   const id = (params?.id as string) || "";
-  const [coverMessage, setCoverMessage] = useState("");
+  const [coverNote, setCoverNote] = useState("");
   const [proposedRate, setProposedRate] = useState("450");
   const [loading, setLoading] = useState(false);
   const [message, setMessage] = useState("");
@@ -26,8 +26,7 @@ export default function ApplyJobPage() {
       await apiFetch(paths.jobApply(jobId), {
         method: "POST",
         body: JSON.stringify({
-          coverMessage,
-          proposedRate: Number(proposedRate),
+          coverNote,
         }),
       });
 
@@ -70,8 +69,8 @@ export default function ApplyJobPage() {
             Cover message
           </label>
           <textarea
-            value={coverMessage}
-            onChange={(e) => setCoverMessage(e.target.value)}
+            value={coverNote}
+            onChange={(e) => setCoverNote(e.target.value)}
             rows={5}
             required
             className="w-full rounded-xl border border-[var(--border)] bg-[var(--muted)] px-4 py-3 text-sm text-[var(--foreground)] outline-none focus:border-[var(--primary)]"

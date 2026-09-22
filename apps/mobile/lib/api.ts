@@ -29,8 +29,15 @@ export const paths = {
   teachers: "/teachers",
   teacher: (id: string) => `/teachers/${id}`,
   jobsMine: "/jobs/mine",
+  jobsOpen: "/jobs/open",
   jobsCreate: "/jobs",
   job: (id: string) => `/jobs/${id}`,
+  jobApply: (jobId: string) => `/jobs/${jobId}/apply`,
+
+  // applications (teacher view of applications they submitted)
+  jobsApplicationsMine: "/jobs/applications/mine",
+
+  // children
   children: "/parents/children",
   child: (id: string) => `/parents/children/${id}`,
   favorites: "/favorites",
@@ -48,9 +55,8 @@ export const paths = {
   subscriptionsPlans: "/subscriptions/plans",
   referralsCode: "/referrals/code",
   referralsMine: "/referrals/mine",
-  applicationsMine: "/applications/mine",
-  applicationsAction: (id: string) => `/applications/${id}/action`,
-  applicationsCreate: "/applications",
+
+  // connects
   connectsBalance: "/connects/balance",
   connectsTopUp: "/connects/top-up",
   vaultUpload: "/vault/upload",

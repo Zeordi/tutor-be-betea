@@ -54,9 +54,9 @@ export default function JobDetailApplyScreen() {
 
   const onApply = async () => {
     try {
-      await apiRequest(paths.applicationsCreate, {
+      await apiRequest(paths.jobApply(jobId), {
         method: "POST",
-        body: JSON.stringify({ jobId }),
+        body: JSON.stringify({ coverNote: cover }),
       });
       setApplied(true);
       Alert.alert("Applied", "2 Connects used.");
