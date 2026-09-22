@@ -13,6 +13,12 @@ export class ChatController {
     private readonly antiPoachingService: AntiPoachingService,
   ) {}
 
+  @Get("conversations")
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  conversations(@CurrentUser() user: any) {
+    return this.chatService.getConversations(user.id);
+  }
+
   @Get(":roomId/messages")
   @UseGuards(JwtAuthGuard, RolesGuard)
   getMessages(@Param("roomId") roomId: string) {

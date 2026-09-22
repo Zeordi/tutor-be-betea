@@ -28,7 +28,7 @@ export default function ParentChatInboxPage() {
     setLoading(true);
     setError("");
 
-    apiFetch<Conversation[]>("/conversations")
+    apiFetch<Conversation[]>(paths.chatConversations)
       .then((data) => {
         if (!cancelled) setConversations(data || []);
       })

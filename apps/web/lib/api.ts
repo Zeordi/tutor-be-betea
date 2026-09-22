@@ -142,6 +142,10 @@ export const paths = {
     replacements: "/replacements",
     replacementsMine: "/replacements/mine",
 
+  // chat
+  chatConversations: "/chat/conversations",
+  chatMessages: (roomId: string) => `/chat/${roomId}/messages`,
+  chatSendMessage: (roomId: string) => `/chat/${roomId}/messages`,
   // auth
   authLogin: "/auth/login",
   authRegister: "/auth/register",
