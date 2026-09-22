@@ -110,7 +110,7 @@ export class ContractsService {
       orderBy: { createdAt: "desc" },
       include: {
         parent: { select: { id: true, fullName: true } },
-        student: true,
+        student: { select: { id: true, studentName: true, gradeLevel: true, subjects: true } },
       },
     });
   }

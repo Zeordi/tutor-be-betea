@@ -4,6 +4,17 @@ import { useEffect, useState } from "react";
 import Link from "next/link";
 import { apiFetch, paths } from "@/lib/api";
 
+type ApiContract = {
+  id: string;
+  status: string;
+  startDate: string;
+  endDate: string;
+  agreedAmount: number;
+  escrowHeldAmount: number;
+  parent: { fullName: string } | null;
+  student: { studentName: string; subjects: string[]; gradeLevel: string } | null;
+};
+
 type Contract = {
   id: string;
   subject: string;
@@ -17,6 +28,23 @@ type Contract = {
   sessionCredits: number;
   maxCredits: number;
 };
+
+function toContract(data: ApiContract): Contract {
+  const subject = data.student?.subjects?.[0] || "General";
+  return {
+    id: data.id,
+    subject,
+    studentName: data.student?.studentName || "Student",
+    parentName: data.parent?.fullName || "Parent",
+    schedule: data.startDate,
+    location: data.student?.subjects?.[0] || undefined,
+    meetingMode: data.status === "ACTIVE" ? "IN_PERSON" : undefined,
+    status: data.status as Contract["status"],
+    agreedAmount: Number(data.agreedAmount || 0),
+    sessionCredits: 0,
+    maxCredits: 0,
+  };
+}
 
 function statusClass(s: string) {
   if (s === "ACTIVE")
@@ -59,9 +87,9 @@ export default function TeacherSessionsIndexPage() {
     setLoading(true);
     setError("");
 
-    apiFetch<Contract[]>(paths.contractsTeacher)
+    apiFetch<ApiContract[]>(paths.contractsTeacher)
       .then((data) => {
-        if (!cancelled) setContracts(data || []);
+        if (!cancelled) setContracts((data || []).map(toContract));
       })
       .catch((err) => {
         if (!cancelled) setError(err.message || "Failed to load sessions");

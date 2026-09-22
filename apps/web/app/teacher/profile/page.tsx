@@ -7,27 +7,31 @@ type TeacherMe = {
   id: string;
   fullName: string;
   email: string;
-  phone: string | null;
+  phoneNumber: string | null;
   subCity: string | null;
-  teacherProfile: {
-    hourlyRate: number;
-    hourlyRateOnline: number;
-    hourlyRateGroup: number;
-    rating: number;
-    reviewCount: number;
-    isVerified: boolean;
-    idVerified: boolean;
-    degreeVerified: boolean;
-    badgeLevel: string;
-    subjects: string[];
-    gradeLevels: string[];
-    certificates: string[];
-    teachingStyles: string[];
-    bioEn: string | null;
-    bioAm: string | null;
-    tagline: string | null;
-    introVideoUrl: string | null;
-  } | null;
+  avatarUrl: string | null;
+  status: string;
+  bio: string | null;
+  bioAm: string | null;
+  hourlyRate: number;
+  monthlyRate: number;
+  weekendRate: number | null;
+  subjects: string[];
+  grades: string[];
+  teachingStyles: string[];
+  tagline: string | null;
+  introVideoUrl: string | null;
+  rating: number;
+  totalReviews: number;
+  totalHoursTaught: number;
+  badgeTier: string | null;
+  isIdVerified: boolean;
+  isEduVerified: boolean;
+  isAvailable: boolean;
+  maxTravelKm: number;
+  packages: any[];
+  availability: any[];
+  trustBadges: any[];
 };
 
 type FieldProps = {
@@ -77,12 +81,12 @@ export default function TeacherProfilePage() {
     setLoading(true);
     setError("");
 
-    apiFetch<TeacherMe>(paths.usersMe)
+    apiFetch<TeacherMe>(paths.teachersMeProfile)
       .then((data) => {
         if (!cancelled) {
           setMe(data);
-          if (data?.teacherProfile?.teachingStyles) {
-            setActiveStyles(data.teacherProfile.teachingStyles);
+          if (data?.teachingStyles) {
+            setActiveStyles(data.teachingStyles);
           }
         }
       })
@@ -100,19 +104,18 @@ export default function TeacherProfilePage() {
 
   const handleSave = async () => {
     if (!me) return;
-    const tp = me.teacherProfile;
 
     try {
       await apiFetch(paths.teachersProfileUpdate, {
         method: "PATCH",
         body: JSON.stringify({
-          hourlyRate: tp?.hourlyRate,
-          subjects: tp?.subjects,
-          gradeLevels: tp?.gradeLevels,
+          hourlyRate: me.hourlyRate,
+          subjects: me.subjects,
+          grades: me.grades,
           teachingStyles: activeStyles,
-          bioEn: tp?.bioEn,
-          bioAm: tp?.bioAm,
-          tagline: tp?.tagline,
+          bio: me.bio,
+          bioAm: me.bioAm,
+          tagline: me.tagline,
         }),
       });
       setSaved(true);
@@ -151,14 +154,13 @@ export default function TeacherProfilePage() {
     return <div className="p-6"><p className="text-sm text-[var(--secondary)]">No profile data.</p></div>;
   }
 
-  const tp = me.teacherProfile;
   const initials = me.fullName
     .split(" ")
     .map((n) => n[0])
     .slice(0, 2)
     .join("")
     .toUpperCase();
-  const badgeText = tp?.isVerified
+  const badgeText = me.isIdVerified
     ? "🛡️ ID Verified · 🎓 Degree Verified"
     : "⚠️ Verification in progress";
 
@@ -188,7 +190,7 @@ export default function TeacherProfilePage() {
           <div className="min-w-0 flex-1">
             <p className="text-lg font-extrabold text-[var(--foreground)]">{me.fullName}</p>
             <p className="mb-2 text-sm text-[var(--secondary)]">
-              {(tp?.subjects || []).join(", ")} · {tp?.gradeLevels?.join(", ") || ""}
+              {(me.subjects || []).join(", ")} · {(me.grades || []).join(", ") || ""}
             </p>
             <div className="mb-3 flex flex-wrap gap-1.5">
               {badgeText.split(" · ").map((b) => (
@@ -214,17 +216,17 @@ export default function TeacherProfilePage() {
         <p className="mb-3 text-[10px] font-bold tracking-wide text-[var(--secondary)]">BIO & TAGLINE</p>
         <Field
           label="Professional Tagline"
-          defaultValue={tp?.tagline || ""}
+          defaultValue={me.tagline || ""}
         />
         <Field
           label="Bio (EN)"
           multiline
-          defaultValue={tp?.bioEn || ""}
+          defaultValue={me.bio || ""}
         />
         <Field
           label="Bio (አማርኛ)"
           multiline
-          defaultValue={tp?.bioAm || ""}
+          defaultValue={me.bioAm || ""}
         />
       </div>
 
@@ -236,7 +238,7 @@ export default function TeacherProfilePage() {
           </button>
         </div>
         <div className="mb-4 flex flex-wrap gap-2">
-          {(tp?.subjects || []).map((s) => (
+          {(me.subjects || []).map((s) => (
             <span
               key={s}
               className="rounded-full border border-[var(--primary)] bg-[var(--primary)]/10 px-3 py-1 text-xs font-semibold text-[var(--primary)]"
@@ -247,7 +249,7 @@ export default function TeacherProfilePage() {
         </div>
         <p className="mb-2 text-[10px] font-semibold text-[var(--secondary)]">Grade Levels</p>
         <div className="flex gap-2">
-          {(tp?.gradeLevels || []).map((g) => (
+          {(me.grades || []).map((g) => (
             <span
               key={g}
               className="flex-1 rounded-xl border py-2 text-center text-xs font-bold border-[var(--primary)] bg-[var(--primary)]/10 text-[var(--primary)]"
@@ -266,10 +268,10 @@ export default function TeacherProfilePage() {
           </button>
         </div>
         <div className="space-y-2">
-          {(tp?.certificates || []).map((c) => (
-            <div key={c} className="flex items-center gap-2 rounded-xl bg-[var(--muted)] p-3">
+          {(me?.teachingStyles || []).map((style) => (
+            <div key={style} className="flex items-center gap-2 rounded-xl bg-[var(--muted)] p-3">
               <span>🎓</span>
-              <p className="text-xs font-semibold text-[var(--foreground)]">{c}</p>
+              <p className="text-xs font-semibold text-[var(--foreground)]">{style}</p>
             </div>
           ))}
         </div>
@@ -282,21 +284,21 @@ export default function TeacherProfilePage() {
             <p className="flex-1 text-sm font-semibold text-[var(--foreground)]">Home Visit / hr</p>
             <div className="flex w-28 items-center rounded-xl border border-[var(--border)] bg-[var(--muted)] px-3 py-2">
               <span className="text-[10px] text-[var(--secondary)]">ETB </span>
-              <span className="font-extrabold text-[var(--foreground)]">{tp?.hourlyRate ?? 0}</span>
+              <span className="font-extrabold text-[var(--foreground)]">{me.hourlyRate ?? 0}</span>
             </div>
           </div>
           <div className="flex items-center gap-3">
             <p className="flex-1 text-sm font-semibold text-[var(--foreground)]">Online / hr</p>
             <div className="flex w-28 items-center rounded-xl border border-[var(--border)] bg-[var(--muted)] px-3 py-2">
               <span className="text-[10px] text-[var(--secondary)]">ETB </span>
-              <span className="font-extrabold text-[var(--foreground)]">{tp?.hourlyRateOnline ?? 0}</span>
+              <span className="font-extrabold text-[var(--foreground)]">{me.monthlyRate ?? 0}</span>
             </div>
           </div>
           <div className="flex items-center gap-3">
             <p className="flex-1 text-sm font-semibold text-[var(--foreground)]">Group Session / hr</p>
             <div className="flex w-28 items-center rounded-xl border border-[var(--border)] bg-[var(--muted)] px-3 py-2">
               <span className="text-[10px] text-[var(--secondary)]">ETB </span>
-              <span className="font-extrabold text-[var(--foreground)]">{tp?.hourlyRateGroup ?? 0}</span>
+              <span className="font-extrabold text-[var(--foreground)]">{me.weekendRate ?? 0}</span>
             </div>
           </div>
         </div>
