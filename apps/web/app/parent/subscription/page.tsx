@@ -19,17 +19,21 @@ type SubscriptionPlan = {
 type Subscription = {
   id: string;
   status: "ACTIVE" | "CANCELLED" | "PAST_DUE" | "EXPIRED";
-  currentPlan: SubscriptionPlan;
-  startDate: string;
-  nextBillingDate: string;
-  cancelAtPeriodEnd: boolean;
-  paymentMethod: string | null;
+  tier: "BASIC" | "PREMIUM" | "ELITE";
+  startsAt: string;
+  endsAt: string | null;
 };
 
 const PLAN_COLORS: Record<string, string> = {
   Basic: "var(--primary)",
   Premium: "#2DD4BF",
   Elite: "#7C3AED",
+};
+
+const TIER_TO_PLAN: Record<string, string> = {
+  BASIC: "basic",
+  PREMIUM: "premium",
+  ELITE: "elite",
 };
 
 export default function SubscriptionPage() {
@@ -40,19 +44,22 @@ export default function SubscriptionPage() {
   const [upgrading, setUpgrading] = useState<string | null>(null);
   const [cycle, setCycle] = useState<BillingCycle>("monthly");
 
-  const currentPlanName = sub?.currentPlan?.name || "";
+  const currentPlanId = sub ? TIER_TO_PLAN[sub.tier] || "" : "";
 
   const upgrade = async (planId: string) => {
     setUpgrading(planId);
     try {
-      const res = await apiFetch<any>(paths.subscriptionUpgrade, {
+      const tierMap: Record<string, "BASIC" | "PREMIUM" | "ELITE"> = {
+        basic: "BASIC",
+        premium: "PREMIUM",
+        elite: "ELITE",
+      };
+      const tier = tierMap[planId];
+      if (!tier) throw new Error("Invalid plan");
+      await apiFetch<any>(paths.subscriptionUpgrade, {
         method: "POST",
-        body: JSON.stringify({ planId, billingCycle: cycle }),
+        body: JSON.stringify({ tier }),
       });
-      if (res?.checkoutUrl) {
-        window.location.href = res.checkoutUrl;
-        return;
-      }
       const refreshed = await apiFetch<Subscription>(paths.subscriptionMine);
       setSub(refreshed);
     } catch (err: any) {
@@ -69,7 +76,7 @@ export default function SubscriptionPage() {
 
     Promise.all([
       apiFetch<Subscription>(paths.subscriptionMine),
-      apiFetch<SubscriptionPlan[]>("/subscriptions/plans"),
+      apiFetch<SubscriptionPlan[]>(paths.subscriptionPlans),
     ])
       .then(([s, p]) => {
         if (!cancelled) {
@@ -127,13 +134,17 @@ export default function SubscriptionPage() {
   });
 
   const priceLabel = (plan: SubscriptionPlan) => {
-    const monthly = (plan.price * (cycle === "monthly" ? 1 : 12)) / (cycle === "monthly" ? 1 : 12);
+    const monthly = plan.price;
     if (cycle === "yearly") {
-      const yearly = plan.price;
+      const yearly = plan.price * 12;
       return `${yearly.toLocaleString()} ETB/yr`;
     }
     return `${monthly.toLocaleString()} ETB/mo`;
   };
+
+  const currentPlanName = sub
+    ? displayedPlans.find((p) => p.id === currentPlanId)?.name || sub.tier
+    : "";
 
   return (
     <div>
@@ -147,10 +158,10 @@ export default function SubscriptionPage() {
               {" "}
               ·{" "}
               <span className="font-mono font-bold text-teal-400">
-                {sub.currentPlan.price.toLocaleString()} {sub.currentPlan.currency}/mo
+                {sub.tier}
               </span>
               {" "}
-              · Next billing: {new Date(sub.nextBillingDate).toLocaleDateString()}
+              · Next billing: {sub.endsAt ? new Date(sub.endsAt).toLocaleDateString() : "N/A"}
             </>
           )}
         </p>
@@ -175,7 +186,7 @@ export default function SubscriptionPage() {
 
       <div className="mx-auto grid max-w-4xl gap-6 md:grid-cols-3">
         {displayedPlans.map((plan) => {
-          const isCurrent = currentPlanName === plan.name;
+          const isCurrent = plan.id === currentPlanId;
           const color = PLAN_COLORS[plan.name] || "var(--primary)";
           return (
             <div

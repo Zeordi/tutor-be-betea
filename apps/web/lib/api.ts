@@ -100,6 +100,7 @@ export const paths = {
 
     // subscriptions
     subscriptionMine: "/subscriptions/mine",
+  subscriptionPlans: "/subscriptions/plans",
     subscriptionUpgrade: "/subscriptions/upgrade",
 
   // referrals
