@@ -14,20 +14,14 @@ type RiskFlag = {
 };
 
 export default function TeacherRiskFlagPage() {
-  const [loading, setLoading] = useState(false);
+  const [loading] = useState(false);
   const [error, setError] = useState("");
   const [flag, setFlag] = useState<RiskFlag | null>(null);
   const [appealStarted, setAppealStarted] = useState(false);
   const [appealText, setAppealText] = useState("");
 
   useEffect(() => {
-    let cancelled = false;
-    setLoading(true);
-    setError("");
-
-    return () => {
-      cancelled = true;
-    };
+    setFlag(null);
   }, []);
 
   if (loading) {
