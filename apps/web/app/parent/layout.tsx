@@ -3,12 +3,13 @@
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
-import { apiFetch, paths } from "@/lib/api";
+import { apiFetch, paths, clearToken } from "@/lib/api";
 
 type CurrentUser = {
   fullName: string;
   phoneNumber: string;
   email: string | null;
+  role: string;
 };
 
 const SECTIONS = [
@@ -65,7 +66,14 @@ export default function ParentLayout({
 
     apiFetch<CurrentUser>(paths.usersMe)
       .then((data) => {
-        if (!cancelled) setUser(data);
+        if (!cancelled) {
+          if (data.role !== "PARENT") {
+            clearToken();
+            router.replace("/login");
+            return;
+          }
+          setUser(data);
+        }
       })
       .catch(() => {
         if (!cancelled) {

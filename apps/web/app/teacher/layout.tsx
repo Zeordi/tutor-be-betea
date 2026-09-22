@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
-import { apiFetch, paths } from "@/lib/api";
+import { apiFetch, paths, clearToken } from "@/lib/api";
 
 const SECTIONS = [
   { href: "/teacher", label: "Overview", icon: "🏠", exact: true },
@@ -29,6 +29,7 @@ type TeacherMe = {
   id: string;
   fullName: string;
   email: string;
+  role: string;
   teacherProfile: {
     connectsBalance: number;
   } | null;
@@ -52,8 +53,18 @@ export default function TeacherLayout({
     }
 
     apiFetch<TeacherMe>(paths.usersMe)
-      .then((data) => setMe(data))
-      .catch(() => {})
+      .then((data) => {
+        if ((data as any).role !== "TEACHER") {
+          clearToken();
+          router.replace("/login");
+          return;
+        }
+        setMe(data);
+      })
+      .catch(() => {
+        clearToken();
+        router.replace("/login");
+      })
       .finally(() => setReady(true));
   }, [router]);
 

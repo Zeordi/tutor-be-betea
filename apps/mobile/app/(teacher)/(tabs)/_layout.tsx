@@ -1,9 +1,20 @@
 import { Tabs } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
 import { useTheme } from "@/hooks/useTheme";
+import { useAuth } from "@/hooks/useAuth";
+import { useRouter } from "expo-router";
+import { useEffect } from "react";
 
 export default function TeacherTabsLayout() {
   const { isDark } = useTheme();
+  const { isAuthenticated, isLoading } = useAuth();
+  const router = useRouter();
+
+  useEffect(() => {
+    if (!isLoading && !isAuthenticated) {
+      router.replace("/(auth)/login");
+    }
+  }, [isAuthenticated, isLoading, router]);
 
   const active = "#0D9488";
   const inactive = isDark ? "#64748B" : "#94A3B8";
