@@ -209,22 +209,22 @@ export default function ParentJobDetailScreen() {
           </>
         )}
 
-        {tab === "applicants" &&
-          (applicantsUnavailable ? (
-            <View
-              style={[
-                styles.card,
-                { backgroundColor: card, borderColor: border, alignItems: "center", paddingVertical: 32 },
-              ]}
-            >
-              <Text style={{ color: sub, fontSize: 14, textAlign: "center" }}>
-                Applicants unavailable
-              </Text>
-              <Text style={{ color: sub, fontSize: 11, marginTop: 4, textAlign: "center" }}>
-                This endpoint may not be available yet.
-              </Text>
-            </View>
-          ) : applicants.map((a) => {
+        {tab === "applicants" && (applicantsUnavailable ? (
+          <View
+            style={[
+              styles.card,
+              { backgroundColor: card, borderColor: border, alignItems: "center", paddingVertical: 32 },
+            ]}
+          >
+            <Text style={{ color: sub, fontSize: 14, textAlign: "center" }}>
+              Applicants unavailable
+            </Text>
+            <Text style={{ color: sub, fontSize: 11, marginTop: 4, textAlign: "center" }}>
+              This endpoint may not be available yet.
+            </Text>
+          </View>
+        ) : (
+          applicants.map((a) => {
             const sc = statusColor(a.status);
             return (
               <View
@@ -267,7 +267,8 @@ export default function ParentJobDetailScreen() {
                 </View>
               </View>
             );
-          })}
+          })
+        ))}
       </ScrollView>
     </SafeAreaView>
   );

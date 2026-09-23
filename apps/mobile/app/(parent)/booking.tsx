@@ -87,7 +87,7 @@ export default function PackageBookingScreen() {
 
         <TouchableOpacity
           style={[styles.submit, { backgroundColor: primary }]}
-          onPress={() => Alert.alert("Payment", "Continue with Telebirr...")}
+          onPress={() => Alert.alert("Coming soon", "Package payment is being integrated.")}
         >
           <Text style={styles.submitText}>Confirm & Pay via Telebirr →</Text>
         </TouchableOpacity>

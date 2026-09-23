@@ -98,6 +98,9 @@ export default function NotificationSettingsScreen() {
             </View>
           </View>
         ))}
+        <Text style={{ color: sub, fontSize: 10, textAlign: "center", marginTop: 8, opacity: 0.7 }}>
+          Preferences are saved locally until backend sync is available.
+        </Text>
       </ScrollView>
     </SafeAreaView>
   );
