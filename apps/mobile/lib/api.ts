@@ -72,6 +72,7 @@ export const paths = {
   availabilityPackages: "/availability/packages",
   chatMessages: (roomId: string) => `/chat/${roomId}/messages`,
   chatSendMessage: (roomId: string) => `/chat/${roomId}/messages`,
+  videoSession: "/video/session",
   supportCreate: "/support",
   supportMine: "/support/mine",
   supportTicket: (id: string) => `/support/ticket/${id}`,
