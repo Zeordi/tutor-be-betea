@@ -28,7 +28,7 @@ const SIDEBAR: {
   { href: "/risk-flags", id: "risk-flags", icon: "🚨", label: "Risk Flagging", roles: ["super", "support"] },
   { href: "/promos", id: "promos", icon: "🎟️", label: "Promo & Banners", roles: ["super", "finance"] },
   { href: "/payouts", id: "payouts", icon: "💸", label: "Payout Reconciliation", roles: ["super", "finance"] },
-  { href: "/impersonation", id: "impersonation", icon: "👁️", label: "User Impersonation", roles: ["super"] },
+  { href: "/impersonation", id: "impersonation", icon: "👁️", label: "User Impersonation", roles: ["super", "support"] },
   { href: "/settings", id: "settings", icon: "⚙️", label: "System Settings", roles: ["super"] },
 ];
 

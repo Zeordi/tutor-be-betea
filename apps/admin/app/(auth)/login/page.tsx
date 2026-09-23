@@ -2,13 +2,11 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { setToken } from "@/lib/api";
+import { setToken, setRefreshToken, getApiUrl } from "@/lib/api";
 
 export default function AdminLoginPage() {
   const router = useRouter();
-  const api =
-  process.env.NEXT_PUBLIC_API_URL ||
-  "https://tutor-be-betea.onrender.com";
+  const apiUrl = getApiUrl();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
@@ -19,7 +17,7 @@ export default function AdminLoginPage() {
     setLoading(true);
     setMessage("");
     try {
-      const res = await fetch(`${api}/auth/login`, {
+      const res = await fetch(`${apiUrl}/auth/login`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ email: email.trim(), password }),
@@ -40,8 +38,11 @@ export default function AdminLoginPage() {
       }
       if ((data as any).accessToken) {
         setToken((data as any).accessToken);
-        router.push("/");
       }
+      if ((data as any).refreshToken) {
+        setRefreshToken((data as any).refreshToken);
+      }
+      router.push("/");
     } catch (err: any) {
       setMessage(err.message || "Login failed");
     } finally {

@@ -15,8 +15,18 @@ export function setToken(token: string) {
   localStorage.setItem("admin_token", token);
 }
 
+export function setRefreshToken(token: string) {
+  localStorage.setItem("admin_refresh_token", token);
+}
+
+export function getRefreshToken(): string | null {
+  if (typeof window === "undefined") return null;
+  return localStorage.getItem("admin_refresh_token");
+}
+
 export function clearToken() {
   localStorage.removeItem("admin_token");
+  localStorage.removeItem("admin_refresh_token");
 }
 
 export async function logout() {

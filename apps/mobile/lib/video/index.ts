@@ -9,28 +9,16 @@ export interface VideoRoomConfig {
   serverUrl: string;
 }
 
-const API_URL = process.env.EXPO_PUBLIC_API_URL || "https://tutor-be-betea.onrender.com";
+import { apiRequest, paths } from "@/lib/api";
 
 /** Fetch a short-lived room token from API */
 export async function createVideoSession(
   contractId: string,
-  authToken: string,
 ): Promise<VideoRoomConfig> {
-  const res = await fetch(`${API_URL}/video/session`, {
+  return apiRequest<VideoRoomConfig>(paths.videoSession, {
     method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-      Authorization: `Bearer ${authToken}`,
-    },
     body: JSON.stringify({ contractId }),
   });
-
-  if (!res.ok) {
-    const err = await res.json().catch(() => ({}));
-    throw new Error(err.message || "Failed to create video session");
-  }
-
-  return res.json();
 }
 
 /** Placeholder until LiveKit native SDK is installed */

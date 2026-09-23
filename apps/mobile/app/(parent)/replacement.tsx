@@ -2,9 +2,10 @@ import { useState } from "react";
 import {
   View, Text, StyleSheet, ScrollView, TouchableOpacity, TextInput, Alert,
 } from "react-native";
-import { useRouter } from "expo-router";
+import { useRouter, useLocalSearchParams } from "expo-router";
 import { useTheme } from "@/hooks/useTheme";
 import { SafeAreaView } from "react-native-safe-area-context";
+import { apiRequest, paths } from "@/lib/api";
 
 const REASONS = [
   "No-show / Late",
@@ -17,8 +18,10 @@ const REASONS = [
 export default function RequestReplacementScreen() {
   const { isDark } = useTheme();
   const router = useRouter();
+  const { contractId } = useLocalSearchParams<{ contractId?: string }>();
   const [reason, setReason] = useState(0);
   const [details, setDetails] = useState("");
+  const [submitting, setSubmitting] = useState(false);
 
   const bg = isDark ? "#0A1628" : "#F8FAFC";
   const card = isDark ? "#112240" : "#FFFFFF";
@@ -26,6 +29,29 @@ export default function RequestReplacementScreen() {
   const sub = isDark ? "#94A3B8" : "#64748B";
   const primary = "#0D9488";
   const border = isDark ? "#1E3A5F" : "#E2E8F0";
+
+  const handleSubmit = async () => {
+    if (!contractId) {
+      Alert.alert("Missing contract", "Please open this screen from a contract.");
+      return;
+    }
+    try {
+      setSubmitting(true);
+      await apiRequest(paths.replacements, {
+        method: "POST",
+        body: JSON.stringify({
+          contractId,
+          reason: REASONS[reason],
+        }),
+      });
+      Alert.alert("Submitted", "A replacement will be found within 24 hours.");
+      router.back();
+    } catch (error: any) {
+      Alert.alert("Error", error.message || "Failed to submit replacement request");
+    } finally {
+      setSubmitting(false);
+    }
+  };
 
   return (
     <SafeAreaView style={[styles.container, { backgroundColor: bg }]} edges={["top"]}>
@@ -49,7 +75,7 @@ export default function RequestReplacementScreen() {
         <View style={[styles.card, { backgroundColor: card }]}>
           <Text style={[styles.section, { color: sub }]}>CURRENT TUTOR</Text>
           <Text style={{ color: text, fontWeight: "800" }}>Selamawit Tadesse</Text>
-          <Text style={{ color: sub, fontSize: 12 }}>Mathematics · Contract #TBB-4801</Text>
+          <Text style={{ color: sub, fontSize: 12 }}>Mathematics · Contract #{contractId || "N/A"}</Text>
         </View>
 
         <Text style={[styles.section, { color: sub }]}>REASON FOR REPLACEMENT</Text>
@@ -93,12 +119,10 @@ export default function RequestReplacementScreen() {
 
         <TouchableOpacity
           style={[styles.submit, { backgroundColor: primary }]}
-          onPress={() => {
-            Alert.alert("Submitted", "A replacement will be found within 24 hours.");
-            router.back();
-          }}
+          onPress={handleSubmit}
+          disabled={submitting}
         >
-          <Text style={styles.submitText}>Submit Replacement Request</Text>
+          <Text style={styles.submitText}>{submitting ? "Submitting..." : "Submit Replacement Request"}</Text>
         </TouchableOpacity>
       </ScrollView>
     </SafeAreaView>

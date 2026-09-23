@@ -200,9 +200,15 @@ export const adminApi = {
     return api.get<AdminSupportTicket[]>(`/support${qsStr ? `?${qsStr}` : ""}`);
   },
 
-  ticket: (id: string) => api.get<AdminSupportTicket>(`/support/${id}`),
+  ticket: (id: string) => api.get<AdminSupportTicket>(`/support/ticket/${id}`),
 
   payoutLedger: () => api.get<AdminPayout[]>("/admin/payout-ledger"),
+
+  flagRisk: (userId: string, reason?: string) =>
+    api.post(`/admin/risk-flag/${userId}`, { reason }),
+
+  childProfiles: (parentId: string) =>
+    api.get<any[]>(`/admin/children/${parentId}`),
 
   riskFlags: () => api.get<AdminRiskFlag[]>("/admin/risk-flags"),
 

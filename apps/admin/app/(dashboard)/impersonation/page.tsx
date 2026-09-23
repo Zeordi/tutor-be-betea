@@ -1,8 +1,8 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import PageHeader from "@/components/PageHeader";
-import { adminApi, type AdminUser } from "@/lib/adminApi";
+import { adminApi, type AdminUser, type AdminAuditLog } from "@/lib/adminApi";
 
 export default function ImpersonationPage() {
   const [users, setUsers] = useState<AdminUser[]>([]);
@@ -12,6 +12,9 @@ export default function ImpersonationPage() {
   const [active, setActive] = useState(false);
   const [ticket, setTicket] = useState("");
   const [starting, setStarting] = useState(false);
+  const [auditLogs, setAuditLogs] = useState<AdminAuditLog[]>([]);
+  const [auditLoading, setAuditLoading] = useState(true);
+  const [auditError, setAuditError] = useState("");
 
   const load = async () => {
     let cancelled = false;
@@ -27,8 +30,23 @@ export default function ImpersonationPage() {
     }
   };
 
+  const loadAudit = async () => {
+    let cancelled = false;
+    setAuditLoading(true);
+    setAuditError("");
+    try {
+      const data = await adminApi.auditLogs(50);
+      if (!cancelled) setAuditLogs(Array.isArray(data) ? data : []);
+    } catch (err: any) {
+      if (!cancelled) setAuditError(err.message || "Failed to load audit logs");
+    } finally {
+      if (!cancelled) setAuditLoading(false);
+    }
+  };
+
   useEffect(() => {
     load();
+    loadAudit();
   }, []);
 
   const startImpersonation = async () => {
@@ -45,6 +63,14 @@ export default function ImpersonationPage() {
   };
 
   const u = users[sel];
+
+  const userLookup = useMemo(() => {
+    const map = new Map<string, string>();
+    for (const user of users) {
+      map.set(user.id, user.fullName || user.id);
+    }
+    return map;
+  }, [users]);
 
   return (
     <div className="space-y-6">
@@ -132,20 +158,35 @@ export default function ImpersonationPage() {
 
           <div className="rounded-2xl border border-[var(--border)] bg-[var(--card)] p-5">
             <p className="mb-3 font-bold text-[var(--foreground)]">Recent audit log</p>
-            <div className="space-y-2">
-              {[
-                { who: "Yared Bekele", target: u?.fullName || "—", action: "View session history", at: "Today 14:02" },
-                { who: "Yared Bekele", target: u?.fullName || "—", action: "View verification status", at: "Yesterday 11:20" },
-              ].map((a, i) => (
-                <div
-                  key={i}
-                  className="rounded-xl bg-[var(--muted)] px-3 py-2 text-xs text-[var(--secondary)]"
-                >
-                  <span className="font-bold text-[var(--foreground)]">{a.who}</span> → {a.target}: {a.action}
-                  <span className="ml-2 text-[var(--secondary)]">{a.at}</span>
-                </div>
-              ))}
-            </div>
+            {auditError && (
+              <p className="text-xs text-red-600">{auditError}</p>
+            )}
+            {auditLoading ? (
+              <p className="text-xs text-slate-500">Loading audit log…</p>
+            ) : auditLogs.length === 0 ? (
+              <p className="text-xs text-slate-500">No audit entries yet.</p>
+            ) : (
+              <div className="space-y-2">
+                {auditLogs.slice(0, 10).map((a) => (
+                  <div
+                    key={a.id}
+                    className="rounded-xl bg-[var(--muted)] px-3 py-2 text-xs text-[var(--secondary)]"
+                  >
+                    <span className="font-bold text-[var(--foreground)]">
+                      {userLookup.get(a.adminId) || a.adminId}
+                    </span>{" "}
+                    →{" "}
+                    <span className="font-bold text-[var(--foreground)]">
+                      {userLookup.get(a.targetUserId || "") || a.targetUserId || "—"}
+                    </span>
+                    : {a.actionType.replace(/_/g, " ")}
+                    <span className="ml-2 text-[var(--secondary)]">
+                      {a.createdAt ? new Date(a.createdAt).toLocaleString() : ""}
+                    </span>
+                  </div>
+                ))}
+              </div>
+            )}
           </div>
         </div>
       </div>

@@ -2,7 +2,7 @@ import { useEffect, useRef, useState } from "react";
 import { Platform } from "react-native";
 import * as Device from "expo-device";
 import Constants from "expo-constants";
-import { getToken } from "@/lib/api";
+import { apiRequest, paths } from "@/lib/api";
 import { useRouter } from "expo-router";
 
 let Notifications: typeof import("expo-notifications") | null = null;
@@ -61,15 +61,8 @@ export function usePushNotifications() {
 
 async function sendTokenToBackend(pushToken: string) {
   try {
-    const token = await getToken();
-    if (!token) return;
-
-    await fetch(`${process.env.EXPO_PUBLIC_API_URL || "https://tutor-be-betea.onrender.com"}/notifications/push-token`, {
+    await apiRequest(paths.notificationsPushToken, {
       method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        Authorization: `Bearer ${token}`,
-      },
       body: JSON.stringify({ pushToken }),
     });
   } catch (e) {

@@ -1,260 +1,119 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import {
   View,
   Text,
   ScrollView,
   TouchableOpacity,
   StyleSheet,
+  ActivityIndicator,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useRouter } from "expo-router";
 import { useTheme } from "../../hooks/useTheme";
+import { apiRequest, paths } from "@/lib/api";
 
-const DAYS = [
-  { label: "Mon", date: "7", available: true },
-  { label: "Tue", date: "8", available: true },
-  { label: "Wed", date: "9", available: false },
-  { label: "Thu", date: "10", available: true },
-  { label: "Fri", date: "11", available: true },
-  { label: "Sat", date: "12", available: true },
-];
-
-const SLOTS: Record<
-  number,
-  { time: string; status: "available" | "booked" | "unavailable" }[]
-> = {
-  0: [
-    { time: "09:00", status: "available" },
-    { time: "10:30", status: "booked" },
-    { time: "14:00", status: "available" },
-    { time: "16:00", status: "available" },
-  ],
-  1: [
-    { time: "10:00", status: "available" },
-    { time: "11:30", status: "available" },
-    { time: "14:00", status: "booked" },
-    { time: "16:00", status: "available" },
-    { time: "17:30", status: "available" },
-  ],
-  2: [],
-  3: [
-    { time: "09:00", status: "unavailable" },
-    { time: "14:00", status: "available" },
-    { time: "16:00", status: "available" },
-  ],
-  4: [
-    { time: "10:00", status: "available" },
-    { time: "14:00", status: "available" },
-    { time: "16:00", status: "available" },
-    { time: "18:00", status: "available" },
-  ],
-  5: [
-    { time: "09:00", status: "available" },
-    { time: "11:00", status: "available" },
-    { time: "14:00", status: "available" },
-  ],
+type Contract = {
+  id: string;
+  status: string;
+  startDate: string;
+  endDate: string;
+  teacher: { fullName: string };
+  student: { studentName: string };
 };
 
 export default function AvailabilityCalendarScreen() {
   const router = useRouter();
   const { colors, isDark } = useTheme();
-  const [selectedDay, setSelectedDay] = useState(1);
-  const [selectedSlot, setSelectedSlot] = useState<string | null>("16:00");
-  const [duration, setDuration] = useState(90);
+  const [contracts, setContracts] = useState<Contract[]>([]);
+  const [loading, setLoading] = useState(true);
 
-  const activeSlots = SLOTS[selectedDay] || [];
-  const ratePerHour = 450;
-  const hours = duration / 60;
-  const total = Math.round(ratePerHour * hours);
+  useEffect(() => {
+    let cancelled = false;
+    setLoading(true);
+    apiRequest<Contract[]>(paths.contractsParent)
+      .then((data) => {
+        if (!cancelled) setContracts(Array.isArray(data) ? data : []);
+      })
+      .catch(() => {
+        if (!cancelled) setContracts([]);
+      })
+      .finally(() => {
+        if (!cancelled) setLoading(false);
+      });
+    return () => { cancelled = true; };
+  }, []);
+
+  const bg = colors.bg ?? (isDark ? "#0A1628" : "#F8FAFC");
+  const card = colors.card ?? (isDark ? "#112240" : "#FFFFFF");
+  const text = colors.text ?? (isDark ? "#F0FAFA" : "#0D2B2A");
+  const sub = colors.sub ?? (isDark ? "#94A3B8" : "#64748B");
+  const primary = colors.primary ?? "#0D9488";
+  const border = colors.border ?? (isDark ? "#1E3A5F" : "#E2E8F0");
+
+  if (loading) {
+    return (
+      <SafeAreaView style={[styles.safe, { backgroundColor: bg }]} edges={["top"]}>
+        <View style={[styles.header, { backgroundColor: card, borderBottomColor: border }]}>
+          <TouchableOpacity onPress={() => router.back()}>
+            <Text style={{ color: sub, fontSize: 16 }}>←</Text>
+          </TouchableOpacity>
+          <View style={{ flex: 1, marginLeft: 10 }}>
+            <Text style={[styles.headerTitle, { color: text }]}>Sessions</Text>
+          </View>
+        </View>
+        <View style={{ flex: 1, alignItems: "center", justifyContent: "center" }}>
+          <ActivityIndicator size="large" color={primary} />
+        </View>
+      </SafeAreaView>
+    );
+  }
 
   return (
-    <SafeAreaView style={[styles.safe, { backgroundColor: colors.bg }]} edges={["top"]}>
-      <View style={[styles.header, { backgroundColor: colors.card, borderBottomColor: colors.border }]}>
+    <SafeAreaView style={[styles.safe, { backgroundColor: bg }]} edges={["top"]}>
+      <View style={[styles.header, { backgroundColor: card, borderBottomColor: border }]}>
         <TouchableOpacity onPress={() => router.back()}>
-          <Text style={{ color: colors.sub, fontSize: 16 }}>←</Text>
+          <Text style={{ color: sub, fontSize: 16 }}>←</Text>
         </TouchableOpacity>
         <View style={{ flex: 1, marginLeft: 10 }}>
-          <Text style={[styles.headerTitle, { color: colors.text }]}>Book Session</Text>
-          <Text style={{ color: colors.sub, fontSize: 10 }}>Hana Bekele · Mathematics</Text>
+          <Text style={[styles.headerTitle, { color: text }]}>Sessions</Text>
+          <Text style={{ color: sub, fontSize: 10 }}>{contracts.length} active sessions</Text>
         </View>
       </View>
 
       <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
-        <Text style={[styles.sectionLabel, { color: colors.sub }]}>SELECT DAY</Text>
-        <ScrollView horizontal showsHorizontalScrollIndicator={false} style={{ marginBottom: 16 }}>
-          {DAYS.map((d, i) => {
-            const selected = selectedDay === i;
-            const disabled = !d.available;
-            return (
-              <TouchableOpacity
-                key={d.date}
-                disabled={disabled}
-                onPress={() => {
-                  setSelectedDay(i);
-                  setSelectedSlot(null);
-                }}
-                style={[
-                  styles.dayChip,
-                  {
-                    backgroundColor: selected
-                      ? colors.primary
-                      : disabled
-                        ? isDark
-                          ? "#1e293b"
-                          : "#f1f5f9"
-                        : colors.card,
-                    borderColor: selected ? colors.primary : colors.border,
-                    opacity: disabled ? 0.5 : 1,
-                  },
-                ]}
-              >
-                <Text style={{ color: selected ? "#fff" : colors.sub, fontSize: 10, fontWeight: "600" }}>
-                  {d.label}
-                </Text>
-                <Text
-                  style={{
-                    color: selected ? "#fff" : colors.text,
-                    fontSize: 16,
-                    fontWeight: "800",
-                    marginTop: 2,
-                  }}
-                >
-                  {d.date}
-                </Text>
-              </TouchableOpacity>
-            );
-          })}
-        </ScrollView>
-
-        <Text style={[styles.sectionLabel, { color: colors.sub }]}>AVAILABLE SLOTS</Text>
-        {activeSlots.length === 0 ? (
-          <View style={[styles.card, { backgroundColor: colors.card }]}>
-            <Text style={{ color: colors.sub, textAlign: "center", fontSize: 12 }}>
-              No slots this day
+        {contracts.length === 0 ? (
+          <View style={[styles.card, { backgroundColor: card, borderColor: border, alignItems: "center", paddingVertical: 32 }]}>
+            <Text style={{ color: sub, fontSize: 14, textAlign: "center" }}>No sessions scheduled yet</Text>
+            <Text style={{ color: sub, fontSize: 11, marginTop: 4, textAlign: "center" }}>
+              Your active and upcoming sessions will appear here.
             </Text>
           </View>
         ) : (
-          <View style={styles.slotGrid}>
-            {activeSlots.map((s) => {
-              const selected = selectedSlot === s.time;
-              const booked = s.status === "booked";
-              const unavailable = s.status === "unavailable";
-              return (
-                <TouchableOpacity
-                  key={s.time}
-                  disabled={booked || unavailable}
-                  onPress={() => setSelectedSlot(s.time)}
-                  style={[
-                    styles.slot,
-                    {
-                      backgroundColor: selected
-                        ? colors.primary
-                        : booked || unavailable
-                          ? isDark
-                            ? "#1e293b"
-                            : "#f1f5f9"
-                          : colors.card,
-                      borderColor: selected ? colors.primary : colors.border,
-                      opacity: booked || unavailable ? 0.55 : 1,
-                    },
-                  ]}
-                >
-                  <Text
-                    style={{
-                      color: selected ? "#fff" : colors.text,
-                      fontWeight: "700",
-                      fontSize: 13,
-                    }}
-                  >
-                    {s.time}
-                  </Text>
-                  <Text
-                    style={{
-                      color: selected ? "rgba(255,255,255,0.8)" : colors.sub,
-                      fontSize: 9,
-                      marginTop: 2,
-                    }}
-                  >
-                    {booked ? "Booked" : unavailable ? "Unavailable" : "Open"}
-                  </Text>
-                </TouchableOpacity>
-              );
-            })}
-          </View>
+          contracts.map((c) => {
+            const start = new Date(c.startDate);
+            const end = new Date(c.endDate);
+            const dateLabel = start.toLocaleDateString(undefined, { month: "short", day: "numeric" });
+            const timeLabel = start.toLocaleTimeString(undefined, { hour: "2-digit", minute: "2-digit" });
+            return (
+              <View key={c.id} style={[styles.card, { backgroundColor: card, borderColor: border }]}>
+                <View style={styles.rowBetween}>
+                  <Text style={{ color: text, fontWeight: "800", fontSize: 14 }}>{c.student.studentName}</Text>
+                  <View style={[styles.pill, { backgroundColor: isDark ? "#1E3A5F" : "#F1F5F9" }]}>
+                    <Text style={{ color: sub, fontSize: 10, fontWeight: "700" }}>{c.status}</Text>
+                  </View>
+                </View>
+                <Text style={{ color: sub, fontSize: 12, marginTop: 4 }}>
+                  📅 {dateLabel} · {timeLabel}
+                </Text>
+                <Text style={{ color: sub, fontSize: 12, marginTop: 2 }}>
+                  Tutor: {c.teacher.fullName}
+                </Text>
+              </View>
+            );
+          })
         )}
-
-        <Text style={[styles.sectionLabel, { color: colors.sub, marginTop: 8 }]}>DURATION</Text>
-        <View style={{ flexDirection: "row", gap: 8, marginBottom: 16 }}>
-          {[60, 90, 120].map((m) => (
-            <TouchableOpacity
-              key={m}
-              onPress={() => setDuration(m)}
-              style={[
-                styles.durationChip,
-                {
-                  backgroundColor: duration === m ? colors.primary : colors.card,
-                  borderColor: duration === m ? colors.primary : colors.border,
-                },
-              ]}
-            >
-              <Text
-                style={{
-                  color: duration === m ? "#fff" : colors.text,
-                  fontWeight: "700",
-                  fontSize: 12,
-                }}
-              >
-                {m} min
-              </Text>
-            </TouchableOpacity>
-          ))}
-        </View>
-
-        <View style={[styles.card, { backgroundColor: colors.card, borderColor: colors.border }]}>
-          <Text style={[styles.sectionLabel, { color: colors.sub }]}>ESCROW SUMMARY</Text>
-          <Row label="Rate" value={`${ratePerHour} ETB/hr`} colors={colors} />
-          <Row label="Duration" value={`${duration} min (${hours}h)`} colors={colors} />
-          <Row label="Session total" value={`${total.toLocaleString()} ETB`} colors={colors} bold />
-          <Text style={{ color: colors.sub, fontSize: 10, marginTop: 8, lineHeight: 15 }}>
-            Funds are held in escrow and released only after verified attendance and parent confirmation.
-          </Text>
-        </View>
-
-        <TouchableOpacity
-          disabled={!selectedSlot}
-          style={[
-            styles.cta,
-            { backgroundColor: selectedSlot ? colors.primary : isDark ? "#334155" : "#cbd5e1" },
-          ]}
-          onPress={() => router.push("/(parent)/booking")}
-        >
-          <Text style={styles.ctaText}>
-            {selectedSlot ? `Confirm ${selectedSlot} · ${total} ETB` : "Select a slot"}
-          </Text>
-        </TouchableOpacity>
       </ScrollView>
     </SafeAreaView>
-  );
-}
-
-function Row({
-  label,
-  value,
-  colors,
-  bold,
-}: {
-  label: string;
-  value: string;
-  colors: any;
-  bold?: boolean;
-}) {
-  return (
-    <View style={{ flexDirection: "row", justifyContent: "space-between", marginBottom: 6 }}>
-      <Text style={{ color: colors.sub, fontSize: 12 }}>{label}</Text>
-      <Text style={{ color: bold ? colors.primary : colors.text, fontWeight: bold ? "800" : "600", fontSize: 12 }}>
-        {value}
-      </Text>
-    </View>
   );
 }
 
@@ -267,38 +126,9 @@ const styles = StyleSheet.create({
     paddingVertical: 12,
     borderBottomWidth: 1,
   },
-  headerTitle: { fontSize: 15, fontWeight: "700" },
-  content: { padding: 14, paddingBottom: 40 },
-  sectionLabel: {
-    fontSize: 10,
-    fontWeight: "700",
-    letterSpacing: 0.6,
-    marginBottom: 10,
-  },
-  dayChip: {
-    width: 56,
-    paddingVertical: 10,
-    borderRadius: 14,
-    borderWidth: 1,
-    alignItems: "center",
-    marginRight: 8,
-  },
-  slotGrid: { flexDirection: "row", flexWrap: "wrap", gap: 8, marginBottom: 8 },
-  slot: {
-    width: "47%",
-    paddingVertical: 12,
-    borderRadius: 14,
-    borderWidth: 1,
-    alignItems: "center",
-  },
-  durationChip: {
-    flex: 1,
-    paddingVertical: 10,
-    borderRadius: 12,
-    borderWidth: 1,
-    alignItems: "center",
-  },
-  card: { borderRadius: 16, padding: 14, borderWidth: 1, marginBottom: 16 },
-  cta: { borderRadius: 16, paddingVertical: 14, alignItems: "center" },
-  ctaText: { color: "#fff", fontWeight: "800", fontSize: 14 },
+  headerTitle: { fontSize: 15, fontWeight: "800" },
+  content: { padding: 14, paddingBottom: 40, gap: 10 },
+  card: { borderRadius: 16, padding: 14, borderWidth: 1 },
+  rowBetween: { flexDirection: "row", justifyContent: "space-between", alignItems: "center" },
+  pill: { paddingHorizontal: 8, paddingVertical: 3, borderRadius: 999 },
 });

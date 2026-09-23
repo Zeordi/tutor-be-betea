@@ -4,7 +4,7 @@ import { useTheme } from "@/hooks/useTheme";
 import { SafeAreaView } from "react-native-safe-area-context";
 import MapView, { Marker } from "react-native-maps";
 import * as Location from "expo-location";
-import { getToken } from "@/lib/api";
+import { apiRequest, paths } from "@/lib/api";
 import { useRouter } from "expo-router";
 
 export default function SetLocationScreen() {
@@ -42,25 +42,13 @@ export default function SetLocationScreen() {
   const handleSave = async () => {
     try {
       setLoading(true);
-      const token = await getToken();
-
-      const res = await fetch(
-        `${process.env.EXPO_PUBLIC_API_URL}/teachers/profile/location`,
-        {
-          method: "PATCH",
-          headers: {
-            "Content-Type": "application/json",
-            Authorization: `Bearer ${token}`,
-          },
-          body: JSON.stringify({
-            latitude: marker.latitude,
-            longitude: marker.longitude,
-          }),
-        }
-      );
-
-      if (!res.ok) throw new Error("Failed to save location");
-
+      await apiRequest(paths.teachersProfileLocation, {
+        method: "PATCH",
+        body: JSON.stringify({
+          latitude: marker.latitude,
+          longitude: marker.longitude,
+        }),
+      });
       Alert.alert("Success", "Your location has been updated");
       router.back();
     } catch (error: any) {

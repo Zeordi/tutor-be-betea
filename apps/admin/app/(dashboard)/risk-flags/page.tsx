@@ -138,17 +138,24 @@ export default function RiskFlagsPage() {
                   <p className="text-sm font-semibold text-[var(--foreground)]">
                     {f.user?.role || "User"} · {f.reason}
                   </p>
+                  <p className="mt-1 text-xs text-slate-500">
+                    Suspend and Warn are not yet available in the backend.
+                  </p>
                 </div>
                 <div className="flex flex-wrap gap-2">
                   <button
                     type="button"
-                    className="rounded-lg bg-red-500 px-3 py-1.5 text-xs font-bold text-white"
+                    disabled
+                    title="No backend endpoint for suspend"
+                    className="cursor-not-allowed rounded-lg bg-red-500 px-3 py-1.5 text-xs font-bold text-white disabled:opacity-40"
                   >
                     Suspend
                   </button>
                   <button
                     type="button"
-                    className="rounded-lg border border-[var(--border)] px-3 py-1.5 text-xs font-bold"
+                    disabled
+                    title="No backend endpoint for warn"
+                    className="cursor-not-allowed rounded-lg border border-[var(--border)] px-3 py-1.5 text-xs font-bold disabled:opacity-40"
                   >
                     Warn
                   </button>
