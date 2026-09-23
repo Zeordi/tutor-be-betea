@@ -35,28 +35,35 @@ export default function ParentJobDetailScreen() {
   const [error, setError] = useState("");
   const [job, setJob] = useState<Job | null>(null);
   const [applicants, setApplicants] = useState<Applicant[]>([]);
+  const [applicantsUnavailable, setApplicantsUnavailable] = useState(false);
 
   useEffect(() => {
     if (!id) return;
     let cancelled = false;
     setLoading(true);
     setError("");
+    setApplicantsUnavailable(false);
 
-    Promise.all([
-      apiRequest<Job>(paths.job(id)),
-      apiRequest<Applicant[]>(`/jobs/${id}/applications`),
-    ])
-      .then(([jobData, appsData]) => {
-        if (!cancelled) {
-          setJob(jobData);
-          setApplicants(appsData || []);
-        }
+    apiRequest<Job>(paths.job(id))
+      .then((jobData) => {
+        if (!cancelled) setJob(jobData);
       })
       .catch((err) => {
         if (!cancelled) setError(err.message || "Failed to load job");
       })
       .finally(() => {
         if (!cancelled) setLoading(false);
+      });
+
+    apiRequest<Applicant[]>(`/jobs/${id}/applications`)
+      .then((appsData) => {
+        if (!cancelled) setApplicants(Array.isArray(appsData) ? appsData : []);
+      })
+      .catch((_err: any) => {
+        if (!cancelled) {
+          setApplicants([]);
+          setApplicantsUnavailable(true);
+        }
       });
 
     return () => { cancelled = true; };
@@ -152,7 +159,11 @@ export default function ParentJobDetailScreen() {
                 textTransform: "capitalize",
               }}
             >
-              {t === "applicants" ? `Applicants (${applicants.length})` : "Details"}
+              {t === "applicants"
+                ? applicantsUnavailable
+                  ? "Applicants unavailable"
+                  : `Applicants (${applicants.length})`
+                : "Details"}
             </Text>
           </TouchableOpacity>
         ))}
@@ -199,7 +210,21 @@ export default function ParentJobDetailScreen() {
         )}
 
         {tab === "applicants" &&
-          applicants.map((a) => {
+          (applicantsUnavailable ? (
+            <View
+              style={[
+                styles.card,
+                { backgroundColor: card, borderColor: border, alignItems: "center", paddingVertical: 32 },
+              ]}
+            >
+              <Text style={{ color: sub, fontSize: 14, textAlign: "center" }}>
+                Applicants unavailable
+              </Text>
+              <Text style={{ color: sub, fontSize: 11, marginTop: 4, textAlign: "center" }}>
+                This endpoint may not be available yet.
+              </Text>
+            </View>
+          ) : applicants.map((a) => {
             const sc = statusColor(a.status);
             return (
               <View

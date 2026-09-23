@@ -2,7 +2,7 @@ import { View, Text, StyleSheet, FlatList, ActivityIndicator, Pressable } from "
 import { useEffect, useState, useCallback } from "react";
 import { useTheme } from "@/hooks/useTheme";
 import { SafeAreaView } from "react-native-safe-area-context";
-import { getToken } from "@/lib/api";
+import { apiRequest, paths } from "@/lib/api";
 
 type Notification = {
   id: string;
@@ -20,11 +20,7 @@ export default function NotificationsScreen() {
 
   const loadNotifications = useCallback(async () => {
     try {
-      const token = await getToken();
-      const res = await fetch(`${process.env.EXPO_PUBLIC_API_URL}/notifications`, {
-        headers: { Authorization: `Bearer ${token}` },
-      });
-      const data = await res.json();
+      const data = await apiRequest<Notification[]>(paths.notifications);
       setNotifications(Array.isArray(data) ? data : []);
     } catch (error) {
       console.error(error);

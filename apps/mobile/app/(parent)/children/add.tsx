@@ -3,7 +3,7 @@ import { useState } from "react";
 import { useTheme } from "@/hooks/useTheme";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useRouter } from "expo-router";
-import { getToken } from "@/lib/api";
+import { apiRequest, paths } from "@/lib/api";
 
 export default function AddChildScreen() {
   const { colors } = useTheme();
@@ -21,22 +21,14 @@ export default function AddChildScreen() {
 
     try {
       setLoading(true);
-      const token = await getToken();
-
-      const res = await fetch(`${process.env.EXPO_PUBLIC_API_URL}/parents/children`, {
+      await apiRequest(paths.children, {
         method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${token}`,
-        },
         body: JSON.stringify({
           studentName: name,
           gradeLevel: grade,
           curriculum: "NATIONAL_MINISTRY",
         }),
       });
-
-      if (!res.ok) throw new Error("Failed to add child");
 
       Alert.alert("Success", "Child added successfully");
       router.back();

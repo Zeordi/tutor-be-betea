@@ -28,6 +28,7 @@ export const paths = {
   usersMe: "/users/me",
   teachers: "/teachers",
   teacher: (id: string) => `/teachers/${id}`,
+  teachersProfileLocation: "/teachers/profile/location",
   jobsMine: "/jobs/mine",
   jobsOpen: "/jobs/open",
   jobsCreate: "/jobs",
