@@ -204,6 +204,12 @@ export const adminApi = {
 
   payoutLedger: () => api.get<AdminPayout[]>("/admin/payout-ledger"),
 
+  flagRisk: (userId: string, reason?: string) =>
+    api.post(`/admin/risk-flag/${userId}`, { reason }),
+
+  childProfiles: (parentId: string) =>
+    api.get<any[]>(`/admin/children/${parentId}`),
+
   riskFlags: () => api.get<AdminRiskFlag[]>("/admin/risk-flags"),
 
   clearRiskFlag: (flagId: string) =>
