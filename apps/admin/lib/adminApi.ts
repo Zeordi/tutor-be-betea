@@ -200,7 +200,7 @@ export const adminApi = {
     return api.get<AdminSupportTicket[]>(`/support${qsStr ? `?${qsStr}` : ""}`);
   },
 
-  ticket: (id: string) => api.get<AdminSupportTicket>(`/support/${id}`),
+  ticket: (id: string) => api.get<AdminSupportTicket>(`/support/ticket/${id}`),
 
   payoutLedger: () => api.get<AdminPayout[]>("/admin/payout-ledger"),
 
