@@ -3,36 +3,49 @@
 import { useEffect, useState } from "react";
 import { apiFetch, paths } from "@/lib/api";
 
-type ContractTeacher = {
+type ApiContract = {
   id: string;
-  fullName: string;
-  teacherProfile: { hourlyRate: number; rating: number; subCity: string | null } | null;
+  status: "ACTIVE" | "INACTIVE" | "PAUSED" | "COMPLETED" | "PENDING_ESCROW";
+  startDate: string;
+  endDate: string;
+  teacher: { id: string; fullName: string; avatarUrl: string | null };
+  student: { id: string; studentName: string; gradeLevel: string; subjects: string[] } | null;
 };
 
-type Contract = {
+type CalendarContract = {
   id: string;
+  status: ApiContract["status"];
+  startDate: string;
+  tutorName: string;
   studentName: string;
   subject: string;
   grade: string;
-  schedule: string;
-  startDate: string;
-  sessionCredits: number;
-  maxCredits: number;
-  status: "ACTIVE" | "INACTIVE" | "PAUSED" | "COMPLETED";
-  tutor: ContractTeacher;
 };
 
-const STATUS_COLORS: Record<Contract["status"], string> = {
+const STATUS_COLORS: Record<CalendarContract["status"], string> = {
   ACTIVE: "bg-emerald-100/80 text-emerald-800 dark:bg-emerald-950/40 dark:text-emerald-200",
   INACTIVE: "bg-slate-100 text-slate-600 dark:bg-slate-900 dark:text-slate-300",
   PAUSED: "bg-amber-100/80 text-amber-800 dark:bg-amber-950/40 dark:text-amber-200",
   COMPLETED: "bg-sky-100/80 text-sky-800 dark:bg-sky-950/40 dark:text-sky-200",
+  PENDING_ESCROW: "bg-amber-100/80 text-amber-800 dark:bg-amber-950/40 dark:text-amber-200",
 };
+
+function toCalendarContracts(data: ApiContract[]): CalendarContract[] {
+  return (data || []).map((c) => ({
+    id: c.id,
+    status: c.status,
+    startDate: c.startDate,
+    tutorName: c.teacher?.fullName || "Tutor",
+    studentName: c.student?.studentName || "Student",
+    subject: c.student?.subjects?.[0] || "General",
+    grade: c.student?.gradeLevel || "",
+  }));
+}
 
 export default function CalendarPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
-  const [contracts, setContracts] = useState<Contract[]>([]);
+  const [contracts, setContracts] = useState<CalendarContract[]>([]);
   const [currentMonth, setCurrentMonth] = useState(() => new Date());
   const [selectedDate, setSelectedDate] = useState<Date | null>(null);
 
@@ -42,16 +55,16 @@ export default function CalendarPage() {
   const firstWeekDay = (d: Date) => new Date(d.getFullYear(), d.getMonth(), 1).getDay();
 
   const upcoming = contracts.filter((c) => {
-    const d = new Date(c.schedule);
+    const d = new Date(c.startDate);
     return d >= new Date();
   });
 
   const sessionsOn = (date: Date) =>
     contracts.filter(
       (c) =>
-        new Date(c.schedule).getFullYear() === date.getFullYear() &&
-        new Date(c.schedule).getMonth() === date.getMonth() &&
-        new Date(c.schedule).getDate() === date.getDate(),
+        new Date(c.startDate).getFullYear() === date.getFullYear() &&
+        new Date(c.startDate).getMonth() === date.getMonth() &&
+        new Date(c.startDate).getDate() === date.getDate(),
     );
 
   const toggleMonth = (dir: -1 | 1) => {
@@ -63,9 +76,9 @@ export default function CalendarPage() {
     setLoading(true);
     setError("");
 
-    apiFetch<Contract[]>(paths.contractsMine)
+    apiFetch<ApiContract[]>(paths.contractsMine)
       .then((data) => {
-        if (!cancelled) setContracts(data || []);
+        if (!cancelled) setContracts(toCalendarContracts(data || []));
       })
       .catch((err) => {
         if (!cancelled) setError(err.message || "Failed to load sessions");
@@ -82,8 +95,8 @@ export default function CalendarPage() {
   const hasSessionsThisMonth = (date: Date) => {
     const sessions = contracts.filter(
       (c) =>
-        new Date(c.schedule).getFullYear() === date.getFullYear() &&
-        new Date(c.schedule).getMonth() === date.getMonth(),
+        new Date(c.startDate).getFullYear() === date.getFullYear() &&
+        new Date(c.startDate).getMonth() === date.getMonth(),
     );
     return sessions;
   };
@@ -210,7 +223,7 @@ export default function CalendarPage() {
                 className="rounded-2xl border border-[var(--border)] bg-[var(--card)] p-4"
               >
                 <div className="mb-2 flex justify-between">
-                  <p className="font-bold text-[var(--foreground)]">{c.tutor.fullName}</p>
+                  <p className="font-bold text-[var(--foreground)]">{c.tutorName}</p>
                   <span
                     className={`rounded-full px-2 py-0.5 text-[10px] font-black ${STATUS_COLORS[c.status]}`}
                   >
@@ -221,8 +234,7 @@ export default function CalendarPage() {
                   {c.studentName} · {c.subject} · Grade {c.grade}
                 </p>
                 <p className="mt-1 text-xs text-[var(--secondary)]">
-                  Starts {new Date(c.schedule).toLocaleString()} · Credits{" "}
-                  {c.sessionCredits}/{c.maxCredits}
+                  Starts {new Date(c.startDate).toLocaleString()}
                 </p>
                 <div className="mt-3 flex gap-2">
                   <button

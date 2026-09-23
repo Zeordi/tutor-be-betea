@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { useEffect, useMemo, useState } from "react";
+import { getToken, clearToken, apiFetch, logout } from "@/lib/api";
 
 type AdminRole = "super" | "verification" | "support" | "finance";
 
@@ -49,12 +50,62 @@ export default function AdminDashboardLayout({
   const [role, setRole] = useState<AdminRole>("super");
 
   useEffect(() => {
-    setReady(true);
-    const saved =
-      typeof window !== "undefined"
-        ? (localStorage.getItem("admin_role") as AdminRole | null)
-        : null;
-    if (saved && ROLE_META[saved]) setRole(saved);
+    let cancelled = false;
+
+    async function validate() {
+      const token = getToken();
+      if (!token) {
+        localStorage.removeItem("admin_token");
+        localStorage.removeItem("admin_role");
+        router.replace("/login");
+        return;
+      }
+
+      try {
+        const data = await apiFetch<any>("/users/me");
+        const apiRole = (data as any).role as string;
+        const allowed = [
+          "SUPER_ADMIN",
+          "SUPPORT_AGENT",
+          "FINANCE",
+          "VERIFICATION_OFFICER",
+        ];
+
+        if (!allowed.includes(apiRole)) {
+          localStorage.removeItem("admin_token");
+          localStorage.removeItem("admin_role");
+          router.replace("/login");
+          return;
+        }
+
+        const roleMap: Record<string, AdminRole> = {
+          SUPER_ADMIN: "super",
+          SUPPORT_AGENT: "support",
+          FINANCE: "finance",
+          VERIFICATION_OFFICER: "verification",
+        };
+
+        const mappedRole = roleMap[apiRole] || "super";
+
+        if (!cancelled) {
+          setRole(mappedRole);
+          localStorage.setItem("admin_role", mappedRole);
+          setReady(true);
+        }
+      } catch (e) {
+        if (!cancelled) {
+          localStorage.removeItem("admin_token");
+          localStorage.removeItem("admin_role");
+          router.replace("/login");
+        }
+      }
+    }
+
+    validate();
+
+    return () => {
+      cancelled = true;
+    };
   }, [router]);
 
   const setRolePersist = (r: AdminRole) => {
@@ -165,9 +216,8 @@ export default function AdminDashboardLayout({
           </div>
           <button
             type="button"
-            onClick={() => {
-              localStorage.removeItem("admin_token");
-              localStorage.removeItem("token");
+            onClick={async () => {
+              await logout();
               router.push("/login");
             }}
             className="w-full rounded-xl border border-slate-700 py-2 text-xs font-semibold text-slate-400 hover:text-white"

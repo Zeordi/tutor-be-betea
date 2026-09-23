@@ -2,55 +2,52 @@
 
 import Link from "next/link";
 import { useParams, useRouter } from "next/navigation";
-import { useMemo, useState } from "react";
-import { apiFetch } from "@/lib/api";
+import { useMemo, useEffect, useState } from "react";
+import { apiFetch, paths } from "@/lib/api";
 
 type Msg = {
   id: string;
-  from: "me" | "them" | "system";
+  from: "me" | "them";
   text: string;
   time: string;
   originalBlocked?: boolean;
 };
 
-const SEED: Msg[] = [
-  {
-    id: "1",
-    from: "them",
-    text: "Hello Berhane! Kidist did great on her test. Thank you!",
-    time: "10:02 AM",
-  },
-  {
-    id: "2",
-    from: "me",
-    text: "Wonderful news — her algebra improved a lot this month.",
-    time: "10:05 AM",
-  },
-  {
-    id: "3",
-    from: "them",
-    text: "Can we book extra sessions this week?",
-    time: "10:12 AM",
-  },
-  {
-    id: "4",
-    from: "system",
-    text: "🛡️ Safety: schedule only on-platform. Phone numbers, Telegram, and bank accounts are blocked.",
-    time: "10:13 AM",
-  },
-];
-
 export default function TeacherChatThreadPage() {
   const params = useParams();
   const router = useRouter();
   const id = (params?.id as string) || "1";
-  const [messages, setMessages] = useState<Msg[]>(SEED);
+  const [messages, setMessages] = useState<Msg[]>([]);
   const [draft, setDraft] = useState("");
 
   const title = useMemo(() => {
     if (id === "2") return "Platform Safety Team";
     if (id === "3") return "Abel Hailu (Parent)";
     return "Hana Mulugeta (Parent)";
+  }, [id]);
+
+  useEffect(() => {
+    if (!id) return;
+    let cancelled = false;
+    setMessages([]);
+    apiFetch<{ id: string; content: string; senderId: string; createdAt: string; originalBlocked?: boolean }[]>(paths.chatMessages(id))
+      .then((data) => {
+        if (!cancelled) {
+          setMessages(
+            (data || []).map((m) => ({
+              id: m.id,
+              from: m.senderId === id ? "them" : "me",
+              text: m.content,
+              time: new Date(m.createdAt).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }),
+              originalBlocked: m.originalBlocked,
+            }))
+          );
+        }
+      })
+      .catch(() => {
+        if (!cancelled) setMessages([]);
+      });
+    return () => { cancelled = true; };
   }, [id]);
 
   const send = async () => {
@@ -70,7 +67,7 @@ export default function TeacherChatThreadPage() {
     setDraft("");
     try {
       const saved = await apiFetch<{ id: string; content: string; originalBlocked?: boolean }>(
-        `/chat/${id}/messages`,
+        paths.chatSendMessage(id),
         {
           method: "POST",
           headers: { "Content-Type": "application/json" },
@@ -86,8 +83,8 @@ export default function TeacherChatThreadPage() {
                 text: saved.content,
                 originalBlocked: saved.originalBlocked || false,
               }
-            : m,
-        ),
+            : m
+        )
       );
     } catch {
       setMessages((prev) => prev.filter((m) => m.id !== tempId));
@@ -119,43 +116,34 @@ export default function TeacherChatThreadPage() {
 
       <div className="flex min-h-0 flex-1 flex-col overflow-hidden rounded-2xl border border-[var(--border)] bg-[var(--card)]">
         <div className="flex-1 space-y-3 overflow-y-auto p-4">
-          {messages.map((m) =>
-            m.from === "system" ? (
+          {messages.map((m) => (
+            <div
+              key={m.id}
+              className={`flex ${m.from === "me" ? "justify-end" : "justify-start"}`}
+            >
               <div
-                key={m.id}
-                className="rounded-xl border border-amber-200 bg-amber-50 px-3 py-2 text-center text-xs font-semibold text-amber-800 dark:border-amber-900 dark:bg-amber-950/30 dark:text-amber-200"
+                className={`max-w-[85%] rounded-2xl px-3.5 py-2.5 text-sm ${
+                  m.from === "me"
+                    ? "bg-[var(--primary)] text-white"
+                    : "bg-[var(--muted)] text-[var(--foreground)]"
+                }`}
               >
-                {m.text}
-              </div>
-            ) : (
-              <div
-                key={m.id}
-                className={`flex ${m.from === "me" ? "justify-end" : "justify-start"}`}
-              >
+                <p className="leading-relaxed">{m.text}</p>
                 <div
-                  className={`max-w-[85%] rounded-2xl px-3.5 py-2.5 text-sm ${
-                    m.from === "me"
-                      ? "bg-[var(--primary)] text-white"
-                      : "bg-[var(--muted)] text-[var(--foreground)]"
+                  className={`mt-1 flex items-center gap-2 text-[10px] ${
+                    m.from === "me" ? "text-white/70" : "text-[var(--secondary)]"
                   }`}
                 >
-                  <p className="leading-relaxed">{m.text}</p>
-                 <div
-                   className={`mt-1 flex items-center gap-2 text-[10px] ${
-                     m.from === "me" ? "text-white/70" : "text-[var(--secondary)]"
-                   }`}
-                 >
-                   <span>{m.time}</span>
-                   {m.originalBlocked && (
-                     <span className="rounded bg-black/10 px-1.5 py-0.5 font-bold">
-                       Contact info blocked
-                     </span>
-                   )}
-                 </div>
+                  <span>{m.time}</span>
+                  {m.originalBlocked && (
+                    <span className="rounded bg-black/10 px-1.5 py-0.5 font-bold">
+                      Contact info blocked
+                    </span>
+                  )}
                 </div>
               </div>
-            )
-          )}
+            </div>
+          ))}
         </div>
 
         <div className="border-t border-[var(--border)] p-3">

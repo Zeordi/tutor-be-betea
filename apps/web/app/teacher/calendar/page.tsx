@@ -4,6 +4,15 @@ import { useEffect, useState } from "react";
 import Link from "next/link";
 import { apiFetch, paths } from "@/lib/api";
 
+type ApiContract = {
+  id: string;
+  status: string;
+  startDate: string;
+  endDate: string;
+  parent: { fullName: string } | null;
+  student: { studentName: string; subjects: string[] } | null;
+};
+
 type Contract = {
   id: string;
   subject: string;
@@ -13,6 +22,18 @@ type Contract = {
   meetingMode?: string;
   status: string;
 };
+
+function toCalendarContract(data: ApiContract): Contract {
+  return {
+    id: data.id,
+    subject: data.student?.subjects?.[0] || "General",
+    studentName: data.student?.studentName || "Student",
+    schedule: data.startDate,
+    location: data.student?.subjects?.[0] || undefined,
+    meetingMode: data.status === "ACTIVE" ? "IN_PERSON" : undefined,
+    status: data.status,
+  };
+}
 
 const DAYS = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"] as const;
 
@@ -39,9 +60,9 @@ export default function TeacherCalendarPage() {
     setLoading(true);
     setError("");
 
-    apiFetch<Contract[]>(paths.contractsTeacher)
+    apiFetch<ApiContract[]>(paths.contractsTeacher)
       .then((data) => {
-        if (!cancelled) setContracts(data || []);
+        if (!cancelled) setContracts((data || []).map(toCalendarContract));
       })
       .catch((err) => {
         if (!cancelled) setError(err.message || "Failed to load sessions");

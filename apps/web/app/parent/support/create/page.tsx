@@ -1,7 +1,8 @@
 "use client";
 
-import Link from "next/link";
 import { useState } from "react";
+import { useRouter } from "next/navigation";
+import { apiFetch, paths } from "@/lib/api";
 
 const ISSUE_TYPES = [
   { id: "no-show", icon: "🚫", label: "Tutor No-Show", desc: "Tutor didn’t arrive for session" },
@@ -13,18 +14,80 @@ const ISSUE_TYPES = [
 ];
 
 export default function ReportProblemWebPage() {
+  const router = useRouter();
   const [step, setStep] = useState(1);
   const [issueType, setIssueType] = useState<string | null>(null);
+  const [description, setDescription] = useState("");
+  const [submitting, setSubmitting] = useState(false);
+  const [submitted, setSubmitted] = useState(false);
+  const [ticketId, setTicketId] = useState<string | null>(null);
+
+  const canSubmit = issueType && description.trim().length >= 10;
+
+  const submit = async () => {
+    if (!canSubmit || submitting) return;
+    setSubmitting(true);
+    try {
+      const ticket = await apiFetch<{ id: string }>(paths.supportCreate, {
+        method: "POST",
+        body: JSON.stringify({
+          reasonType: issueType,
+          explanation: description.trim(),
+          evidenceAttachmentUrls: [],
+        }),
+      });
+      setTicketId(ticket.id);
+      setSubmitted(true);
+    } catch (err: any) {
+      alert(err.message || "Failed to submit report");
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
+  if (submitted) {
+    return (
+      <div className="mx-auto max-w-2xl space-y-5">
+        <div className="space-y-4 text-center">
+          <div className="mx-auto flex h-20 w-20 items-center justify-center rounded-3xl bg-emerald-100 text-4xl dark:bg-emerald-900/40">
+            ✅
+          </div>
+          <h2 className="text-xl font-extrabold text-[var(--foreground)]">Report Submitted</h2>
+          <p className="text-sm text-[var(--secondary)]">
+            Our Safety Team will review within 24 hours.
+            {ticketId && <span> Case #{ticketId.slice(0, 8).toUpperCase()}</span>}
+          </p>
+          <p className="text-xs text-[var(--primary)]">ጉዳዩ ለደህንነት ቡድናችን ደርሷል</p>
+          <div className="flex gap-3">
+            <button
+              type="button"
+              onClick={() => router.push("/parent")}
+              className="flex-1 rounded-xl border border-[var(--border)] py-3 text-sm font-bold text-[var(--secondary)]"
+            >
+              Back to Home
+            </button>
+            <button
+              type="button"
+              onClick={() => router.push("/parent/safety")}
+              className="flex-1 rounded-xl bg-[var(--primary)] py-3 text-sm font-extrabold text-white"
+            >
+              Track Case
+            </button>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="mx-auto max-w-2xl space-y-5">
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-2xl font-extrabold text-[var(--foreground)]">Report a Problem</h1>
-          <p className="text-sm text-[var(--secondary)]">Step {step}/3</p>
+          <p className="text-sm text-[var(--secondary)]">Step {step}/2</p>
         </div>
         <div className="flex gap-1">
-          {[1, 2, 3].map((s) => (
+          {[1, 2].map((s) => (
             <div
               key={s}
               className={`h-1.5 w-10 rounded-full ${s <= step ? "bg-[var(--primary)]" : "bg-[var(--muted)]"}`}
@@ -90,7 +153,9 @@ export default function ReportProblemWebPage() {
               <textarea
                 className="mt-1 w-full rounded-xl border border-[var(--border)] bg-[var(--muted)] p-3 text-sm text-[var(--foreground)]"
                 rows={4}
-                defaultValue="Tutor arrived 45 minutes late without advance notice."
+                value={description}
+                onChange={(e) => setDescription(e.target.value)}
+                placeholder="Describe the issue in detail..."
               />
             </label>
             <div className="grid grid-cols-3 gap-2">
@@ -107,39 +172,13 @@ export default function ReportProblemWebPage() {
           </div>
           <button
             type="button"
-            onClick={() => setStep(3)}
-            className="w-full rounded-2xl bg-[var(--primary)] py-3.5 text-sm font-extrabold text-white"
+            disabled={!canSubmit || submitting}
+            onClick={submit}
+            className="w-full rounded-2xl bg-[var(--primary)] py-3.5 text-sm font-extrabold text-white disabled:opacity-40"
           >
-            Submit Report →
+            {submitting ? "Submitting…" : "Submit Report →"}
           </button>
         </>
-      )}
-
-      {step === 3 && (
-        <div className="space-y-4 text-center">
-          <div className="mx-auto flex h-20 w-20 items-center justify-center rounded-3xl bg-emerald-100 text-4xl dark:bg-emerald-900/40">
-            ✅
-          </div>
-          <h2 className="text-xl font-extrabold text-[var(--foreground)]">Report Submitted</h2>
-          <p className="text-sm text-[var(--secondary)]">
-            Our Safety Team will review within 24 hours. Case <strong>#TBB-28471</strong>
-          </p>
-          <p className="text-xs text-[var(--primary)]">ጉዳዩ ለደህንነት ቡድናችን ደርሷል</p>
-          <div className="flex gap-3">
-            <Link
-              href="/parent"
-              className="flex-1 rounded-xl border border-[var(--border)] py-3 text-sm font-bold text-[var(--secondary)]"
-            >
-              Back to Home
-            </Link>
-            <Link
-              href="/parent/safety"
-              className="flex-1 rounded-xl bg-[var(--primary)] py-3 text-sm font-extrabold text-white"
-            >
-              Track Case
-            </Link>
-          </div>
-        </div>
       )}
     </div>
   );

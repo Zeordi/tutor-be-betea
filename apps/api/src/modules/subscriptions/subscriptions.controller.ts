@@ -13,6 +13,11 @@ export class SubscriptionsController {
     return this.subscriptionsService.getMine(user.id);
   }
 
+  @Get("plans")
+  listPlans() {
+    return this.subscriptionsService.listPlans();
+  }
+
   @Post("upgrade")
   upgrade(
     @CurrentUser() user: any,

@@ -1,4 +1,4 @@
-import { Body, Controller, Post, HttpCode, HttpStatus } from "@nestjs/common";
+import { Body, Controller, Post, HttpCode, HttpStatus, UseGuards } from "@nestjs/common";
 import { AuthService } from "./auth.service";
 import { LoginDto } from "./dto/login.dto";
 import { RegisterDto } from "./dto/register.dto";
@@ -7,6 +7,10 @@ import {
   PasswordForgotDto,
   PasswordResetDto,
 } from "./dto/password-reset.dto";
+import { RefreshTokenDto } from "./dto/refresh-token.dto";
+import { LogoutDto } from "./dto/logout.dto";
+import { JwtAuthGuard } from "../../common/guards/jwt-auth.guard";
+import { CurrentUser } from "../../common/decorators/current-user.decorator";
 
 @Controller("auth")
 export class AuthController {
@@ -60,5 +64,18 @@ export class AuthController {
   @HttpCode(HttpStatus.OK)
   passwordReset(@Body() dto: PasswordResetDto) {
     return this.authService.passwordReset(dto);
+  }
+
+  @Post("refresh")
+  @HttpCode(HttpStatus.OK)
+  refresh(@Body() dto: RefreshTokenDto) {
+    return this.authService.refresh(dto.refreshToken);
+  }
+
+  @Post("logout")
+  @UseGuards(JwtAuthGuard)
+  @HttpCode(HttpStatus.OK)
+  logout(@CurrentUser() user: any, @Body() dto: LogoutDto) {
+    return this.authService.logout(user.id, user.jti, dto.refreshToken);
   }
 }

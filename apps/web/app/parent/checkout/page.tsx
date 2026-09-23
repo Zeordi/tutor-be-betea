@@ -192,6 +192,10 @@ export default function CheckoutPage() {
           {step === 1 && (
             <div className="rounded-2xl border border-[var(--border)] bg-[var(--card)] p-6">
               <p className="mb-4 font-bold text-[var(--foreground)]">Pick first session slot</p>
+              {/* C4: hardcoded slots kept because no parent-safe availability read exists yet */}
+              <p className="mb-2 text-xs text-[var(--secondary)]">
+                Available slots shown below are placeholders. Once teacher availability is exposed to parents, this will load real open slots.
+              </p>
               <div className="mb-6 grid grid-cols-3 gap-2">
                 {["Mon 10:00", "Wed 14:00", "Fri 09:00"].map((s) => (
                   <button

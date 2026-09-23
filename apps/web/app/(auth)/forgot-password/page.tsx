@@ -4,9 +4,7 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 
-const API_URL =
-  process.env.NEXT_PUBLIC_API_URL ||
-  "https://tutor-be-betea.onrender.com";
+import { getApiUrl, paths } from "@/lib/api";
 
 export default function ForgotPasswordPage() {
   const router = useRouter();
@@ -19,7 +17,7 @@ export default function ForgotPasswordPage() {
     setLoading(true);
     setMessage("");
     try {
-      const res = await fetch(`${API_URL}/auth/password/forgot`, {
+      const res = await fetch(getApiUrl() + paths.authPasswordForgot, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ phoneNumber: phoneNumber.trim() }),

@@ -2,7 +2,16 @@
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
-import { apiFetch } from "@/lib/api";
+import { apiFetch, paths } from "@/lib/api";
+
+type SupportTicket = {
+  id: string;
+  reasonType: string;
+  explanation: string;
+  status: string;
+  createdAt: string;
+  contractId?: string | null;
+};
 
 type Dispute = {
   id: string;
@@ -14,9 +23,22 @@ type Dispute = {
   resolution: string | null;
 };
 
+function mapTicketToDispute(ticket: SupportTicket): Dispute {
+  return {
+    id: ticket.id,
+    type: ticket.reasonType || "Support Ticket",
+    description: ticket.explanation,
+    filedAt: ticket.createdAt,
+    status: ticket.status,
+    escrowAmount: 0,
+    resolution: null,
+  };
+}
+
 export default function ParentSafetyPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
+  const [tickets, setTickets] = useState<SupportTicket[]>([]);
   const [disputes, setDisputes] = useState<Dispute[]>([]);
 
   useEffect(() => {
@@ -24,9 +46,12 @@ export default function ParentSafetyPage() {
     setLoading(true);
     setError("");
 
-    apiFetch<Dispute[]>("/disputes/mine")
+    apiFetch<SupportTicket[]>(paths.supportMine)
       .then((data) => {
-        if (!cancelled) setDisputes(data || []);
+        if (!cancelled) {
+          setTickets(data || []);
+          setDisputes((data || []).map(mapTicketToDispute));
+        }
       })
       .catch((err) => {
         if (!cancelled) setError(err.message || "Failed to load safety info");
@@ -79,7 +104,7 @@ export default function ParentSafetyPage() {
       <div className="mb-6 grid gap-4 sm:grid-cols-3">
         {[
           hasActiveDispute
-            ? ["⚑", "1 open dispute", "Action required"]
+            ? ["⚑", "1 open issue", "Action required"]
             : ["🛡️", "No active flags", "All tutors safe"],
           ["📋", `${disputes.length} total cases`, "View history"],
           ["🔄", "0 replacements", "All sessions fine"],
@@ -97,13 +122,13 @@ export default function ParentSafetyPage() {
 
       {hasActiveDispute && (
         <div className="rounded-2xl border border-[var(--border)] bg-[var(--card)] p-5">
-          <p className="mb-1 text-[10px] font-bold tracking-wide text-red-500">OPEN DISPUTE</p>
+          <p className="mb-1 text-[10px] font-bold tracking-wide text-red-500">OPEN ISSUE</p>
           <p className="font-bold text-[var(--foreground)]">{activeDispute.type}</p>
           <p className="mt-2 text-sm text-[var(--secondary)]">
             {activeDispute.description}
           </p>
           <div className="mt-3 rounded-xl bg-[var(--muted)] p-3 text-sm text-[var(--secondary)]">
-            Escrow: Frozen · {(activeDispute.escrowAmount || 0).toLocaleString()} ETB
+            Status: {activeDispute.status}
           </div>
           <button
             type="button"

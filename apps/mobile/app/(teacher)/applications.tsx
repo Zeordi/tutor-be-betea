@@ -40,7 +40,7 @@ export default function MyApplicationsScreen() {
     setLoading(true);
     setError("");
 
-    apiRequest<Application[]>(paths.applicationsMine)
+    apiRequest<Application[]>(paths.jobsApplicationsMine)
       .then((data) => {
         if (!cancelled) setApplications(Array.isArray(data) ? data : []);
       })
@@ -95,7 +95,7 @@ export default function MyApplicationsScreen() {
             onPress={() => {
               setError("");
               setLoading(true);
-              apiRequest<Application[]>(paths.applicationsMine)
+              apiRequest<Application[]>(paths.jobsApplicationsMine)
                 .then((data) => setApplications(Array.isArray(data) ? data : []))
                 .catch((e) => setError(e.message))
                 .finally(() => setLoading(false));

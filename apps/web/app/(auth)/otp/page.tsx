@@ -2,11 +2,8 @@
 
 import { Suspense, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
-import { setToken } from "@/lib/api";
-
-const API_URL =
-  process.env.NEXT_PUBLIC_API_URL ||
-  "https://tutor-be-betea.onrender.com";
+import { setSession } from "@/lib/api";
+import { getApiUrl, paths } from "@/lib/api";
 
 function OtpForm() {
   const router = useRouter();
@@ -26,7 +23,7 @@ function OtpForm() {
     setLoading(true);
     setMessage("");
     try {
-      const verifyRes = await fetch(`${API_URL}/auth/otp/verify`, {
+      const verifyRes = await fetch(getApiUrl() + paths.authOtpVerify, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ phoneNumber, code: otp.trim() }),
@@ -38,7 +35,7 @@ function OtpForm() {
       const verifyData = await verifyRes.json();
 
       if (mode === "register") {
-        const registerRes = await fetch(`${API_URL}/auth/register`, {
+        const registerRes = await fetch(getApiUrl() + paths.authRegister, {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
@@ -54,10 +51,10 @@ function OtpForm() {
           throw new Error((err as any).message || "Registration failed");
         }
         const data = await registerRes.json();
-        if (data.accessToken) setToken(data.accessToken);
+        if (data.accessToken) setSession(data.accessToken, data.refreshToken);
         router.push(role === "TEACHER" ? "/teacher" : "/parent");
       } else {
-        const loginRes = await fetch(`${API_URL}/auth/login`, {
+        const loginRes = await fetch(getApiUrl() + paths.authLogin, {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
@@ -71,7 +68,7 @@ function OtpForm() {
           throw new Error((err as any).message || "Login failed");
         }
         const data = await loginRes.json();
-        if (data.accessToken) setToken(data.accessToken);
+        if (data.accessToken) setSession(data.accessToken, data.refreshToken);
         router.push(
           data.user?.role === "TEACHER" ? "/teacher" : "/parent",
         );

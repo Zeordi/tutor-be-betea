@@ -3,6 +3,9 @@ import { StatusBar } from "expo-status-bar";
 import { ThemeProvider } from "@/components/ThemeProvider";
 import { useTheme } from "@/hooks/useTheme";
 import { usePushNotifications } from "@/hooks/usePushNotifications";
+import { useAuth } from "@/hooks/useAuth";
+import { usePathname, useRouter } from "expo-router";
+import { useEffect } from "react";
 import * as Sentry from "@sentry/react-native";
 
 if (process.env.EXPO_PUBLIC_SENTRY_DSN) {
@@ -16,6 +19,18 @@ if (process.env.EXPO_PUBLIC_SENTRY_DSN) {
 function RootLayoutNav() {
   const { isDark } = useTheme();
   usePushNotifications();
+  const { isAuthenticated, isLoading } = useAuth();
+  const pathname = usePathname();
+  const router = useRouter();
+
+  useEffect(() => {
+    if (isLoading) return;
+    const inProtectedStack =
+      pathname.startsWith("/(parent)") || pathname.startsWith("/(teacher)");
+    if (!isAuthenticated && inProtectedStack) {
+      router.replace("/(auth)/login");
+    }
+  }, [pathname, isAuthenticated, isLoading, router]);
 
   return (
     <>

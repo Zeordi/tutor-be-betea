@@ -98,6 +98,7 @@ export class AppModule implements NestModule {
         { path: "auth/otp/verify", method: RequestMethod.POST },
         { path: "auth/login", method: RequestMethod.POST },
         { path: "auth/register", method: RequestMethod.POST },
+        { path: "auth/password/forgot", method: RequestMethod.POST },
         { path: "verification/:id/revoke", method: RequestMethod.POST },
       )
       .apply(PaymentRateLimitMiddleware)

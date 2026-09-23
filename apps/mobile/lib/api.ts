@@ -4,6 +4,8 @@ const API_URL =
   process.env.EXPO_PUBLIC_API_URL ||
   "https://tutor-be-betea.onrender.com";
 
+const REQUEST_TIMEOUT = 25_000;
+
 export function getApiUrl() {
   return API_URL;
 }
@@ -27,8 +29,15 @@ export const paths = {
   teachers: "/teachers",
   teacher: (id: string) => `/teachers/${id}`,
   jobsMine: "/jobs/mine",
+  jobsOpen: "/jobs/open",
   jobsCreate: "/jobs",
   job: (id: string) => `/jobs/${id}`,
+  jobApply: (jobId: string) => `/jobs/${jobId}/apply`,
+
+  // applications (teacher view of applications they submitted)
+  jobsApplicationsMine: "/jobs/applications/mine",
+
+  // children
   children: "/parents/children",
   child: (id: string) => `/parents/children/${id}`,
   favorites: "/favorites",
@@ -46,9 +55,8 @@ export const paths = {
   subscriptionsPlans: "/subscriptions/plans",
   referralsCode: "/referrals/code",
   referralsMine: "/referrals/mine",
-  applicationsMine: "/applications/mine",
-  applicationsAction: (id: string) => `/applications/${id}/action`,
-  applicationsCreate: "/applications",
+
+  // connects
   connectsBalance: "/connects/balance",
   connectsTopUp: "/connects/top-up",
   vaultUpload: "/vault/upload",
@@ -67,6 +75,8 @@ export const paths = {
   offlineSyncAttendance: "/offline/attendance",
   offlineSyncProgress: "/offline/progress",
   offlineSyncSupport: "/offline/support",
+  authRefresh: "/auth/refresh",
+  authLogout: "/auth/logout",
 } as const;
 
 export async function getToken(): Promise<string | null> {
@@ -81,12 +91,26 @@ export async function setToken(token: string): Promise<void> {
   await SecureStore.setItemAsync("auth_token", token);
 }
 
+export async function getRefreshToken(): Promise<string | null> {
+  try {
+    return await SecureStore.getItemAsync("refresh_token");
+  } catch {
+    return null;
+  }
+}
+
+export async function setRefreshToken(token: string): Promise<void> {
+  await SecureStore.setItemAsync("refresh_token", token);
+}
+
 export async function setSession(
   token: string,
+  refreshToken?: string,
   role?: string,
   userJson?: string,
 ): Promise<void> {
   await SecureStore.setItemAsync("auth_token", token);
+  if (refreshToken) await SecureStore.setItemAsync("refresh_token", refreshToken);
   if (role) await SecureStore.setItemAsync("auth_role", role);
   if (userJson) await SecureStore.setItemAsync("auth_user", userJson);
 }
@@ -103,6 +127,68 @@ export async function clearToken(): Promise<void> {
   await SecureStore.deleteItemAsync("auth_token");
   await SecureStore.deleteItemAsync("auth_user");
   await SecureStore.deleteItemAsync("auth_role");
+  await SecureStore.deleteItemAsync("refresh_token");
+}
+
+let currentRefresh: Promise<string | null> | null = null;
+
+async function tryRefresh(): Promise<string | null> {
+  const refreshToken = await getRefreshToken();
+  if (!refreshToken) return null;
+  if (currentRefresh) return currentRefresh;
+
+  const promise = (async (): Promise<string | null> => {
+    try {
+      const controller = new AbortController();
+      const timer = setTimeout(() => controller.abort(), REQUEST_TIMEOUT);
+      const res = await fetch(API_URL + "/auth/refresh", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ refreshToken }),
+        signal: controller.signal,
+      });
+      clearTimeout(timer);
+      if (!res.ok) throw new Error("Refresh failed");
+      const data = await res.json();
+      const newToken = data.accessToken;
+      const newRefresh = data.refreshToken;
+      if (newToken) await setToken(newToken);
+      if (newRefresh) await setRefreshToken(newRefresh);
+      return newToken;
+    } catch {
+      await clearToken();
+      return null;
+    } finally {
+      currentRefresh = null;
+    }
+  })();
+
+  currentRefresh = promise;
+  return promise;
+}
+
+export async function logout(): Promise<void> {
+  const token = await getToken();
+  const refreshToken = await getRefreshToken();
+  if (token) {
+    try {
+      const controller = new AbortController();
+      const timer = setTimeout(() => controller.abort(), REQUEST_TIMEOUT);
+      await fetch(API_URL + "/auth/logout", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: "Bearer " + token,
+        },
+        body: JSON.stringify({ refreshToken }),
+        signal: controller.signal,
+      });
+      clearTimeout(timer);
+    } catch {
+      // ignore logout API errors
+    }
+  }
+  await clearToken();
 }
 
 export async function apiRequest<T = any>(
@@ -123,10 +209,32 @@ export async function apiRequest<T = any>(
   }
 
   const url = API_URL + (endpoint.startsWith("/") ? endpoint : "/" + endpoint);
-  const response = await fetch(url, { ...options, headers });
+
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), REQUEST_TIMEOUT);
+  const response = await fetch(url, { ...options, headers, signal: controller.signal });
+  clearTimeout(timer);
 
   if (!response.ok) {
     const errorData = await response.json().catch(() => ({}));
+    if (response.status === 401 && token) {
+      const newToken = await tryRefresh();
+      if (newToken) {
+        headers.Authorization = "Bearer " + newToken;
+        const retryController = new AbortController();
+        const retryTimer = setTimeout(() => retryController.abort(), REQUEST_TIMEOUT);
+        const retryRes = await fetch(url, { ...options, headers, signal: retryController.signal });
+        clearTimeout(retryTimer);
+        if (!retryRes.ok) {
+          const retryError = await retryRes.json().catch(() => ({}));
+          throw new Error(
+            (retryError as any).message ||
+              "Request failed (" + retryRes.status + ")",
+          );
+        }
+        return retryRes.json();
+      }
+    }
     throw new Error(
       (errorData as any).message ||
         "Request failed (" + response.status + ")",

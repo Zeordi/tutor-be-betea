@@ -1,9 +1,9 @@
 "use client";
 
 import { useParams, useRouter } from "next/navigation";
-import { useMemo, useState } from "react";
+import { useMemo, useEffect, useState } from "react";
 import Link from "next/link";
-import { apiFetch } from "@/lib/api";
+import { apiFetch, paths } from "@/lib/api";
 
 type Msg = {
   id: string;
@@ -13,39 +13,43 @@ type Msg = {
   originalBlocked?: boolean;
 };
 
-const SEED: Msg[] = [
-  {
-    id: "1",
-    from: "them",
-    text: "Hello Hana — ready for Kidist's Math session tomorrow at 10:00.",
-    time: "09:12",
-  },
-  {
-    id: "2",
-    from: "me",
-    text: "Perfect. We'll be at the Bole address.",
-    time: "09:15",
-  },
-  {
-    id: "3",
-    from: "them",
-    text: "[RESTRICTED CONTACT INFO]",
-    time: "09:16",
-    originalBlocked: true,
-  },
-];
+
 
 export default function ParentChatThreadPage() {
   const params = useParams();
   const router = useRouter();
   const id = (params?.id as string) || "1";
-  const [messages, setMessages] = useState<Msg[]>(SEED);
+  const [messages, setMessages] = useState<Msg[]>([]);
   const [draft, setDraft] = useState("");
 
   const title = useMemo(() => {
     if (id === "2") return "Selamawit Bekele";
     if (id === "3") return "Dawit Haile";
     return "Berhane Alemu";
+  }, [id]);
+
+  useEffect(() => {
+    if (!id) return;
+    let cancelled = false;
+    setMessages([]);
+    apiFetch<{ id: string; content: string; senderId: string; createdAt: string; originalBlocked?: boolean }[]>(paths.chatMessages(id))
+      .then((data) => {
+        if (!cancelled) {
+          setMessages(
+            (data || []).map((m) => ({
+              id: m.id,
+              from: m.senderId === id ? "them" : "me",
+              text: m.content,
+              time: new Date(m.createdAt).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }),
+              originalBlocked: m.originalBlocked,
+            }))
+          );
+        }
+      })
+      .catch(() => {
+        if (!cancelled) setMessages([]);
+      });
+    return () => { cancelled = true; };
   }, [id]);
 
   const send = async () => {

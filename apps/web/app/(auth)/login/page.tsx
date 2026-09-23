@@ -4,10 +4,7 @@ import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { setSession } from "@/lib/auth";
-
-const API_URL =
-  process.env.NEXT_PUBLIC_API_URL ||
-  "https://tutor-be-betea.onrender.com";
+import { getApiUrl, paths } from "@/lib/api";
 
 const LANGS = ["EN", "አማ", "ORO", "ትግ"] as const;
 
@@ -36,7 +33,7 @@ export default function LoginPage() {
   };
 
   const sendPhoneOtp = async () => {
-    const res = await fetch(`${API_URL}/auth/otp/send`, {
+    const res = await fetch(getApiUrl() + paths.authOtpSend, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ phoneNumber: phoneNumber.trim() }),
@@ -57,7 +54,7 @@ export default function LoginPage() {
         return;
       }
       if (tab === "email") {
-        const res = await fetch(`${API_URL}/auth/login`, {
+          const res = await fetch(getApiUrl() + paths.authLogin, {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
@@ -67,7 +64,11 @@ export default function LoginPage() {
         });
         const data = await res.json().catch(() => ({}));
         if (!res.ok) throw new Error((data as any).message || "Login failed");
-        setSession((data as any).accessToken, (data as any).user?.role);
+        setSession(
+          (data as any).accessToken,
+          (data as any).refreshToken,
+          (data as any).user?.role,
+        );
         redirectByRole((data as any).user?.role);
         return;
       }
@@ -92,7 +93,7 @@ export default function LoginPage() {
     setMessage("");
     try {
       if (otp.trim().length !== 6) throw new Error("Enter 6-digit code");
-      const verifyRes = await fetch(`${API_URL}/auth/otp/verify`, {
+      const verifyRes = await fetch(getApiUrl() + paths.authOtpVerify, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
@@ -106,7 +107,7 @@ export default function LoginPage() {
           (verifyData as any).message || "Invalid or expired OTP",
         );
       }
-      const loginRes = await fetch(`${API_URL}/auth/login`, {
+        const loginRes = await fetch(getApiUrl() + paths.authLogin, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
@@ -121,6 +122,7 @@ export default function LoginPage() {
       }
       setSession(
         (loginData as any).accessToken,
+        (loginData as any).refreshToken,
         (loginData as any).user?.role,
       );
       redirectByRole((loginData as any).user?.role);

@@ -6,6 +6,17 @@ import { apiFetch, paths } from "@/lib/api";
 
 const MILESTONES = ["Funded", "In Escrow", "Sessions", "Released"] as const;
 
+type ApiContract = {
+  id: string;
+  status: string;
+  agreedAmount: number;
+  escrowHeldAmount: number;
+  startDate: string;
+  endDate: string;
+  parent: { fullName: string } | null;
+  student: { studentName: string; subjects: string[] } | null;
+};
+
 type Contract = {
   id: string;
   family: string;
@@ -20,6 +31,23 @@ type Contract = {
   milestoneIndex: number;
 };
 
+function toContract(data: ApiContract): Contract {
+  const subject = data.student?.subjects?.[0] || "General";
+  return {
+    id: data.id,
+    family: data.parent?.fullName || "Family",
+    child: data.student?.studentName || "Child",
+    subject,
+    rate: `${Number(data.agreedAmount || 0).toLocaleString()} ETB`,
+    status: data.status as Contract["status"],
+    escrowHeld: Number(data.escrowHeldAmount || 0),
+    sessionsDone: 0,
+    sessionsTotal: 0,
+    nextSession: data.startDate || "",
+    milestoneIndex: data.status === "ACTIVE" ? 1 : data.status === "COMPLETED" ? 3 : 0,
+  };
+}
+
 export default function TeacherContractsPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
@@ -30,9 +58,9 @@ export default function TeacherContractsPage() {
     setLoading(true);
     setError("");
 
-    apiFetch<Contract[]>(paths.contractsTeacher)
+    apiFetch<ApiContract[]>(paths.contractsTeacher)
       .then((data) => {
-        if (!cancelled) setContracts(data || []);
+        if (!cancelled) setContracts((data || []).map(toContract));
       })
       .catch((err) => {
         if (!cancelled) setError(err.message || "Failed to load contracts");

@@ -1,7 +1,6 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { apiFetch, paths } from "@/lib/api";
 
 type Analytics = {
   profileViews: number;
@@ -12,26 +11,30 @@ type Analytics = {
   earningsForecast: { label: string; amount: string }[];
 };
 
+const DEMO: Analytics = {
+  profileViews: 0,
+  jobMatches: 0,
+  applyRate: 0,
+  rehireRate: 0,
+  subjectDemand: [],
+  earningsForecast: [],
+};
+
 export default function TeacherAnalyticsPage() {
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState("");
   const [data, setData] = useState<Analytics | null>(null);
 
   useEffect(() => {
     let cancelled = false;
     setLoading(true);
-    setError("");
+    setData(null);
 
-    apiFetch<Analytics>(paths.analyticsMine)
-      .then((d) => {
-        if (!cancelled) setData(d);
-      })
-      .catch((err) => {
-        if (!cancelled) setError(err.message || "Failed to load analytics");
-      })
-      .finally(() => {
-        if (!cancelled) setLoading(false);
-      });
+    setTimeout(() => {
+      if (!cancelled) {
+        setData(DEMO);
+        setLoading(false);
+      }
+    }, 0);
 
     return () => {
       cancelled = true;
@@ -55,25 +58,10 @@ export default function TeacherAnalyticsPage() {
     );
   }
 
-  if (error) {
-    return (
-      <div className="p-6">
-        <p className="text-sm text-red-600">{error}</p>
-        <button
-          type="button"
-          onClick={() => window.location.reload()}
-          className="mt-3 rounded-xl bg-teal-600 px-4 py-2 text-sm font-bold text-white"
-        >
-          Retry
-        </button>
-      </div>
-    );
-  }
-
   if (!data) {
     return (
       <div className="p-6">
-        <p className="text-sm text-[var(--secondary)]">No analytics data available.</p>
+        <p className="text-sm text-[var(--secondary)]">No analytics data available yet.</p>
       </div>
     );
   }
@@ -87,9 +75,9 @@ export default function TeacherAnalyticsPage() {
           [String(data.jobMatches), "Job Matches", "Active"],
           [`${data.applyRate}%`, "Apply Rate", "Applied/matched"],
           [`${data.rehireRate}%`, "Rehire Rate", "Past clients"],
-        ].map(([l, v, s]) => (
+        ].map(([v, l, s]) => (
           <div
-            key={l as string}
+            key={l}
             className="rounded-2xl border border-slate-100 bg-white p-4 text-center dark:border-slate-800 dark:bg-[#112240]"
           >
             <p className="text-2xl font-extrabold text-teal-600">{v}</p>

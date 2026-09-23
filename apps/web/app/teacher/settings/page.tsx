@@ -2,19 +2,17 @@
 
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
-import { apiFetch, paths } from "@/lib/api";
+import { apiFetch, paths, logout } from "@/lib/api";
 
 type TeacherMe = {
   id: string;
   fullName: string;
   email: string;
-  phone: string | null;
+  phoneNumber: string | null;
   subCity: string | null;
-  teacherProfile: {
-    preferredPayoutProvider: string;
-    language: string;
-    notificationPrefs: Record<string, boolean>;
-  } | null;
+  language: string;
+  notificationPrefs: Record<string, boolean>;
+  preferredPayoutProvider: string | null;
 };
 
 const NOTIFS: { label: string; desc: string; key: string; defaultOn: boolean }[] = [
@@ -83,19 +81,16 @@ export default function TeacherSettingsPage() {
     let cancelled = false;
     setLoading(true);
 
-    apiFetch<TeacherMe>(paths.usersMe)
+    apiFetch<TeacherMe>(paths.teachersMeProfile)
       .then((data) => {
         if (!cancelled) {
           setMe(data);
-          if (data?.teacherProfile) {
-            const tp = data.teacherProfile;
-            const prefs: Record<string, boolean> = {};
-            NOTIFS.forEach((n) => {
-              prefs[n.key] = tp.notificationPrefs?.[n.key] ?? n.defaultOn;
-            });
-            setToggles(prefs);
-            setLang(tp.language || "EN");
-          }
+          const prefs: Record<string, boolean> = {};
+          NOTIFS.forEach((n) => {
+            prefs[n.key] = data?.notificationPrefs?.[n.key] ?? n.defaultOn;
+          });
+          setToggles(prefs);
+          setLang(data?.language || "EN");
         }
       })
       .catch((err) => {
@@ -111,18 +106,16 @@ export default function TeacherSettingsPage() {
   }, []);
 
   const handleSave = async () => {
-    if (!me?.teacherProfile) return;
+    if (!me) return;
     setSaving(true);
     setSaved(false);
 
     try {
-      await apiFetch(paths.usersMe, {
+      await apiFetch(paths.teachersProfileUpdate, {
         method: "PATCH",
         body: JSON.stringify({
-          teacherProfile: {
-            language: lang,
-            notificationPrefs: toggles,
-          },
+          language: lang,
+          notificationPrefs: toggles,
         }),
       });
       setSaved(true);
@@ -176,7 +169,7 @@ export default function TeacherSettingsPage() {
           {[
             ["Full Name", me?.fullName || ""],
             ["Email", me?.email || ""],
-            ["Phone", me?.phone || ""],
+            ["Phone", me?.phoneNumber || ""],
             ["Sub-city", me?.subCity || ""],
           ].map(([label, value]) => (
             <label key={String(label)} className="block">
@@ -270,7 +263,7 @@ export default function TeacherSettingsPage() {
             { name: "CBE Birr", color: "#8A1538" },
             { name: "M-Pesa", color: "#00A859" },
           ].map((m, i) => {
-            const active = me?.teacherProfile?.preferredPayoutProvider === m.name;
+            const active = me?.preferredPayoutProvider === m.name;
             return (
               <button
                 key={m.name}
@@ -300,8 +293,8 @@ export default function TeacherSettingsPage() {
         </button>
         <button
           type="button"
-          onClick={() => {
-            localStorage.removeItem("token");
+          onClick={async () => {
+            await logout();
             router.push("/login");
           }}
           className="rounded-xl border border-[var(--border)] px-6 py-3 text-sm font-bold text-[var(--foreground)]"

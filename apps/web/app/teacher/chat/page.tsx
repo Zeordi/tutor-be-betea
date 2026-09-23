@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
-import { apiFetch } from "@/lib/api";
+import { apiFetch, paths } from "@/lib/api";
 
 type Conversation = {
   id: string;
@@ -28,7 +28,7 @@ export default function TeacherChatInboxPage() {
     setLoading(true);
     setError("");
 
-    apiFetch<Conversation[]>("/conversations")
+    apiFetch<Conversation[]>(paths.chatConversations)
       .then((data) => {
         if (!cancelled) setConversations(data || []);
       })

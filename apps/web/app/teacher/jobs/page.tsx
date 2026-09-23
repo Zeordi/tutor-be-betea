@@ -32,7 +32,7 @@ export default function TeacherJobsPage() {
     setLoading(true);
     setError("");
 
-    apiFetch<Job[]>(paths.jobsMine)
+    apiFetch<Job[]>(paths.jobsOpen)
       .then((data) => {
         if (!cancelled) setJobs(data || []);
       })
@@ -53,9 +53,9 @@ export default function TeacherJobsPage() {
   const handleApply = async () => {
     setApplyLoading(true);
     try {
-      await apiFetch("/applications", {
+      await apiFetch(paths.jobApply(job.id), {
         method: "POST",
-        body: JSON.stringify({ jobId: job.id }),
+        body: JSON.stringify({ coverNote: "" }),
       });
       setModal(false);
     } catch (err: any) {

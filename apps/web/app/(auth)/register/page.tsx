@@ -4,10 +4,7 @@ import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { setSession } from "@/lib/auth";
-
-const API_URL =
-  process.env.NEXT_PUBLIC_API_URL ||
-  "https://tutor-be-betea.onrender.com";
+import { getApiUrl, paths } from "@/lib/api";
 
 const LANGS = ["EN", "አማ", "ORO", "ትግ"] as const;
 type Role = "PARENT" | "TEACHER";
@@ -46,7 +43,7 @@ export default function RegisterPage() {
   }, [countdown]);
 
   const sendOtp = async () => {
-    const res = await fetch(`${API_URL}/auth/otp/send`, {
+    const res = await fetch(getApiUrl() + paths.authOtpSend, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ phoneNumber: phoneNumber.trim() }),
@@ -84,7 +81,7 @@ export default function RegisterPage() {
     try {
       if (otp.trim().length !== 6) throw new Error("Enter the 6-digit code.");
 
-      const verifyRes = await fetch(`${API_URL}/auth/otp/verify`, {
+      const verifyRes = await fetch(getApiUrl() + paths.authOtpVerify, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
@@ -99,7 +96,7 @@ export default function RegisterPage() {
         );
       }
 
-      const registerRes = await fetch(`${API_URL}/auth/register`, {
+        const registerRes = await fetch(getApiUrl() + paths.authRegister, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
@@ -116,7 +113,11 @@ export default function RegisterPage() {
         throw new Error((data as any).message || "Registration failed");
       }
       if ((data as any).accessToken) {
-        setSession((data as any).accessToken, (data as any).user?.role);
+        setSession(
+          (data as any).accessToken,
+          (data as any).refreshToken,
+          (data as any).user?.role,
+        );
         router.push(role === "TEACHER" ? "/teacher" : "/parent");
         return;
       }
