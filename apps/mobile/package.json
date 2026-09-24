@@ -10,7 +10,8 @@
     "web": "expo start --web",
     "build": "echo Mobile build is handled by EAS",
     "lint": "eslint .",
-    "check-types": "tsc --noEmit"
+    "check-types": "tsc --noEmit",
+    "eas-build-pre-install": "cd ../.. && corepack enable && pnpm install --frozen-lockfile"
   },
   "dependencies": {
     "@expo/vector-icons": "~14.0.4",
