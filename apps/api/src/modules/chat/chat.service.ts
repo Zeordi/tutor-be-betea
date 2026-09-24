@@ -76,43 +76,23 @@ export class ChatService {
     });
   }
 
-  /** Supports gateway object form and positional args */
-  async sendMessage(
-    input:
-      | string
-      | {
-          roomId: string;
-          senderId: string;
-          content: string;
-          originalBlocked?: boolean;
-        },
-    senderId?: string,
-    content?: string,
-  ) {
-    let roomId: string;
-    let sid: string;
-    let text: string;
-    let blocked = false;
-
-    if (typeof input === "string") {
-      roomId = input;
-      sid = senderId as string;
-      text = content as string;
-    } else {
-      roomId = input.roomId;
-      sid = input.senderId;
-      text = input.content;
-      blocked = !!input.originalBlocked;
-    }
-
-    const scan = this.antiPoachingService.sanitize(text);
+  async sendMessage(roomId: string, senderId: string, content: string) {
+    const scan = this.antiPoachingService.sanitize(content);
     return prisma.chatMessage.create({
       data: {
         roomId,
-        senderId: sid,
+        senderId,
         content: scan.sanitizedText,
-        originalBlocked: blocked || scan.blocked,
+        originalBlocked: scan.blocked,
       },
     });
+  }
+
+  async isValidRoom(roomId: string): Promise<boolean> {
+    const user = await prisma.user.findUnique({
+      where: { id: roomId },
+      select: { id: true },
+    });
+    return !!user;
   }
 }
