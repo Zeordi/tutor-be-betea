@@ -108,15 +108,25 @@ export default function AdminDashboardLayout({
     };
   }, [router]);
 
-  const setRolePersist = (r: AdminRole) => {
-    setRole(r);
-    localStorage.setItem("admin_role", r);
-  };
-
   const lockedCount = useMemo(
     () => SIDEBAR.filter((i) => !i.roles.includes(role)).length,
     [role]
   );
+
+  useEffect(() => {
+    if (!ready) return;
+    const allowed = SIDEBAR.some(
+      (item) => item.href === pathname || (pathname !== "/" && item.href !== "/" && pathname.startsWith(`${item.href}/`))
+    );
+    const isAllowed = SIDEBAR.some((item) => {
+      if (item.href === "/" && pathname === "/") return item.roles.includes(role);
+      if (item.href !== "/" && (pathname === item.href || pathname.startsWith(`${item.href}/`))) return item.roles.includes(role);
+      return false;
+    });
+    if (!isAllowed) {
+      router.replace("/");
+    }
+  }, [ready, role, pathname, router]);
 
   if (!ready) {
     return (
@@ -141,31 +151,16 @@ export default function AdminDashboardLayout({
               <p className="text-xs font-bold text-white">Admin Console</p>
             </div>
           </div>
-          {/* RBAC role switcher — dims locked nav */}
-          <div className="grid grid-cols-2 gap-1">
-            {(Object.keys(ROLE_META) as AdminRole[]).map((r) => (
-              <button
-                key={r}
-                type="button"
-                onClick={() => setRolePersist(r)}
-                className={`rounded-lg px-2 py-1.5 text-[10px] font-bold ${
-                  role === r ? "text-white" : "bg-slate-800 text-slate-400"
-                }`}
-                style={
-                  role === r
-                    ? { backgroundColor: ROLE_META[r].color }
-                    : undefined
-                }
-              >
-                {ROLE_META[r].label}
-              </button>
-            ))}
+          {/* Role display — source of truth is /users/me */}
+          <div className="flex items-center gap-2">
+            <span className="text-[10px] font-bold uppercase tracking-wide text-slate-400">Role</span>
+            <span
+              className="rounded-full px-2 py-0.5 text-[10px] font-bold"
+              style={{ backgroundColor: ROLE_META[role].color + "33", color: ROLE_META[role].color }}
+            >
+              {ROLE_META[role].label}
+            </span>
           </div>
-          {lockedCount > 0 && (
-            <p className="mt-2 text-[10px] text-slate-500">
-              {lockedCount} nav items locked for this role
-            </p>
-          )}
         </div>
 
         <nav className="flex-1 space-y-0.5 overflow-y-auto p-2">
