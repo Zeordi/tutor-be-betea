@@ -1,4 +1,4 @@
-import { Injectable, NotFoundException, BadRequestException, Logger } from "@nestjs/common";
+import { Injectable, NotFoundException, BadRequestException, ForbiddenException, Logger } from "@nestjs/common";
 import { prisma } from "@tutor/database";
 import { createHmac } from "crypto";
 
@@ -63,12 +63,16 @@ export class EscrowService {
     });
   }
 
-  /** Admin/finance release after verified sessions */
-  async releaseFunds(contractId: string, adminId?: string) {
+  /** Admin/finance/parent release after verified sessions */
+  async releaseFunds(contractId: string, requesterId: string, requesterRole?: string) {
     const contract = await prisma.tutoringContract.findUnique({
       where: { id: contractId },
     });
     if (!contract) throw new NotFoundException("Contract not found");
+
+    if (requesterRole === "PARENT" && contract.parentId !== requesterId) {
+      throw new ForbiddenException("You do not own this contract");
+    }
 
     if (contract.status === "COMPLETED") {
       return contract;
@@ -100,7 +104,7 @@ export class EscrowService {
     });
 
     await this.writeAudit({
-      adminId,
+      adminId: requesterRole === "PARENT" ? undefined : requesterId,
       targetUserId: contract.teacherId,
       actionType: "RELEASE_ESCROW",
       reason: `Manual escrow release for contract ${contractId}`,
@@ -108,7 +112,8 @@ export class EscrowService {
 
     this.logger.log("Escrow released", {
       contractId,
-      adminId: adminId || "system",
+      requesterId: requesterId || "system",
+      requesterRole: requesterRole || "system",
       teacherId: contract.teacherId,
       amount: contract.escrowHeldAmount,
     });

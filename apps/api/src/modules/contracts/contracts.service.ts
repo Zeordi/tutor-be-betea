@@ -115,11 +115,15 @@ export class ContractsService {
     });
   }
 
-  async releaseEscrow(contractId: string, adminId: string) {
+  async releaseEscrow(contractId: string, requesterId: string, requesterRole?: string) {
     const contract = await prisma.tutoringContract.findUnique({
       where: { id: contractId },
     });
     if (!contract) throw new NotFoundException("Contract not found");
+
+    if (requesterRole === "PARENT" && contract.parentId !== requesterId) {
+      throw new ForbiddenException("You do not own this contract");
+    }
 
     await prisma.tutoringContract.update({
       where: { id: contractId },
@@ -127,7 +131,7 @@ export class ContractsService {
     });
 
     await this.writeAudit({
-      adminId,
+      adminId: requesterRole === "PARENT" ? undefined : requesterId,
       targetUserId: contract.teacherId,
       actionType: "RELEASE_ESCROW",
       reason: "Contract completed — escrow released",

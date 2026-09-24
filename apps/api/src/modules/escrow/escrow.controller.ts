@@ -24,9 +24,9 @@ export class EscrowController {
 
   @Post(":contractId/release")
   @UseGuards(JwtAuthGuard, RolesGuard)
-  @Roles("SUPER_ADMIN", "FINANCE")
+  @Roles("PARENT", "SUPER_ADMIN", "FINANCE")
   releaseFunds(@CurrentUser() user: any, @Param("contractId") contractId: string) {
-    return this.escrowService.releaseFunds(contractId, user.id);
+    return this.escrowService.releaseFunds(contractId, user.id, user.role);
   }
 
   @Post("webhook/telebirr")
