@@ -47,6 +47,7 @@ export const paths = {
   paymentsInitiate: "/payments/initiate",
   paymentReconcile: (id: string) => `/payments/reconcile/${id}`,
   payoutRequest: "/payments/payout",
+  paymentsStatusCheck: "/payments/status/check",
   notifications: "/notifications",
   notificationsPushToken: "/notifications/push-token",
   replacements: "/replacements",

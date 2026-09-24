@@ -76,6 +76,7 @@ export default function TeacherSettingsPage() {
   const [lang, setLang] = useState("EN");
   const [saving, setSaving] = useState(false);
   const [saved, setSaved] = useState(false);
+  const [selectedPayout, setSelectedPayout] = useState<string | null>(null);
 
   useEffect(() => {
     let cancelled = false;
@@ -85,6 +86,7 @@ export default function TeacherSettingsPage() {
       .then((data) => {
         if (!cancelled) {
           setMe(data);
+          setSelectedPayout(data?.preferredPayoutProvider || null);
           const prefs: Record<string, boolean> = {};
           NOTIFS.forEach((n) => {
             prefs[n.key] = data?.notificationPrefs?.[n.key] ?? n.defaultOn;
@@ -111,12 +113,16 @@ export default function TeacherSettingsPage() {
     setSaved(false);
 
     try {
+      const body: any = {
+        language: lang,
+        notificationPrefs: toggles,
+      };
+      if (selectedPayout) {
+        body.payoutMethod = selectedPayout;
+      }
       await apiFetch(paths.teachersProfileUpdate, {
         method: "PATCH",
-        body: JSON.stringify({
-          language: lang,
-          notificationPrefs: toggles,
-        }),
+        body: JSON.stringify(body),
       });
       setSaved(true);
       setTimeout(() => setSaved(false), 2000);
@@ -259,15 +265,16 @@ export default function TeacherSettingsPage() {
         </p>
         <div className="flex flex-wrap gap-2">
           {[
-            { name: "Telebirr", color: "#0072CE" },
-            { name: "CBE Birr", color: "#8A1538" },
-            { name: "M-Pesa", color: "#00A859" },
-          ].map((m, i) => {
-            const active = me?.preferredPayoutProvider === m.name;
+            { name: "Telebirr", value: "TELEBIRR", color: "#0072CE" },
+            { name: "CBE Birr", value: "CBE_BIRR", color: "#8A1538" },
+            { name: "M-Pesa", value: "MPESA", color: "#00A859" },
+          ].map((m) => {
+            const active = selectedPayout === m.value;
             return (
               <button
                 key={m.name}
                 type="button"
+                onClick={() => setSelectedPayout(m.value)}
                 className="rounded-full border px-4 py-2 text-xs font-bold"
                 style={{
                   borderColor: active ? m.color : "var(--border)",
