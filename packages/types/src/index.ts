@@ -1,4 +1,4 @@
-export type UserRole = "PARENT" | "TEACHER" | "SUPPORT_AGENT" | "SUPER_ADMIN";
+export type UserRole = "PARENT" | "TEACHER" | "SUPPORT_AGENT" | "SUPER_ADMIN" | "FINANCE" | "VERIFICATION_OFFICER";
 
 export type UserStatus = "PENDING_VERIFICATION" | "ACTIVE" | "SUSPENDED" | "BANNED";
 
