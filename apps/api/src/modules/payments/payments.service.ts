@@ -309,6 +309,15 @@ export class PaymentsService {
 
     const newStatus = body?.status === "FAILED" ? "FAILED" : "SUCCESS";
 
+    if (existing.status === "FAILED" && newStatus === "FAILED") {
+      this.logger.log("Webhook already processed — already FAILED", {
+        paymentId: existing.id,
+        provider,
+        externalRef: ref,
+      });
+      return { ok: true, alreadyProcessed: true, paymentId: existing.id };
+    }
+
     const updated = await prisma.payment.update({
       where: { id: existing.id },
       data: {

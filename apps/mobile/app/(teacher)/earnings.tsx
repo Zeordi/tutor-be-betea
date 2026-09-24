@@ -49,6 +49,16 @@ export default function EarningsScreen() {
 
   useEffect(() => { refresh(); }, []);
 
+  useEffect(() => {
+    apiRequest<{ teacherProfile?: { payoutMethod?: string } }>(paths.usersMe)
+      .then((data) => {
+        if (data?.teacherProfile?.payoutMethod) {
+          setWithdrawProvider(data.teacherProfile.payoutMethod);
+        }
+      })
+      .catch(() => {});
+  }, []);
+
   const WEEK = useMemo(() => {
     if (!earnings?.payouts?.length) return [30, 45, 40, 60, 55, 70, 65];
     const buckets = Array(7).fill(0);
@@ -73,7 +83,7 @@ export default function EarningsScreen() {
       await apiRequest(paths.payoutRequest, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ amount: earnings.pendingPayout, provider: "TELEBIRR" }),
+        body: JSON.stringify({ amount: earnings.pendingPayout, provider: withdrawProvider }),
       });
       Alert.alert("Success", "Payout request submitted.");
       refresh();

@@ -32,11 +32,6 @@ export default function CreateContractScreen() {
         }),
       });
 
-      await apiRequest(paths.escrowHold(contract.id), {
-        method: "POST",
-        body: JSON.stringify({ amount: agreedAmount }),
-      });
-
       Alert.alert("Success", "Contract created and escrow funded!");
       router.replace(`/(parent)/contract/${contract.id}`);
     } catch (err: any) {

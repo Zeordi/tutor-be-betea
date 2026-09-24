@@ -16,7 +16,6 @@ export const paths = {
   contractsTeacher: "/contracts/mine/teacher",
   contract: (id: string) => `/contracts/${id}`,
   contractsCreate: "/contracts",
-  escrowHold: (contractId: string) => `/escrow/${contractId}/hold`,
   attendanceCheckIn: "/attendance/check-in",
   attendanceCheckOut: "/attendance/check-out",
   attendanceByContract: (contractId: string) =>
