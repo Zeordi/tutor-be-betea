@@ -116,4 +116,19 @@ export class VaultController {
 
     return this.vaultService.getDecryptedDocument(id, user.id, ip);
   }
+
+  @Get(":id/decrypt-me")
+  @Roles("TEACHER")
+  async decryptOwn(
+    @Param("id") id: string,
+    @CurrentUser() user: any,
+    @Req() req: Request,
+  ) {
+    const ip =
+      (req.headers["x-forwarded-for"] as string)?.split(",")[0]?.trim() ||
+      req.socket.remoteAddress ||
+      "127.0.0.1";
+
+    return this.vaultService.getOwnDecryptedDocument(id, user.id, ip);
+  }
 }

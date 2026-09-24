@@ -156,7 +156,7 @@ export const sendMessageSchema = z.object({
 export const RESTRICTED_PATTERNS = {
   ethiopianPhone: /(\+251|0)(9|7)\d{8}/g,
   email: /[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}/g,
-  telegram: /@\w{4,}/g,
+  telegram: /(?:^|\s)@[\w_]{4,}\b/g,
   bankAccount: /\b\d{10,16}\b/g,
 } as const;
 

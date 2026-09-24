@@ -232,6 +232,15 @@ export class AdminService {
       where: { id: flagId },
       data: { resolved: true },
     });
+
+    const user = await prisma.user.findUnique({ where: { id: flag.userId } });
+    if (user && user.status === "SUSPENDED") {
+      await prisma.user.update({
+        where: { id: flag.userId },
+        data: { status: "ACTIVE" },
+      });
+    }
+
     await this.writeAudit({
       adminId,
       targetUserId: flag.userId,
