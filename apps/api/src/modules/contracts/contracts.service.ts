@@ -2,6 +2,7 @@ import {
   Injectable,
   NotFoundException,
   BadRequestException,
+  ForbiddenException,
 } from "@nestjs/common";
 import { prisma } from "@tutor/database";
 import { createHmac } from "crypto";
@@ -9,7 +10,7 @@ import { createHmac } from "crypto";
 @Injectable()
 export class ContractsService {
   private async writeAudit(params: {
-    adminId: string;
+    adminId?: string;
     targetUserId?: string;
     actionType: string;
     reason: string;
@@ -34,7 +35,7 @@ export class ContractsService {
 
     await prisma.adminAuditLog.create({
       data: {
-        adminId: params.adminId,
+        adminId: params.adminId || "system",
         targetUserId: params.targetUserId,
         actionType: params.actionType,
         reason: params.reason,
