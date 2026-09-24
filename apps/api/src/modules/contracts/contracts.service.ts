@@ -2,6 +2,7 @@ import {
   Injectable,
   NotFoundException,
   BadRequestException,
+  ForbiddenException,
 } from "@nestjs/common";
 import { prisma } from "@tutor/database";
 import { createHmac } from "crypto";
@@ -9,7 +10,7 @@ import { createHmac } from "crypto";
 @Injectable()
 export class ContractsService {
   private async writeAudit(params: {
-    adminId: string;
+    adminId?: string;
     targetUserId?: string;
     actionType: string;
     reason: string;
@@ -34,7 +35,7 @@ export class ContractsService {
 
     await prisma.adminAuditLog.create({
       data: {
-        adminId: params.adminId,
+        adminId: params.adminId || "system",
         targetUserId: params.targetUserId,
         actionType: params.actionType,
         reason: params.reason,
@@ -115,11 +116,15 @@ export class ContractsService {
     });
   }
 
-  async releaseEscrow(contractId: string, adminId: string) {
+  async releaseEscrow(contractId: string, requesterId: string, requesterRole?: string) {
     const contract = await prisma.tutoringContract.findUnique({
       where: { id: contractId },
     });
     if (!contract) throw new NotFoundException("Contract not found");
+
+    if (requesterRole === "PARENT" && contract.parentId !== requesterId) {
+      throw new ForbiddenException("You do not own this contract");
+    }
 
     await prisma.tutoringContract.update({
       where: { id: contractId },
@@ -127,7 +132,7 @@ export class ContractsService {
     });
 
     await this.writeAudit({
-      adminId,
+      adminId: requesterRole === "PARENT" ? undefined : requesterId,
       targetUserId: contract.teacherId,
       actionType: "RELEASE_ESCROW",
       reason: "Contract completed — escrow released",

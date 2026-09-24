@@ -29,6 +29,7 @@ export default function EarningsScreen() {
   const [withdrawAmount, setWithdrawAmount] = useState("");
   const [withdrawProvider, setWithdrawProvider] = useState("TELEBIRR");
   const [paying, setPaying] = useState(false);
+  const [providerStatus, setProviderStatus] = useState<Record<string, boolean>>({});
 
   const bg = isDark ? "#0A1628" : "#F8FAFC";
   const card = isDark ? "#112240" : "#FFFFFF";
@@ -49,6 +50,28 @@ export default function EarningsScreen() {
 
   useEffect(() => { refresh(); }, []);
 
+  useEffect(() => {
+    apiRequest<{ teacherProfile?: { payoutMethod?: string } }>(paths.usersMe)
+      .then((data) => {
+        if (data?.teacherProfile?.payoutMethod) {
+          setWithdrawProvider(data.teacherProfile.payoutMethod);
+        }
+      })
+      .catch(() => {});
+  }, []);
+
+  useEffect(() => {
+    apiRequest<Record<string, boolean>>(paths.paymentsStatusCheck)
+      .then((data) => {
+        setProviderStatus(data || {});
+        const available = Object.entries(data || {}).filter(([, v]) => v).map(([k]) => k);
+        if (available.length > 0 && !available.includes(withdrawProvider)) {
+          setWithdrawProvider(available[0]);
+        }
+      })
+      .catch(() => {});
+  }, []);
+
   const WEEK = useMemo(() => {
     if (!earnings?.payouts?.length) return [30, 45, 40, 60, 55, 70, 65];
     const buckets = Array(7).fill(0);
@@ -62,6 +85,8 @@ export default function EarningsScreen() {
   const available = earnings ? `${earnings.pendingPayout.toLocaleString()} ETB` : "0 ETB";
   const monthEarned = earnings ? `${earnings.totalEarned.toLocaleString()} ETB` : "0 ETB";
   const payouts: Payout[] = earnings?.payouts?.length ? earnings.payouts : [];
+  const availableProviders = Object.entries(providerStatus).filter(([, v]) => v).map(([k]) => k);
+  const noProviders = availableProviders.length === 0;
 
   const handleWithdrawAll = async () => {
     if (!earnings || earnings.pendingPayout <= 0) {
@@ -73,7 +98,7 @@ export default function EarningsScreen() {
       await apiRequest(paths.payoutRequest, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ amount: earnings.pendingPayout, provider: "TELEBIRR" }),
+        body: JSON.stringify({ amount: earnings.pendingPayout, provider: withdrawProvider }),
       });
       Alert.alert("Success", "Payout request submitted.");
       refresh();
@@ -179,16 +204,16 @@ export default function EarningsScreen() {
             <TouchableOpacity
               style={styles.heroBtn}
               onPress={handleWithdrawAll}
-              disabled={paying}
+              disabled={paying || noProviders}
             >
-              <Text style={styles.heroBtnText}>{paying ? "Processing…" : "Withdraw All"}</Text>
+              <Text style={styles.heroBtnText}>{paying ? "Processing…" : noProviders ? "No providers" : "Withdraw All"}</Text>
             </TouchableOpacity>
             <TouchableOpacity
               style={styles.heroBtn}
               onPress={handleSchedulePayout}
-              disabled={paying}
+              disabled={paying || noProviders}
             >
-              <Text style={styles.heroBtnText}>{paying ? "Processing…" : "Schedule Payout"}</Text>
+              <Text style={styles.heroBtnText}>{paying ? "Processing…" : noProviders ? "No providers" : "Schedule Payout"}</Text>
             </TouchableOpacity>
           </View>
           <View style={{ marginTop: 10, gap: 6 }}>
@@ -202,7 +227,7 @@ export default function EarningsScreen() {
                 style={{ flex: 1, borderRadius: 10, backgroundColor: "rgba(255,255,255,0.15)", paddingHorizontal: 12, paddingVertical: 8, color: "#fff" }}
               />
               <View style={{ flexDirection: "row", gap: 6 }}>
-                {["TELEBIRR", "CBE_BIRR", "MPESA"].map((p) => (
+                {availableProviders.map((p) => (
                   <TouchableOpacity
                     key={p}
                     onPress={() => setWithdrawProvider(p)}
@@ -223,6 +248,11 @@ export default function EarningsScreen() {
                 ))}
               </View>
             </View>
+            {noProviders && (
+              <Text style={{ color: "rgba(255,255,255,0.7)", fontSize: 10 }}>
+                No payout providers configured. Contact support.
+              </Text>
+            )}
           </View>
         </View>
 

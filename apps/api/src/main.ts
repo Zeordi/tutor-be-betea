@@ -32,7 +32,6 @@ async function bootstrap() {
   });
 
   app.use("/payments/webhook", express.raw({ type: "application/json" }));
-  app.use("/escrow/webhook", express.raw({ type: "application/json" }));
 
   const port = process.env.PORT || 4000;
   await app.listen(port);

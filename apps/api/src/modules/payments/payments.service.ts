@@ -309,6 +309,15 @@ export class PaymentsService {
 
     const newStatus = body?.status === "FAILED" ? "FAILED" : "SUCCESS";
 
+    if (existing.status === "FAILED" && newStatus === "FAILED") {
+      this.logger.log("Webhook already processed — already FAILED", {
+        paymentId: existing.id,
+        provider,
+        externalRef: ref,
+      });
+      return { ok: true, alreadyProcessed: true, paymentId: existing.id };
+    }
+
     const updated = await prisma.payment.update({
       where: { id: existing.id },
       data: {
@@ -372,6 +381,13 @@ export class PaymentsService {
     });
 
     const payoutProvider = (provider || teacherProfile?.payoutMethod || "TELEBIRR") as any;
+
+    if (!isProviderConfigured(payoutProvider)) {
+      throw new BadRequestException(
+        `Payout provider ${payoutProvider} is not configured. Contact support.`,
+      );
+    }
+
     const externalRef = payoutProvider === "TELEBIRR"
       ? `telebirr_payout_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`
       : payoutProvider === "CBE_BIRR"

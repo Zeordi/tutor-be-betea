@@ -55,8 +55,8 @@ export class ContractsController {
 
   @Post(":id/release")
   @UseGuards(JwtAuthGuard, RolesGuard)
-  @Roles("SUPER_ADMIN", "FINANCE")
+  @Roles("PARENT", "SUPER_ADMIN", "FINANCE")
   releaseEscrow(@CurrentUser() user: any, @Param("id") id: string) {
-    return this.contractsService.releaseEscrow(id, user.id);
+    return this.contractsService.releaseEscrow(id, user.id, user.role);
   }
 }

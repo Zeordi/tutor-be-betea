@@ -25,6 +25,7 @@ export default function TeacherEarningsPage() {
   const [withdrawAmount, setWithdrawAmount] = useState("");
   const [withdrawProvider, setWithdrawProvider] = useState("TELEBIRR");
   const [submitting, setSubmitting] = useState(false);
+  const [providerStatus, setProviderStatus] = useState<Record<string, boolean>>({});
 
   useEffect(() => {
     let cancelled = false;
@@ -42,8 +43,23 @@ export default function TeacherEarningsPage() {
         if (!cancelled) setLoading(false);
       });
 
+    apiFetch<Record<string, boolean>>("/payments/status/check")
+      .then((data) => {
+        if (!cancelled) {
+          setProviderStatus(data || {});
+          const available = Object.entries(data || {}).filter(([, v]) => v).map(([k]) => k);
+          if (available.length > 0 && !available.includes(withdrawProvider)) {
+            setWithdrawProvider(available[0]);
+          }
+        }
+      })
+      .catch(() => {});
+
     return () => { cancelled = true; };
   }, []);
+
+  const availableProviders = Object.entries(providerStatus).filter(([, v]) => v).map(([k]) => k);
+  const canWithdraw = availableProviders.length > 0 && earnings && earnings.pendingPayout > 0;
 
   const handleWithdraw = async () => {
     if (!earnings) return;
@@ -124,22 +140,28 @@ export default function TeacherEarningsPage() {
               placeholder="Amount"
               className="rounded-xl bg-white/10 px-3 py-2 text-sm text-white placeholder-white/60 outline-none"
             />
-            <select
-              value={withdrawProvider}
-              onChange={(e) => setWithdrawProvider(e.target.value)}
-              className="rounded-xl bg-white/10 px-3 py-2 text-sm text-white outline-none"
-            >
-              <option value="TELEBIRR" className="text-black">Telebirr</option>
-              <option value="CBE_BIRR" className="text-black">CBE Birr</option>
-              <option value="MPESA" className="text-black">M-Pesa</option>
-            </select>
+            {availableProviders.length === 0 ? (
+              <p className="text-xs text-red-200">No payout providers are currently configured. Contact support.</p>
+            ) : (
+              <select
+                value={withdrawProvider}
+                onChange={(e) => setWithdrawProvider(e.target.value)}
+                className="rounded-xl bg-white/10 px-3 py-2 text-sm text-white outline-none"
+              >
+                {availableProviders.map((p) => (
+                  <option key={p} value={p} className="text-black">
+                    {p === "TELEBIRR" ? "Telebirr" : p === "CBE_BIRR" ? "CBE Birr" : p === "MPESA" ? "M-Pesa" : p}
+                  </option>
+                ))}
+              </select>
+            )}
             <button
               type="button"
               onClick={handleWithdraw}
-              disabled={submitting}
+              disabled={submitting || !canWithdraw}
               className="w-full rounded-xl bg-white/15 py-2 text-sm font-bold disabled:opacity-70"
             >
-              {submitting ? "Requesting…" : "Withdraw"}
+              {submitting ? "Requesting…" : availableProviders.length === 0 ? "No providers available" : "Withdraw"}
             </button>
           </div>
           {error && <p className="mt-2 text-xs text-red-200">{error}</p>}

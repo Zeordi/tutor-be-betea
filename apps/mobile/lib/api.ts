@@ -16,7 +16,6 @@ export const paths = {
   contractsTeacher: "/contracts/mine/teacher",
   contract: (id: string) => `/contracts/${id}`,
   contractsCreate: "/contracts",
-  escrowHold: (contractId: string) => `/escrow/${contractId}/hold`,
   attendanceCheckIn: "/attendance/check-in",
   attendanceCheckOut: "/attendance/check-out",
   attendanceByContract: (contractId: string) =>
@@ -48,6 +47,7 @@ export const paths = {
   paymentsInitiate: "/payments/initiate",
   paymentReconcile: (id: string) => `/payments/reconcile/${id}`,
   payoutRequest: "/payments/payout",
+  paymentsStatusCheck: "/payments/status/check",
   notifications: "/notifications",
   notificationsPushToken: "/notifications/push-token",
   replacements: "/replacements",
