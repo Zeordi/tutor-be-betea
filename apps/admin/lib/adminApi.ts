@@ -130,6 +130,17 @@ export type AdminAttendanceLog = {
   createdAt: string;
 };
 
+export type AdminStaff = {
+  id: string;
+  fullName: string;
+  phoneNumber?: string;
+  email?: string;
+  role: string;
+  status?: string;
+  createdAt?: string;
+  temporaryPassword?: string;
+};
+
 export const adminApi = {
   dashboard: () => api.get<AdminDashboardStats>("/admin/dashboard"),
 
@@ -231,4 +242,12 @@ export const adminApi = {
   settings: () => api.get("/admin/settings"),
 
   updateSettings: (body: any) => api.patch("/admin/settings", body),
+
+  staff: () => api.get<AdminStaff[]>("/admin/staff"),
+
+  createStaff: (body: { fullName: string; phoneNumber?: string; email?: string; role: string; temporaryPassword?: string }) =>
+    api.post<AdminStaff>("/admin/staff", body),
+
+  updateStaff: (id: string, body: { role?: string; status?: string; temporaryPassword?: string }) =>
+    api.patch<AdminStaff>(`/admin/staff/${id}`, body),
 };

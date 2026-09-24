@@ -181,4 +181,25 @@ export class AdminController {
   getChatFlags(@Query("limit") limit = "50") {
     return this.adminService.getChatFlags(parseInt(limit as any, 10) || 50);
   }
+
+  @Post("staff")
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles("SUPER_ADMIN")
+  createStaff(@CurrentUser() user: any, @Body() body: any) {
+    return this.adminService.createStaff(user.id, body);
+  }
+
+  @Get("staff")
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles("SUPER_ADMIN")
+  listStaff() {
+    return this.adminService.listStaff();
+  }
+
+  @Patch("staff/:id")
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles("SUPER_ADMIN")
+  updateStaff(@CurrentUser() user: any, @Param("id") id: string, @Body() body: any) {
+    return this.adminService.updateStaff(user.id, id, body);
+  }
 }

@@ -1,6 +1,7 @@
-import { Injectable, NotFoundException } from "@nestjs/common";
+import { Injectable, NotFoundException, ConflictException, BadRequestException } from "@nestjs/common";
 import { prisma } from "@tutor/database";
-import { createHmac } from "crypto";
+import { createHmac, randomBytes } from "crypto";
+import * as bcrypt from "bcryptjs";
 
 @Injectable()
 export class AdminService {
@@ -346,5 +347,164 @@ export class AdminService {
         createdAt: true,
       },
     });
+  }
+
+  private readonly STAFF_ROLES = ["SUPER_ADMIN", "SUPPORT_AGENT", "VERIFICATION_OFFICER", "FINANCE"];
+
+  async listStaff() {
+    return prisma.user.findMany({
+      where: {
+        role: { in: this.STAFF_ROLES as any },
+      },
+      orderBy: { createdAt: "desc" },
+      select: {
+        id: true,
+        fullName: true,
+        phoneNumber: true,
+        email: true,
+        role: true,
+        status: true,
+        createdAt: true,
+      },
+    });
+  }
+
+  async createStaff(adminId: string, body: any) {
+    const { fullName, phoneNumber, email, role, temporaryPassword } = body || {};
+
+    if (!fullName || !role) {
+      throw new BadRequestException("fullName and role are required");
+    }
+
+    if (!this.STAFF_ROLES.includes(role)) {
+      throw new BadRequestException("Role must be SUPER_ADMIN, SUPPORT_AGENT, VERIFICATION_OFFICER, or FINANCE");
+    }
+
+    if (!phoneNumber && !email) {
+      throw new BadRequestException("phoneNumber or email is required");
+    }
+
+    const password = temporaryPassword || `tmp-${randomBytes(8).toString("hex")}`;
+    const passwordHash = await bcrypt.hash(password, 10);
+
+    const phone = (phoneNumber || `+staff-${Date.now()}`).trim();
+
+    try {
+      const user = await prisma.user.create({
+        data: {
+          phoneNumber: phone,
+          email: email?.trim().toLowerCase() || undefined,
+          fullName: fullName.trim(),
+          role: role as any,
+          passwordHash,
+          emailVerified: true,
+          phoneVerified: true,
+          status: "ACTIVE",
+        },
+        select: {
+          id: true,
+          fullName: true,
+          phoneNumber: true,
+          email: true,
+          role: true,
+          status: true,
+          createdAt: true,
+        },
+      });
+
+      await this.writeAudit({
+        adminId,
+        targetUserId: user.id,
+        actionType: "CREATE_STAFF",
+        reason: `Created staff ${user.fullName} (${user.role})`,
+      });
+
+      return { ...user, temporaryPassword: password };
+    } catch (e: any) {
+      if (e?.code === "P2002") {
+        throw new ConflictException("Email or phone number already exists");
+      }
+      throw e;
+    }
+  }
+
+  async updateStaff(adminId: string, id: string, body: any) {
+    const user = await prisma.user.findUnique({ where: { id } });
+    if (!user) {
+      throw new NotFoundException("Staff member not found");
+    }
+
+    if (!this.STAFF_ROLES.includes(user.role)) {
+      throw new BadRequestException("Target user is not a staff member");
+    }
+
+    const updateData: any = {};
+
+    if (body.role && this.STAFF_ROLES.includes(body.role)) {
+      updateData.role = body.role;
+    }
+
+    if (body.status && ["ACTIVE", "SUSPENDED"].includes(body.status)) {
+      updateData.status = body.status;
+    }
+
+    if (body.temporaryPassword && body.temporaryPassword.length >= 6) {
+      updateData.passwordHash = await bcrypt.hash(body.temporaryPassword, 10);
+    } else if (body.temporaryPassword && body.temporaryPassword.length > 0 && body.temporaryPassword.length < 6) {
+      throw new BadRequestException("temporaryPassword must be at least 6 characters");
+    }
+
+    if (Object.keys(updateData).length === 0) {
+      throw new BadRequestException("No valid fields to update");
+    }
+
+    let actionType = "UPDATE_STAFF";
+
+    if (body.role && body.role !== user.role) {
+      actionType = "ROLE_CHANGE";
+    } else if (body.status && body.status !== user.status) {
+      if (body.status === "SUSPENDED") {
+        actionType = "SUSPEND_STAFF";
+      } else if (body.status === "ACTIVE") {
+        actionType = "ACTIVATE_STAFF";
+      }
+    } else if (body.temporaryPassword) {
+      actionType = "RESET_STAFF_PASSWORD";
+    }
+
+    const updated = await prisma.user.update({
+      where: { id },
+      data: updateData,
+      select: {
+        id: true,
+        fullName: true,
+        phoneNumber: true,
+        email: true,
+        role: true,
+        status: true,
+        createdAt: true,
+      },
+    });
+
+    await this.writeAudit({
+      adminId,
+      targetUserId: id,
+      actionType,
+      reason: this.buildUpdateReason(user, updateData),
+    });
+
+    return { ...updated, temporaryPassword: body.temporaryPassword || undefined };
+  }
+
+  private generateTempPassword(): string {
+    return `tmp-${randomBytes(8).toString("hex")}`;
+  }
+
+  private buildUpdateReason(oldUser: any, updateData: any): string {
+    const parts: string[] = [];
+    if (updateData.role) parts.push(`role: ${oldUser.role} -> ${updateData.role}`);
+    if (updateData.status) parts.push(`status: ${oldUser.status} -> ${updateData.status}`);
+    if (updateData.passwordHash) parts.push("password reset");
+    return parts.join(", ");
   }
 }
