@@ -85,9 +85,20 @@ export class PaymentsController {
   }
 
   @Post("reconcile/:paymentId")
-  @UseGuards(JwtAuthGuard)
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles("SUPER_ADMIN", "FINANCE")
   reconcilePayment(@Param("paymentId") paymentId: string) {
     return this.paymentsService.reconcilePayment(paymentId);
+  }
+
+  @Post("webhook/stripe")
+  handleStripeWebhook(@Req() req: Request, @Body() body: any) {
+    const raw = typeof req.body === "string" ? req.body : JSON.stringify(req.body || {});
+    const signature = req.headers["stripe-signature"] as string | undefined;
+    if (!verifyStripeSignature(raw, signature, paymentConfig.stripe.webhookSecret)) {
+      return { ok: false, reason: "invalid_signature" };
+    }
+    return this.paymentsService.handleWebhook("STRIPE", body);
   }
 
   @Get("status/check")

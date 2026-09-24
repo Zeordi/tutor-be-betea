@@ -372,6 +372,13 @@ export class PaymentsService {
     });
 
     const payoutProvider = (provider || teacherProfile?.payoutMethod || "TELEBIRR") as any;
+
+    if (!isProviderConfigured(payoutProvider)) {
+      throw new BadRequestException(
+        `Payout provider ${payoutProvider} is not configured. Contact support.`,
+      );
+    }
+
     const externalRef = payoutProvider === "TELEBIRR"
       ? `telebirr_payout_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`
       : payoutProvider === "CBE_BIRR"
