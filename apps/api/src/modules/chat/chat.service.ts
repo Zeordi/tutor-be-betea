@@ -88,11 +88,24 @@ export class ChatService {
     });
   }
 
-  async isValidRoom(roomId: string): Promise<boolean> {
-    const user = await prisma.user.findUnique({
+  async isValidRoom(roomId: string, requesterId: string): Promise<boolean> {
+    const peer = await prisma.user.findUnique({
       where: { id: roomId },
       select: { id: true },
     });
-    return !!user;
+    if (!peer) return false;
+
+    const contract = await prisma.tutoringContract.findFirst({
+      where: {
+        OR: [
+          { parentId: requesterId, teacherId: roomId },
+          { teacherId: requesterId, parentId: roomId },
+        ],
+        status: { in: ["PENDING_ESCROW", "ACTIVE", "DISPUTED", "COMPLETED"] },
+      },
+      select: { id: true },
+    });
+
+    return !!contract;
   }
 }

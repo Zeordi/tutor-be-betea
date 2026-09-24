@@ -76,7 +76,7 @@ export class ChatGateway implements OnGatewayConnection {
       return { error: "Unauthorized" };
     }
 
-    if (!(await this.chatService.isValidRoom(roomId))) {
+    if (!(await this.chatService.isValidRoom(roomId, user.id))) {
       return { error: "Invalid room" };
     }
 
@@ -104,7 +104,7 @@ export class ChatGateway implements OnGatewayConnection {
       return { error: "Invalid message payload" };
     }
 
-    if (!(await this.chatService.isValidRoom(roomId))) {
+    if (!(await this.chatService.isValidRoom(roomId, user.id))) {
       return { error: "Invalid room" };
     }
 

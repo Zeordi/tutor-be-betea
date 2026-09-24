@@ -16,6 +16,7 @@ export interface HealthCheckResponse {
 
 @Controller("health")
 export class HealthController {
+  @Get()
   async check(): Promise<HealthCheckResponse> {
     const timestamp = new Date().toISOString();
     const checks: HealthCheckResponse["checks"] = {

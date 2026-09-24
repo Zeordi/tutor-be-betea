@@ -233,8 +233,13 @@ export class AdminService {
       data: { resolved: true },
     });
 
+    const remaining = await prisma.riskFlag.count({
+      where: { userId: flag.userId, resolved: false },
+    });
+
     const user = await prisma.user.findUnique({ where: { id: flag.userId } });
-    if (user && user.status === "SUSPENDED") {
+    const wasSuspended = user?.status === "SUSPENDED";
+    if (wasSuspended && remaining === 0) {
       await prisma.user.update({
         where: { id: flag.userId },
         data: { status: "ACTIVE" },
@@ -245,7 +250,10 @@ export class AdminService {
       adminId,
       targetUserId: flag.userId,
       actionType: "CLEAR_RISK_FLAG",
-      reason: "Flag cleared by admin",
+      reason:
+        remaining === 0
+          ? "Flag cleared by admin — user reactivated (no remaining unresolved flags)"
+          : `Flag cleared by admin — user remains SUSPENDED (${remaining} unresolved flag(s) remaining)`,
     });
     return { success: true };
   }
