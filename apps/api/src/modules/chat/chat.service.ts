@@ -76,43 +76,36 @@ export class ChatService {
     });
   }
 
-  /** Supports gateway object form and positional args */
-  async sendMessage(
-    input:
-      | string
-      | {
-          roomId: string;
-          senderId: string;
-          content: string;
-          originalBlocked?: boolean;
-        },
-    senderId?: string,
-    content?: string,
-  ) {
-    let roomId: string;
-    let sid: string;
-    let text: string;
-    let blocked = false;
-
-    if (typeof input === "string") {
-      roomId = input;
-      sid = senderId as string;
-      text = content as string;
-    } else {
-      roomId = input.roomId;
-      sid = input.senderId;
-      text = input.content;
-      blocked = !!input.originalBlocked;
-    }
-
-    const scan = this.antiPoachingService.sanitize(text);
+  async sendMessage(roomId: string, senderId: string, content: string) {
+    const scan = this.antiPoachingService.sanitize(content);
     return prisma.chatMessage.create({
       data: {
         roomId,
-        senderId: sid,
+        senderId,
         content: scan.sanitizedText,
-        originalBlocked: blocked || scan.blocked,
+        originalBlocked: scan.blocked,
       },
     });
+  }
+
+  async isValidRoom(roomId: string, requesterId: string): Promise<boolean> {
+    const peer = await prisma.user.findUnique({
+      where: { id: roomId },
+      select: { id: true },
+    });
+    if (!peer) return false;
+
+    const contract = await prisma.tutoringContract.findFirst({
+      where: {
+        OR: [
+          { parentId: requesterId, teacherId: roomId },
+          { teacherId: requesterId, parentId: roomId },
+        ],
+        status: { in: ["PENDING_ESCROW", "ACTIVE", "DISPUTED", "COMPLETED"] },
+      },
+      select: { id: true },
+    });
+
+    return !!contract;
   }
 }

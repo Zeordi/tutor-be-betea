@@ -1,10 +1,11 @@
-import { Controller, Get, Post, Param, Body, UseGuards } from "@nestjs/common";
+import { Controller, Get, Post, Param, Body, UseGuards, BadRequestException } from "@nestjs/common";
 import { ChatService } from "./chat.service";
 import { AntiPoachingService } from "./anti-poaching.service";
 import { JwtAuthGuard } from "../../common/guards/jwt-auth.guard";
 import { RolesGuard } from "../../common/guards/roles.guard";
 import { Roles } from "../../common/decorators/roles.decorator";
 import { CurrentUser } from "../../common/decorators/current-user.decorator";
+import { SendMessageDto } from "./dto/send-message.dto";
 
 @Controller("chat")
 export class ChatController {
@@ -27,17 +28,15 @@ export class ChatController {
 
   @Post(":roomId/messages")
   @UseGuards(JwtAuthGuard, RolesGuard)
-  sendMessage(
+  async sendMessage(
     @Param("roomId") roomId: string,
     @CurrentUser() user: any,
-    @Body() body: { content: string },
+    @Body() body: SendMessageDto,
   ) {
-    const scan = this.antiPoachingService.sanitize(body.content || "");
-    return this.chatService.sendMessage({
-      roomId,
-      senderId: user.id,
-      content: scan.sanitizedText,
-      originalBlocked: scan.blocked,
-    });
+    const saved = await this.chatService.sendMessage(roomId, user.id, body.content);
+    if (saved.originalBlocked) {
+      throw new BadRequestException("Message contains restricted contact information");
+    }
+    return saved;
   }
 }

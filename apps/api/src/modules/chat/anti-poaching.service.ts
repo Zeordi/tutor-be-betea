@@ -23,7 +23,7 @@ export class AntiPoachingService {
     );
     sanitizedText = sanitizedText.replace(
       RESTRICTED_PATTERNS.telegram,
-      this.replacement,
+      (match) => match.replace(/@[\w_]{4,}/, this.replacement),
     );
     sanitizedText = sanitizedText.replace(
       RESTRICTED_PATTERNS.bankAccount,

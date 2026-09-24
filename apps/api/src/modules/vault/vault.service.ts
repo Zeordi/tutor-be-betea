@@ -103,6 +103,58 @@ export class VaultService {
     };
   }
 
+  async getOwnDecryptedDocument(
+    documentId: string,
+    teacherId: string,
+    ipAddress: string,
+  ) {
+    const doc = await prisma.vaultDocument.findUnique({
+      where: { id: documentId },
+    });
+
+    if (!doc || doc.teacherId !== teacherId) {
+      throw new NotFoundException("Document not found");
+    }
+
+    const payload = JSON.parse(doc.encryptedData);
+    const decryptedBuffer = decryptToBuffer({
+      ciphertext: payload.ciphertext,
+      iv: payload.iv,
+      tag: payload.tag,
+    });
+
+    this.logger.log("Vault document decrypted by owner", {
+      documentId: doc.id,
+      documentType: doc.documentType,
+      teacherId: doc.teacherId,
+      ipAddress,
+      fileSizeBytes: decryptedBuffer.length,
+    });
+
+    await this.auditService.createLog({
+      adminId: teacherId,
+      actionType: "DECRYPT_OWN_VAULT_DOCUMENT",
+      targetUserId: teacherId,
+      reason: `Teacher viewed own ${doc.documentType} (Doc ID: ${doc.id})`,
+      ipAddress,
+      statePayload: {
+        documentId: doc.id,
+        documentType: doc.documentType,
+        fileSizeBytes: decryptedBuffer.length,
+      },
+    });
+
+    return {
+      id: doc.id,
+      documentType: doc.documentType,
+      status: doc.status,
+      mimeType: payload.mimeType || "application/octet-stream",
+      base64Data: decryptedBuffer.toString("base64"),
+      teacherId: doc.teacherId,
+      createdAt: doc.createdAt,
+    };
+  }
+
   async listTeacherDocuments(teacherId: string) {
     return prisma.vaultDocument.findMany({
       where: { teacherId },

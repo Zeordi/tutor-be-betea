@@ -4,9 +4,14 @@ import { randomUUID } from "crypto";
 import { calculateDistanceMeters, GEOFENCE_RADIUS_METERS } from "@tutor/geo";
 import { validateOfflineId, validateClientCreatedAt } from "@tutor/validators";
 import { OperationalException } from "../../common/exceptions/operational-exception";
+import { NotificationsService } from "../notifications/notifications.service";
 
 @Injectable()
 export class AttendanceService {
+  constructor(
+    private readonly notificationsService: NotificationsService,
+  ) {}
+
   async checkIn(
     contractId: string,
     teacherId: string,
@@ -103,6 +108,12 @@ export class AttendanceService {
           severity: "MEDIUM",
           reason: `Session exceeded 4h max duration (${Math.round(durationMs / 3600000)}h)`,
         },
+      });
+
+      await this.notificationsService.createNotification(teacherId, {
+        type: "RISK_FLAG",
+        title: "Session duration warning",
+        body: `Your recent session exceeded the 4-hour maximum (${Math.round(durationMs / 3600000)}h). This has been logged.`,
       });
     }
 
