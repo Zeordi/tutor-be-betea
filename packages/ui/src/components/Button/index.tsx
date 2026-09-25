@@ -14,15 +14,15 @@ export interface ButtonProps extends React.ButtonHTMLAttributes<HTMLButtonElemen
 
 const variantMap: Record<ButtonVariant, string> = {
   primary:
-    "bg-teal-600 hover:bg-teal-700 active:bg-teal-800 text-white shadow-sm hover:shadow-md disabled:bg-teal-300",
-  secondary: "bg-blue-700 hover:bg-blue-800 text-white shadow-sm disabled:bg-blue-300",
+    "bg-teal-600 hover:bg-teal-700 active:bg-teal-800 text-white shadow-sm hover:shadow-md disabled:bg-teal-300 disabled:text-teal-100",
+  secondary: "bg-blue-700 hover:bg-blue-800 text-white shadow-sm disabled:bg-blue-300 disabled:text-blue-100",
   ghost:
-    "bg-transparent hover:bg-teal-50 dark:hover:bg-teal-900/20 text-teal-700 dark:text-teal-400",
+    "bg-transparent hover:bg-teal-50 dark:hover:bg-teal-900/20 text-teal-700 dark:text-teal-400 disabled:text-teal-300",
   soft:
-    "bg-teal-50 hover:bg-teal-100 dark:bg-teal-900/30 dark:hover:bg-teal-900/50 text-teal-700 dark:text-teal-300",
-  danger: "bg-red-600 hover:bg-red-700 text-white shadow-sm disabled:bg-red-300",
+    "bg-teal-50 hover:bg-teal-100 dark:bg-teal-900/30 dark:hover:bg-teal-900/50 text-teal-700 dark:text-teal-300 disabled:text-teal-400",
+  danger: "bg-red-600 hover:bg-red-700 text-white shadow-sm disabled:bg-red-300 disabled:text-red-100",
   outline:
-    "border border-teal-600 text-teal-700 hover:bg-teal-50 dark:border-teal-500 dark:text-teal-400 dark:hover:bg-teal-900/20",
+    "border border-teal-600 text-teal-700 hover:bg-teal-50 dark:border-teal-500 dark:text-teal-400 dark:hover:bg-teal-900/20 disabled:text-teal-400",
 };
 
 const sizeMap: Record<ButtonSize, string> = {

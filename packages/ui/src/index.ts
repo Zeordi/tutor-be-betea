@@ -1,4 +1,5 @@
 export * from "./theme";
+export * from "./theme/ThemeProvider";
 
 export * from "./components/Button";
 export * from "./components/Input";

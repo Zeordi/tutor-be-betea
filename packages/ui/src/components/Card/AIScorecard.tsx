@@ -16,7 +16,6 @@ export interface AIScorecardProps {
   className?: string;
 }
 
-/** A5 · Student AI Scorecard */
 export function AIScorecard({
   student,
   grade,
