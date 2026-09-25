@@ -30,7 +30,7 @@ export default function Header() {
 
   return (
     <header className="sticky top-0 z-50 border-b border-[var(--border)] bg-[var(--background)]/95 backdrop-blur supports-[backdrop-filter]:bg-[var(--background)]/80">
-      <div className="mx-auto flex h-16 max-w-6xl items-center gap-3 px-4 md:gap-5 md:px-6">
+      <div className="mx-auto flex h-16 max-w-6xl items-center gap-3 px-4 md:gap-4 md:px-6">
         {/* Logo */}
         <Link href="/" className="flex shrink-0 items-center gap-2.5">
           <div className="flex h-9 w-9 items-center justify-center rounded-[10px] bg-gradient-to-br from-[var(--primary)] to-teal-300 text-lg">
@@ -52,7 +52,7 @@ export default function Header() {
             <Link
               key={item.href}
               href={item.href}
-              className={`rounded-md px-3 py-2 text-[13px] font-semibold transition ${
+              className={`rounded-md px-2.5 py-2 text-[13px] font-semibold transition ${
                 isActive(item.href)
                   ? "bg-teal-50 text-[var(--primary)] dark:bg-teal-950/40"
                   : "text-[var(--secondary)] hover:text-[var(--foreground)]"
