@@ -9,7 +9,7 @@ export default function MarketingLayout({
   return (
     <>
       <Header />
-      <div className="min-h-[calc(100vh-4rem)]">{children}</div>
+      <div className="min-h-[calc(100vh-4rem)] w-full overflow-x-hidden">{children}</div>
       <Footer />
     </>
   );
