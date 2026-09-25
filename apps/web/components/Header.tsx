@@ -145,21 +145,31 @@ export default function Header() {
               ))}
             </div>
             <div className="mt-4 flex items-center justify-between gap-3">
-              <div className="flex overflow-hidden rounded-md border border-[var(--border)] bg-[var(--muted)]">
-                {LANGS.map((l, i) => (
-                  <button
-                    key={l}
-                    type="button"
-                    onClick={() => setLang(l)}
-                    className={`px-2.5 py-1.5 text-[11px] font-bold transition ${
-                      lang === l
-                        ? "bg-[var(--primary)] text-white"
-                        : "text-[var(--secondary)]"
-                    }`}
-                  >
-                    {l}
-                  </button>
-                ))}
+              <div className="flex items-center gap-2">
+                <button
+                  type="button"
+                  onClick={toggleTheme}
+                  className="flex h-8 w-8 items-center justify-center rounded-md border border-[var(--border)] bg-[var(--muted)] text-sm"
+                  aria-label="Toggle theme"
+                >
+                  {mode === "dark" ? "☀️" : "🌙"}
+                </button>
+                <div className="flex overflow-hidden rounded-md border border-[var(--border)] bg-[var(--muted)]">
+                  {LANGS.map((l) => (
+                    <button
+                      key={l}
+                      type="button"
+                      onClick={() => setLang(l)}
+                      className={`px-2.5 py-1.5 text-[11px] font-bold transition ${
+                        lang === l
+                          ? "bg-[var(--primary)] text-white"
+                          : "text-[var(--secondary)]"
+                      }`}
+                    >
+                      {l}
+                    </button>
+                  ))}
+                </div>
               </div>
               <div className="flex gap-2">
                 <Link

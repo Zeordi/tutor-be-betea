@@ -6,7 +6,7 @@ export default function LandingPage() {
       {/* Hero */}
       <section className="relative overflow-hidden">
         <div className="absolute inset-0 bg-gradient-to-br from-teal-50 to-blue-50 dark:from-teal-950/30 dark:to-blue-950/30" />
-        <div className="relative mx-auto max-w-6xl px-6 py-16 md:py-24">
+        <div className="relative mx-auto max-w-6xl px-4 py-12 md:px-6 md:py-24">
           <div className="grid items-center gap-10 md:grid-cols-2">
             <div>
               <div className="mb-6 inline-flex items-center gap-2 rounded-full border border-teal-200 bg-teal-50 px-4 py-1.5 dark:border-teal-800 dark:bg-teal-900/30">
@@ -41,7 +41,7 @@ export default function LandingPage() {
                   I&apos;m a Tutor →
                 </Link>
               </div>
-              <div className="flex flex-wrap items-center gap-6 text-sm">
+              <div className="flex flex-wrap items-center gap-4 text-sm md:gap-6">
                 {[
                   ["🛡️", "12,000+", "Verified Tutors"],
                   ["⭐", "4.9/5", "Parent Rating"],
@@ -65,7 +65,7 @@ export default function LandingPage() {
                   </div>
                 </div>
                 <div className="mb-4 flex items-center gap-3">
-                  <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-teal-600 text-lg font-bold text-white">
+                  <div className="flex h-14 w-14 shrink-0 items-center justify-center rounded-2xl bg-teal-600 text-lg font-bold text-white">
                     ST
                   </div>
                   <div>
@@ -118,8 +118,8 @@ export default function LandingPage() {
       </section>
 
       {/* How it works */}
-      <section className="bg-slate-50 py-20 dark:bg-[#0D1B33]">
-        <div className="mx-auto max-w-6xl px-6">
+      <section className="bg-slate-50 py-12 dark:bg-[#0D1B33] md:py-20">
+        <div className="mx-auto max-w-6xl px-4 md:px-6">
           <div className="mb-12 text-center">
             <h2 className="mb-3 text-3xl font-extrabold text-slate-900 dark:text-white">
               How Tutor Be Betea Works
@@ -180,9 +180,9 @@ export default function LandingPage() {
       </section>
 
       {/* Featured Tutors — V1 */}
-      <section className="bg-slate-50 py-20 dark:bg-[#0D1B33]">
-        <div className="mx-auto max-w-6xl px-6">
-          <div className="mb-10 flex items-end justify-between gap-4">
+      <section className="bg-slate-50 py-12 dark:bg-[#0D1B33] md:py-20">
+        <div className="mx-auto max-w-6xl px-4 md:px-6">
+          <div className="mb-10 flex flex-col md:flex-row md:items-end md:justify-between gap-4">
             <div>
               <h2 className="text-3xl font-extrabold text-slate-900 dark:text-white">
                 Featured Tutors
@@ -291,9 +291,9 @@ export default function LandingPage() {
       </section>
 
       {/* Safety */}
-      <section className="bg-gradient-to-br from-teal-700 to-teal-900 py-20 text-white">
-        <div className="mx-auto max-w-6xl px-6">
-          <div className="grid items-center gap-12 md:grid-cols-2">
+      <section className="bg-gradient-to-br from-teal-700 to-teal-900 py-12 text-white md:py-20">
+        <div className="mx-auto max-w-6xl px-4 md:px-6">
+          <div className="grid gap-8 md:gap-12 md:grid-cols-2">
             <div>
               <span className="mb-4 inline-block rounded-full bg-white/20 px-3 py-1 text-xs font-bold">
                 🛡️ Safety First
@@ -363,8 +363,8 @@ export default function LandingPage() {
       </section>
 
       {/* Testimonials */}
-      <section className="bg-slate-50 py-20 dark:bg-[#0D1B33]">
-        <div className="mx-auto max-w-6xl px-6">
+      <section className="bg-slate-50 py-12 dark:bg-[#0D1B33] md:py-20">
+        <div className="mx-auto max-w-6xl px-4 md:px-6">
           <h2 className="mb-10 text-center text-3xl font-extrabold text-slate-900 dark:text-white">
             What Families Say
           </h2>
@@ -410,8 +410,8 @@ export default function LandingPage() {
       </section>
 
       {/* CTA */}
-      <section className="py-20">
-        <div className="mx-auto max-w-3xl px-6 text-center">
+      <section className="py-12 md:py-20">
+        <div className="mx-auto max-w-3xl px-4 md:px-6 text-center">
           <h2 className="mb-4 text-4xl font-extrabold text-slate-900 dark:text-white">
             Ready to find the perfect tutor?
           </h2>
