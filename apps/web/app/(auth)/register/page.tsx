@@ -26,16 +26,21 @@ export default function RegisterPage() {
   const router = useRouter();
   const [step, setStep] = useState<1 | 2 | 3>(1);
   const [role, setRole] = useState<Role>("PARENT");
-  const [fullName, setFullName] = useState("");
+  const [firstName, setFirstName] = useState("");
+  const [lastName, setLastName] = useState("");
   const [phoneNumber, setPhoneNumber] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [showPassword, setShowPassword] = useState(false);
+  const [location, setLocation] = useState("");
+  const [subject, setSubject] = useState("");
   const [otp, setOtp] = useState("");
   const [loading, setLoading] = useState(false);
   const [message, setMessage] = useState("");
   const [countdown, setCountdown] = useState(0);
   const [lang, setLang] = useState<(typeof LANGS)[number]>("EN");
   const [agreedToTerms, setAgreedToTerms] = useState(false);
+  const [agreedToEscrow, setAgreedToEscrow] = useState(false);
   const strength = passwordStrength(password);
   const { mode, toggleTheme } = useTheme();
 
@@ -44,6 +49,8 @@ export default function RegisterPage() {
     const t = setTimeout(() => setCountdown((c) => c - 1), 1000);
     return () => clearTimeout(t);
   }, [countdown]);
+
+  const fullName = [firstName, lastName].filter(Boolean).join(" ").trim();
 
   const sendOtp = async () => {
     const res = await fetch(getApiUrl() + paths.authOtpSend, {
@@ -62,11 +69,14 @@ export default function RegisterPage() {
     setLoading(true);
     setMessage("");
     try {
-      if (!fullName.trim() || !phoneNumber.trim() || password.length < 6) {
+      if (!firstName.trim() || !lastName.trim() || !phoneNumber.trim() || password.length < 6) {
         throw new Error("Name, phone, and password (min 6) are required.");
       }
       if (!agreedToTerms) {
         throw new Error("Please accept the Terms and Privacy Policy.");
+      }
+      if (!agreedToEscrow) {
+        throw new Error("Please accept the Escrow Agreement to continue.");
       }
       await sendOtp();
       setStep(3);
@@ -263,14 +273,29 @@ export default function RegisterPage() {
 
       {step === 2 && (
         <form onSubmit={handleDetailsContinue} className="space-y-3">
-          <label className="block text-xs font-medium text-slate-600 dark:text-slate-300">
-            Full name *
-          </label>
-          <input
-            value={fullName}
-            onChange={(e) => setFullName(e.target.value)}
-            className="w-full rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm dark:border-slate-700 dark:bg-slate-800 dark:text-white"
-          />
+          <div className="grid grid-cols-2 gap-3">
+            <div>
+              <label className="block text-xs font-medium text-slate-600 dark:text-slate-300">
+                First Name *
+              </label>
+              <input
+                value={firstName}
+                onChange={(e) => setFirstName(e.target.value)}
+                className="mt-1 w-full rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm dark:border-slate-700 dark:bg-slate-800 dark:text-white"
+              />
+            </div>
+            <div>
+              <label className="block text-xs font-medium text-slate-600 dark:text-slate-300">
+                Last Name *
+              </label>
+              <input
+                value={lastName}
+                onChange={(e) => setLastName(e.target.value)}
+                className="mt-1 w-full rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm dark:border-slate-700 dark:bg-slate-800 dark:text-white"
+              />
+            </div>
+          </div>
+
           <label className="block text-xs font-medium text-slate-600 dark:text-slate-300">
             Phone *
           </label>
@@ -288,6 +313,7 @@ export default function RegisterPage() {
               className="flex-1 bg-transparent px-3 py-3 text-sm outline-none dark:text-white"
             />
           </div>
+
           <label className="block text-xs font-medium text-slate-600 dark:text-slate-300">
             Email (optional)
           </label>
@@ -298,16 +324,26 @@ export default function RegisterPage() {
             placeholder="you@gmail.com"
             className="w-full rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm dark:border-slate-700 dark:bg-slate-800 dark:text-white"
           />
+
           <label className="block text-xs font-medium text-slate-600 dark:text-slate-300">
             Password *
           </label>
-          <input
-            type="password"
-            value={password}
-            onChange={(e) => setPassword(e.target.value)}
-            placeholder="Password"
-            className="w-full rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm dark:border-slate-700 dark:bg-slate-800 dark:text-white"
-          />
+          <div className="relative">
+            <input
+              type={showPassword ? "text" : "password"}
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+              placeholder="Password"
+              className="w-full rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm dark:border-slate-700 dark:bg-slate-800 dark:text-white"
+            />
+            <button
+              type="button"
+              onClick={() => setShowPassword((v) => !v)}
+              className="absolute right-3 top-1/2 -translate-y-1/2 text-xs text-slate-400"
+            >
+              {showPassword ? "Hide" : "Show"}
+            </button>
+          </div>
           <div className="flex items-center gap-2">
             <div className="flex flex-1 gap-1">
               {[0, 1, 2, 3, 4].map((i) => (
@@ -323,23 +359,75 @@ export default function RegisterPage() {
               {password ? strength.label : ""}
             </span>
           </div>
-          <label className="flex items-center gap-2 text-[11px] text-slate-500 dark:text-slate-400">
+
+          <label className="block text-xs font-medium text-slate-600 dark:text-slate-300">
+            Location <span className="text-slate-400">(optional)</span>
+          </label>
+          <div className="flex rounded-2xl border border-slate-200 bg-slate-50 overflow-hidden dark:border-slate-700 dark:bg-slate-800">
+            <input
+              value={location}
+              onChange={(e) => setLocation(e.target.value)}
+              placeholder="Bole, Addis Ababa"
+              className="flex-1 bg-transparent px-3 py-3 text-sm outline-none dark:text-white"
+            />
+            <button
+              type="button"
+              className="px-3 py-3 text-xs font-semibold text-[#008779]"
+            >
+              Auto-detect
+            </button>
+          </div>
+
+          {role === "TEACHER" && (
+            <>
+              <label className="block text-xs font-medium text-slate-600 dark:text-slate-300">
+                Primary Subject <span className="text-slate-400">(optional)</span>
+              </label>
+              <input
+                value={subject}
+                onChange={(e) => setSubject(e.target.value)}
+                placeholder="Mathematics, Physics, ..."
+                className="w-full rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm dark:border-slate-700 dark:bg-slate-800 dark:text-white"
+              />
+            </>
+          )}
+
+          <label className="flex items-start gap-2 text-[11px] text-slate-500 dark:text-slate-400">
             <input
               type="checkbox"
               checked={agreedToTerms}
               onChange={(e) => setAgreedToTerms(e.target.checked)}
-              className="h-4 w-4 rounded border-slate-300"
+              className="mt-0.5 h-4 w-4 rounded border-slate-300"
             />
-            I agree to the{" "}
-            <Link href="/terms" className="font-semibold text-[#008779]">
-              Terms of Service
-            </Link>{" "}
-            and{" "}
-            <Link href="/privacy" className="font-semibold text-[#008779]">
-              Privacy Policy
-            </Link>
-            .
+            <span>
+              I agree to the{" "}
+              <Link href="/terms" className="font-semibold text-[#008779]">
+                Terms of Service
+              </Link>{" "}
+              and{" "}
+              <Link href="/privacy" className="font-semibold text-[#008779]">
+                Privacy Policy
+              </Link>
+              .
+            </span>
           </label>
+
+          <label className="flex items-start gap-2 text-[11px] text-slate-500 dark:text-slate-400">
+            <input
+              type="checkbox"
+              checked={agreedToEscrow}
+              onChange={(e) => setAgreedToEscrow(e.target.checked)}
+              className="mt-0.5 h-4 w-4 rounded border-slate-300"
+            />
+            <span>
+              I agree to the{" "}
+              <Link href="/privacy" className="font-semibold text-[#008779]">
+                Escrow Agreement
+              </Link>{" "}
+              and payment protection terms.
+            </span>
+          </label>
+
           <div className="flex gap-2 pt-1">
             <button
               type="button"
@@ -353,59 +441,80 @@ export default function RegisterPage() {
               disabled={loading}
               className="flex-1 rounded-2xl bg-[#008779] py-3 text-sm font-bold text-white hover:bg-[#006b5f] disabled:opacity-60"
             >
-              {loading ? "Sending…" : "Next — Verify Phone →"}
+              {loading ? "Sending…" : "Create Account — Verify Phone →"}
             </button>
           </div>
         </form>
       )}
 
       {step === 3 && (
-        <form onSubmit={handleVerifyAndRegister} className="space-y-3">
-          <p className="text-sm text-slate-500 dark:text-slate-400">
-            Enter OTP sent to {phoneNumber}
-          </p>
-          <input
-            value={otp}
-            onChange={(e) =>
-              setOtp(e.target.value.replace(/\D/g, "").slice(0, 6))
-            }
-            placeholder="6-digit code"
-            className="w-full rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-center tracking-[0.3em] font-semibold dark:border-slate-700 dark:bg-slate-800 dark:text-white"
-          />
-          <button
-            type="submit"
-            disabled={loading}
-            className="w-full rounded-2xl bg-[#008779] py-3 text-sm font-bold text-white hover:bg-[#006b5f] disabled:opacity-60"
-          >
-            {loading ? "Creating…" : "Verify & Create account"}
-          </button>
-          <button
-            type="button"
-            disabled={countdown > 0 || loading}
-            onClick={async () => {
-              try {
-                setLoading(true);
-                await sendOtp();
-                setCountdown(60);
-                setMessage("New code sent — use only the latest SMS.");
-              } catch (err: any) {
-                setMessage(err.message);
-              } finally {
-                setLoading(false);
+        <div className="rounded-2xl border border-slate-100 bg-white p-6 shadow-lg dark:border-slate-700 dark:bg-[#112240]">
+          <form onSubmit={handleVerifyAndRegister} className="space-y-4">
+            <div>
+              <h2 className="text-lg font-bold text-slate-900 dark:text-white">
+                Verify Your Phone
+              </h2>
+              <p className="text-sm text-slate-500 dark:text-slate-400">
+                Enter the 6-digit code sent to{" "}
+                <span className="font-semibold">{phoneNumber.replace(/^\+?251/, "***")}</span>
+              </p>
+              <p className="text-xs text-slate-400">
+                Telebirr OTP may apply depending on your carrier.
+              </p>
+            </div>
+
+            <input
+              value={otp}
+              onChange={(e) =>
+                setOtp(e.target.value.replace(/\D/g, "").slice(0, 6))
               }
-            }}
-            className="w-full text-sm font-semibold text-[#008779]"
-          >
-            {countdown > 0 ? `Resend in ${countdown}s` : "Resend code"}
-          </button>
-          <button
-            type="button"
-            onClick={() => setStep(2)}
-            className="w-full text-xs text-slate-500 dark:text-slate-400"
-          >
-            ← Back
-          </button>
-        </form>
+              placeholder="000000"
+              className="w-full rounded-2xl border border-slate-200 bg-slate-50 px-4 py-4 text-center tracking-[0.3em] text-2xl font-extrabold dark:border-slate-700 dark:bg-slate-800 dark:text-white"
+            />
+
+            <div className="flex items-center justify-between text-xs text-slate-500 dark:text-slate-400">
+              <span>
+                Expires in{" "}
+                <span className="font-semibold">{countdown > 0 ? `${countdown}s` : "soon"}</span>
+              </span>
+              <button
+                type="button"
+                disabled={countdown > 0 || loading}
+                onClick={async () => {
+                  try {
+                    setLoading(true);
+                    await sendOtp();
+                    setCountdown(60);
+                    setMessage("New code sent — use only the latest SMS.");
+                  } catch (err: any) {
+                    setMessage(err.message);
+                  } finally {
+                    setLoading(false);
+                  }
+                }}
+                className="font-semibold text-[#008779]"
+              >
+                Resend SMS
+              </button>
+            </div>
+
+            <button
+              type="submit"
+              disabled={loading}
+              className="w-full rounded-2xl bg-[#008779] py-3 text-sm font-bold text-white hover:bg-[#006b5f] disabled:opacity-60"
+            >
+              {loading ? "Creating…" : "Verify & Create account"}
+            </button>
+
+            <button
+              type="button"
+              onClick={() => setStep(2)}
+              className="w-full text-xs text-slate-500 dark:text-slate-400"
+            >
+              ← Change phone number
+            </button>
+          </form>
+        </div>
       )}
 
       {message && (
