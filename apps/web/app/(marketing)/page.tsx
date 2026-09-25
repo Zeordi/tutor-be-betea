@@ -58,7 +58,7 @@ export default function LandingPage() {
             </div>
 
             <div className="relative">
-              <div className="relative rounded-3xl bg-gradient-to-br from-teal-100 to-blue-100 p-6 shadow-2xl dark:from-teal-900/30 dark:to-blue-900/30">
+              <div className="relative rounded-3xl bg-gradient-to-br from-teal-100 to-blue-100 p-6 shadow-2xl dark:from-teal-900/50 dark:to-[#112240]">
                 <div className="absolute -right-3 -top-3">
                   <div className="rounded-full bg-amber-400 px-3 py-1 text-xs font-bold text-amber-900">
                     🥇 Gold Tutor
@@ -72,7 +72,7 @@ export default function LandingPage() {
                     <p className="font-bold text-slate-800 dark:text-white">
                       Selamawit Tadesse
                     </p>
-                    <p className="text-xs text-slate-500">
+                    <p className="text-xs text-slate-500 dark:text-slate-400">
                       Mathematics · Physics · Grade 9–12
                     </p>
                     <p className="mt-0.5 text-xs text-amber-500">★★★★★ 4.9 (86)</p>
@@ -82,7 +82,7 @@ export default function LandingPage() {
                   {["🛡️ National ID", "🎓 Degree", "🥇 Gold", "⭐ Elite"].map((b) => (
                     <span
                       key={b}
-                      className="rounded-full bg-white/70 px-2 py-0.5 text-[10px] font-bold text-slate-700 dark:bg-white/10 dark:text-slate-200"
+                      className="rounded-full bg-white/80 px-2 py-0.5 text-[10px] font-bold text-slate-700 dark:bg-white/15 dark:text-slate-100"
                     >
                       {b}
                     </span>
@@ -96,12 +96,12 @@ export default function LandingPage() {
                   ].map(([v, l]) => (
                     <div
                       key={l}
-                      className="rounded-xl bg-white/60 py-2 dark:bg-white/10"
+                      className="rounded-xl bg-white/70 py-2 dark:bg-white/15"
                     >
                       <p className="text-sm font-bold text-slate-800 dark:text-white">
                         {v}
                       </p>
-                      <p className="text-[10px] text-slate-500">{l}</p>
+                      <p className="text-[10px] text-slate-500 dark:text-slate-400">{l}</p>
                     </div>
                   ))}
                 </div>
