@@ -16,13 +16,13 @@ function Stepper({ currentStep }: { currentStep: number }) {
   ];
 
   return (
-    <div className="mb-8">
+    <div className="mb-6 md:mb-8">
       <div className="flex items-center justify-between">
         {steps.map((step, idx) => (
           <div key={step.num} className="flex flex-1 items-center">
             <div className="flex flex-col items-center">
               <div
-                className={`flex h-8 w-8 items-center justify-center rounded-full border-2 text-sm font-bold transition ${
+                className={`flex h-7 w-7 md:h-8 md:w-8 items-center justify-center rounded-full border-2 text-xs md:text-sm font-bold transition ${
                   currentStep > step.num
                     ? "border-[#008779] bg-[#008779] text-white"
                     : currentStep === step.num
@@ -33,7 +33,7 @@ function Stepper({ currentStep }: { currentStep: number }) {
                 {currentStep > step.num ? "✓" : step.num}
               </div>
               <span
-                className={`mt-1 text-xs font-medium ${
+                className={`mt-1 text-[10px] md:text-xs font-medium ${
                   currentStep >= step.num
                     ? "text-slate-900 dark:text-white"
                     : "text-slate-400 dark:text-slate-500"
@@ -44,7 +44,7 @@ function Stepper({ currentStep }: { currentStep: number }) {
             </div>
             {idx < steps.length - 1 && (
               <div
-                className={`mx-2 h-0.5 flex-1 ${
+                className={`mx-1 md:mx-2 h-0.5 flex-1 ${
                   currentStep > step.num ? "bg-[#008779]" : "bg-slate-200 dark:bg-slate-700"
                 }`}
               />
@@ -216,19 +216,19 @@ function ResetForm() {
       <Stepper currentStep={resetStep === "otp" ? 2 : 3} />
 
       {resetStep === "otp" && (
-        <form onSubmit={handleVerifyOtp} className="space-y-5">
+        <form onSubmit={handleVerifyOtp} className="space-y-4 md:space-y-5">
           <div>
-            <label className="mb-1.5 block text-sm font-semibold text-slate-700 dark:text-slate-200">
+            <label className="mb-1.5 block text-xs md:text-sm font-semibold text-slate-700 dark:text-slate-200">
               6-Digit Code
             </label>
-            <div className="flex justify-between gap-2">
+            <div className="flex justify-between gap-1.5 md:gap-2">
               {otpDigits.map((d, i) => (
                 <input
                   key={i}
                   value={d}
                   onChange={(e) => setDigit(i, e.target.value)}
                   maxLength={1}
-                  className="h-14 flex-1 rounded-2xl border-2 border-slate-200 bg-slate-50 text-center text-xl font-extrabold outline-none transition focus:border-[#008779] dark:border-slate-700 dark:bg-slate-800 dark:text-white"
+                  className="h-12 md:h-14 flex-1 rounded-xl md:rounded-2xl border-2 border-slate-200 bg-slate-50 text-center text-lg md:text-xl font-extrabold outline-none transition focus:border-[#008779] dark:border-slate-700 dark:bg-slate-800 dark:text-white"
                 />
               ))}
             </div>
@@ -250,13 +250,13 @@ function ResetForm() {
           </div>
 
           {message && (
-            <p className="text-sm text-red-500">{message}</p>
+            <p className="text-xs md:text-sm text-red-500">{message}</p>
           )}
 
           <button
             type="submit"
             disabled={loading}
-            className="w-full rounded-2xl bg-[#008779] py-3.5 text-sm font-bold text-white hover:bg-[#006b5f] disabled:opacity-60"
+            className="w-full rounded-2xl bg-[#008779] py-3 md:py-3.5 text-sm font-bold text-white hover:bg-[#006b5f] disabled:opacity-60"
           >
             {loading ? "Verifying…" : "Verify Code →"}
           </button>
@@ -280,9 +280,9 @@ function ResetForm() {
       )}
 
       {resetStep === "newPassword" && (
-        <form onSubmit={handleResetPassword} className="space-y-5">
+        <form onSubmit={handleResetPassword} className="space-y-4 md:space-y-5">
           <div>
-            <label className="mb-1.5 block text-sm font-semibold text-slate-700 dark:text-slate-200">
+            <label className="mb-1.5 block text-xs md:text-sm font-semibold text-slate-700 dark:text-slate-200">
               New Password <span className="text-red-500">*</span>
             </label>
             <div className="relative">
@@ -291,7 +291,7 @@ function ResetForm() {
                 value={newPassword}
                 onChange={(e) => setNewPassword(e.target.value)}
                 placeholder="Enter new password"
-                className="w-full rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm dark:border-slate-700 dark:bg-slate-800 dark:text-white"
+                className="w-full rounded-2xl border border-slate-200 bg-slate-50 px-3 md:px-4 py-2.5 md:py-3 text-sm dark:border-slate-700 dark:bg-slate-800 dark:text-white"
               />
               <button
                 type="button"
@@ -307,7 +307,7 @@ function ResetForm() {
           </div>
 
           <div>
-            <label className="mb-1.5 block text-sm font-semibold text-slate-700 dark:text-slate-200">
+            <label className="mb-1.5 block text-xs md:text-sm font-semibold text-slate-700 dark:text-slate-200">
               Confirm Password <span className="text-red-500">*</span>
             </label>
             <div className="relative">
@@ -316,7 +316,7 @@ function ResetForm() {
                 value={confirm}
                 onChange={(e) => setConfirm(e.target.value)}
                 placeholder="Re-enter new password"
-                className="w-full rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm dark:border-slate-700 dark:bg-slate-800 dark:text-white"
+                className="w-full rounded-2xl border border-slate-200 bg-slate-50 px-3 md:px-4 py-2.5 md:py-3 text-sm dark:border-slate-700 dark:bg-slate-800 dark:text-white"
               />
               <button
                 type="button"
@@ -333,28 +333,28 @@ function ResetForm() {
             )}
           </div>
 
-          <div className="flex items-center gap-2 rounded-2xl border border-slate-100 bg-slate-50 px-4 py-3 dark:border-slate-700 dark:bg-slate-800/50">
-            <span className="text-lg">🔒</span>
-            <p className="text-xs text-slate-500 dark:text-slate-400">
+          <div className="flex items-center gap-2 rounded-2xl border border-slate-100 bg-slate-50 px-3 md:px-4 py-2.5 md:py-3 dark:border-slate-700 dark:bg-slate-800/50">
+            <span className="text-base md:text-lg">🔒</span>
+            <p className="text-[11px] md:text-xs text-slate-500 dark:text-slate-400">
               Your password is protected with <span className="font-semibold text-slate-700 dark:text-slate-200">AES-256</span> encryption.
             </p>
           </div>
 
           {message && (
-            <p className="text-sm text-red-500">{message}</p>
+            <p className="text-xs md:text-sm text-red-500">{message}</p>
           )}
 
           <button
             type="submit"
             disabled={loading}
-            className="w-full rounded-2xl bg-[#008779] py-3.5 text-sm font-bold text-white hover:bg-[#006b5f] disabled:opacity-60"
+            className="w-full rounded-2xl bg-[#008779] py-3 md:py-3.5 text-sm font-bold text-white hover:bg-[#006b5f] disabled:opacity-60"
           >
             {loading ? "Updating…" : "Set Password & Sign In →"}
           </button>
 
           <Link
             href="/login"
-            className="block text-center text-sm font-medium text-slate-500 hover:text-[#008779] dark:text-slate-400"
+            className="block text-center text-xs md:text-sm font-medium text-slate-500 hover:text-[#008779] dark:text-slate-400"
           >
             ← Back to Sign In
           </Link>
