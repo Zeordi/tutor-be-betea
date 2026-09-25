@@ -47,7 +47,6 @@ const variantStyles: Record<
   },
 };
 
-/** A10 · Error / Offline / Update banners */
 export function Banner({
   variant = "info",
   title,

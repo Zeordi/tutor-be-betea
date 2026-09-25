@@ -16,7 +16,6 @@ export interface SelectProps {
   className?: string;
 }
 
-/** A1 · Custom Select / Dropdown — default, open, selected, error */
 export function Select({
   label,
   placeholder = "Select…",

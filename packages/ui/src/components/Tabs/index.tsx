@@ -8,15 +8,15 @@ export interface TabsProps {
 
 export function Tabs({ tabs, activeIndex = 0, onChange }: TabsProps) {
   return (
-    <div className="flex max-w-lg gap-1 rounded-xl bg-slate-100 p-1 dark:bg-slate-800">
+    <div className="relative flex max-w-lg gap-1 rounded-xl bg-slate-100 p-1 dark:bg-slate-800">
       {tabs.map((t, i) => (
         <button
           key={t}
           type="button"
           onClick={() => onChange?.(i)}
-          className={`flex-1 rounded-lg py-2 text-xs font-bold transition-all ${
+          className={`relative flex-1 rounded-lg py-2 text-xs font-bold transition-all ${
             activeIndex === i
-              ? "bg-teal-600 text-white shadow-sm"
+              ? "bg-white text-teal-700 shadow-sm dark:bg-slate-700 dark:text-teal-400"
               : "text-slate-500 hover:text-slate-700 dark:hover:text-slate-300"
           }`}
         >

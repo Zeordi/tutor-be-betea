@@ -17,8 +17,8 @@ export function EmptyState({
   onAction,
 }: EmptyStateProps) {
   return (
-    <div className="flex flex-col items-center justify-center py-8 text-center">
-      <div className="mb-3 flex h-16 w-16 items-center justify-center rounded-2xl bg-teal-50 text-3xl dark:bg-teal-900/30">
+    <div className="flex flex-col items-center justify-center py-10 text-center">
+      <div className="mb-4 flex h-16 w-16 items-center justify-center rounded-2xl bg-teal-50 text-3xl dark:bg-teal-900/30">
         {icon}
       </div>
       <p className="mb-1 text-sm font-bold text-slate-800 dark:text-white">{title}</p>

@@ -16,7 +16,6 @@ export interface PackagePricingCardProps {
   className?: string;
 }
 
-/** A4 · Package Pricing Cards */
 export function PackagePricingCard({
   plan,
   price,
@@ -34,7 +33,7 @@ export function PackagePricingCard({
     <div
       className={`relative flex flex-col rounded-2xl border-2 bg-white p-5 shadow-sm dark:bg-slate-800 ${
         popular
-          ? "border-teal-500 shadow-lg shadow-teal-100 dark:shadow-teal-900/30"
+          ? "border-teal-500 shadow-teal-glow dark:shadow-teal-900/30"
           : "border-slate-200 dark:border-slate-700"
       } ${className}`}
     >
