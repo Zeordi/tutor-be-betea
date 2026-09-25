@@ -148,7 +148,7 @@ export default function RegisterPage() {
   return (
     <div className="w-full">
       {/* Mobile brand header */}
-      <div className="md:hidden mb-6 flex items-center gap-2.5">
+      <div className="md:hidden mb-5 flex items-center gap-2.5">
         <div className="flex h-9 w-9 items-center justify-center rounded-[10px] bg-gradient-to-br from-[var(--primary)] to-teal-300 text-lg">
           🎓
         </div>
@@ -158,14 +158,13 @@ export default function RegisterPage() {
         </div>
       </div>
 
-      <div className="mb-6 flex items-center justify-between">
+      <div className="mb-5 flex items-center justify-between">
         <div>
           <h1 className="text-2xl font-bold text-slate-900 dark:text-white">
             Create account
           </h1>
-          <p className="text-sm text-slate-500 dark:text-slate-400">
-            Step {step} of 3 —{" "}
-            {step === 1 ? "Role" : step === 2 ? "Details" : "Verify phone"}
+          <p className="text-xs text-slate-500 dark:text-slate-400">
+            Join 12,000+ families · Step {step} of 3
           </p>
         </div>
         <div className="flex items-center gap-2">
@@ -196,7 +195,7 @@ export default function RegisterPage() {
         </div>
       </div>
 
-      <div className="mb-6 flex gap-1">
+      <div className="mb-5 flex gap-1">
         {[1, 2, 3].map((s) => (
           <div
             key={s}
@@ -208,9 +207,11 @@ export default function RegisterPage() {
       </div>
 
       {step === 1 && (
-        <div className="space-y-3">
-          <p className="text-base font-bold text-slate-900 dark:text-white">Welcome to Tutor Be Betea</p>
-          <p className="text-sm text-slate-500 dark:text-slate-400">How would you like to join?</p>
+        <div className="space-y-4">
+          <div className="text-center">
+            <p className="text-base font-bold text-slate-900 dark:text-white">Welcome to Tutor Be Betea</p>
+            <p className="text-sm text-slate-500 dark:text-slate-400">How would you like to join?</p>
+          </div>
           <div className="grid grid-cols-2 gap-3">
             <button
               type="button"
@@ -448,72 +449,74 @@ export default function RegisterPage() {
       )}
 
       {step === 3 && (
-        <div className="rounded-2xl border border-slate-100 bg-white p-6 shadow-lg dark:border-slate-700 dark:bg-[#112240]">
-          <form onSubmit={handleVerifyAndRegister} className="space-y-4">
-            <div>
-              <h2 className="text-lg font-bold text-slate-900 dark:text-white">
-                Verify Your Phone
-              </h2>
-              <p className="text-sm text-slate-500 dark:text-slate-400">
-                Enter the 6-digit code sent to{" "}
-                <span className="font-semibold">{phoneNumber.replace(/^\+?251/, "***")}</span>
-              </p>
-              <p className="text-xs text-slate-400">
-                Telebirr OTP may apply depending on your carrier.
-              </p>
-            </div>
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4">
+          <div className="w-full max-w-md rounded-2xl border border-slate-100 bg-white p-6 shadow-2xl dark:border-slate-700 dark:bg-[#112240]">
+            <form onSubmit={handleVerifyAndRegister} className="space-y-4">
+              <div>
+                <h2 className="text-lg font-bold text-slate-900 dark:text-white">
+                  Verify Your Phone
+                </h2>
+                <p className="text-sm text-slate-500 dark:text-slate-400">
+                  Enter the 6-digit code sent to{" "}
+                  <span className="font-semibold">{phoneNumber.replace(/^\+?251/, "***")}</span>
+                </p>
+                <p className="text-xs text-slate-400">
+                  Telebirr OTP may apply depending on your carrier.
+                </p>
+              </div>
 
-            <input
-              value={otp}
-              onChange={(e) =>
-                setOtp(e.target.value.replace(/\D/g, "").slice(0, 6))
-              }
-              placeholder="000000"
-              className="w-full rounded-2xl border border-slate-200 bg-slate-50 px-4 py-4 text-center tracking-[0.3em] text-2xl font-extrabold dark:border-slate-700 dark:bg-slate-800 dark:text-white"
-            />
+              <input
+                value={otp}
+                onChange={(e) =>
+                  setOtp(e.target.value.replace(/\D/g, "").slice(0, 6))
+                }
+                placeholder="000000"
+                className="w-full rounded-2xl border border-slate-200 bg-slate-50 px-4 py-4 text-center tracking-[0.3em] text-2xl font-extrabold dark:border-slate-700 dark:bg-slate-800 dark:text-white"
+              />
 
-            <div className="flex items-center justify-between text-xs text-slate-500 dark:text-slate-400">
-              <span>
-                Expires in{" "}
-                <span className="font-semibold">{countdown > 0 ? `${countdown}s` : "soon"}</span>
-              </span>
+              <div className="flex items-center justify-between text-xs text-slate-500 dark:text-slate-400">
+                <span>
+                  Expires in{" "}
+                  <span className="font-semibold">{countdown > 0 ? `${countdown}s` : "soon"}</span>
+                </span>
+                <button
+                  type="button"
+                  disabled={countdown > 0 || loading}
+                  onClick={async () => {
+                    try {
+                      setLoading(true);
+                      await sendOtp();
+                      setCountdown(60);
+                      setMessage("New code sent — use only the latest SMS.");
+                    } catch (err: any) {
+                      setMessage(err.message);
+                    } finally {
+                      setLoading(false);
+                    }
+                  }}
+                  className="font-semibold text-[#008779]"
+                >
+                  Resend SMS
+                </button>
+              </div>
+
+              <button
+                type="submit"
+                disabled={loading}
+                className="w-full rounded-2xl bg-[#008779] py-3 text-sm font-bold text-white hover:bg-[#006b5f] disabled:opacity-60"
+              >
+                {loading ? "Creating…" : "Verify & Create account"}
+              </button>
+
               <button
                 type="button"
-                disabled={countdown > 0 || loading}
-                onClick={async () => {
-                  try {
-                    setLoading(true);
-                    await sendOtp();
-                    setCountdown(60);
-                    setMessage("New code sent — use only the latest SMS.");
-                  } catch (err: any) {
-                    setMessage(err.message);
-                  } finally {
-                    setLoading(false);
-                  }
-                }}
-                className="font-semibold text-[#008779]"
+                onClick={() => setStep(2)}
+                className="w-full text-xs text-slate-500 dark:text-slate-400"
               >
-                Resend SMS
+                ← Change phone number
               </button>
-            </div>
-
-            <button
-              type="submit"
-              disabled={loading}
-              className="w-full rounded-2xl bg-[#008779] py-3 text-sm font-bold text-white hover:bg-[#006b5f] disabled:opacity-60"
-            >
-              {loading ? "Creating…" : "Verify & Create account"}
-            </button>
-
-            <button
-              type="button"
-              onClick={() => setStep(2)}
-              className="w-full text-xs text-slate-500 dark:text-slate-400"
-            >
-              ← Change phone number
-            </button>
-          </form>
+            </form>
+          </div>
         </div>
       )}
 
