@@ -17,11 +17,16 @@ export interface HealthCheckResponse {
   };
 }
 
+export interface DetailedHealthCheckResponse extends HealthCheckResponse {
+  checks: HealthCheckResponse["checks"] & {
+    nodeVersion: string;
+    uptime: number;
+  };
+}
+
 @Controller("health")
 export class HealthController {
   @Get()
-  @UseGuards(JwtAuthGuard, RolesGuard)
-  @Roles("SUPER_ADMIN", "FINANCE")
   async check(): Promise<HealthCheckResponse> {
     const timestamp = new Date().toISOString();
     const checks: HealthCheckResponse["checks"] = {
@@ -48,6 +53,21 @@ export class HealthController {
     return {
       status: degraded ? "degraded" : "ok",
       checks,
+    };
+  }
+
+  @Get("detailed")
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles("SUPER_ADMIN", "FINANCE")
+  async detailedCheck(): Promise<DetailedHealthCheckResponse> {
+    const base = await this.check();
+    return {
+      ...base,
+      checks: {
+        ...base.checks,
+        nodeVersion: process.version,
+        uptime: process.uptime(),
+      },
     };
   }
 

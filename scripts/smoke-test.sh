@@ -6,13 +6,14 @@ FAIL=0
 
 echo "== Smoke tests =="
 
-# 1. Health
+# 1. Health must be public and return 200 with JSON status
 echo -n "GET /health ... "
-STATUS=$(curl -s -o /dev/null -w "%{http_code}" "$API_URL/health" || echo "000")
-if [ "$STATUS" = "200" ] || [ "$STATUS" = "401" ] || [ "$STATUS" = "403" ]; then
-  echo "ok ($STATUS)"
+BODY=$(curl -s "$API_URL/health" || echo "{}")
+STATUS=$(echo "$BODY" | python3 -c "import sys,json; print(json.load(sys.stdin).get('status',''))" 2>/dev/null || echo "")
+if [ "$STATUS" = "ok" ] || [ "$STATUS" = "degraded" ]; then
+  echo "ok (status=$STATUS)"
 else
-  echo "FAIL ($STATUS)"
+  echo "FAIL (missing status in response: $BODY)"
   FAIL=1
 fi
 
