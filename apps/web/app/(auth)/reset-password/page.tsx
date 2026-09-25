@@ -5,6 +5,7 @@ import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
 
 import { getApiUrl, paths } from "@/lib/api";
+import { MobileAuthHeader } from "../MobileAuthHeader";
 
 function ResetForm() {
   const router = useRouter();
@@ -85,7 +86,8 @@ function ResetForm() {
       onSubmit={onSubmit}
       className="w-full max-w-md space-y-4 rounded-2xl border border-[var(--border)] bg-[var(--card)] p-6"
     >
-      <h1 className="text-xl font-extrabold">Reset password</h1>
+      <MobileAuthHeader title="Reset password" subtitle="Set a new password for your account" />
+      <h1 className="text-xl font-extrabold md:hidden">Reset password</h1>
       <input
         value={phoneNumber}
         onChange={(e) => setPhoneNumber(e.target.value)}

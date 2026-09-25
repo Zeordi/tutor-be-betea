@@ -6,6 +6,7 @@ import Link from "next/link";
 import { setSession } from "@/lib/auth";
 import { getApiUrl, paths } from "@/lib/api";
 import { useTheme } from "@tutor/ui";
+import { MobileAuthHeader } from "../MobileAuthHeader";
 
 const LANGS = ["EN", "አማ"] as const;
 
@@ -20,7 +21,6 @@ export default function LoginPage() {
   const [otp, setOtp] = useState("");
   const [loading, setLoading] = useState(false);
   const [message, setMessage] = useState("");
-  const [lang, setLang] = useState<(typeof LANGS)[number]>("EN");
   const [countdown, setCountdown] = useState(0);
   const { mode, toggleTheme } = useTheme();
 
@@ -138,18 +138,9 @@ export default function LoginPage() {
 
   return (
     <div className="w-full">
-      {/* Mobile brand header */}
-      <div className="md:hidden mb-6 flex items-center gap-2.5">
-        <div className="flex h-9 w-9 items-center justify-center rounded-[10px] bg-gradient-to-br from-[var(--primary)] to-teal-300 text-lg">
-          🎓
-        </div>
-        <div>
-          <p className="text-sm font-extrabold text-slate-900 dark:text-white">TUTOR BE BETEA</p>
-          <p className="text-[10px] font-semibold text-slate-500 dark:text-slate-400">ቱቶር በ ቤቴ</p>
-        </div>
-      </div>
+      <MobileAuthHeader title="Sign in" subtitle="Welcome back — continue to your account" />
 
-      <div className="mb-6 flex items-center justify-between">
+      <div className="mb-6 hidden md:flex items-center justify-between">
         <div>
           <h1 className="text-2xl font-bold text-slate-900 dark:text-white">
             Sign in
@@ -167,22 +158,6 @@ export default function LoginPage() {
           >
             {mode === "dark" ? "☀️" : "🌙"}
           </button>
-          <div className="flex overflow-hidden rounded-md border border-[var(--border)] bg-[var(--muted)]">
-            {LANGS.map((l) => (
-              <button
-                key={l}
-                type="button"
-                onClick={() => setLang(l)}
-                className={`px-2 py-1 text-[11px] font-bold transition ${
-                  lang === l
-                    ? "bg-[var(--primary)] text-white"
-                    : "text-[var(--secondary)]"
-                }`}
-              >
-                {l}
-              </button>
-            ))}
-          </div>
         </div>
       </div>
 

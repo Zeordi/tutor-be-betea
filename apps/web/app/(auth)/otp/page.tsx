@@ -4,6 +4,7 @@ import { Suspense, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { setSession } from "@/lib/api";
 import { getApiUrl, paths } from "@/lib/api";
+import { MobileAuthHeader } from "../MobileAuthHeader";
 
 function OtpForm() {
   const router = useRouter();
@@ -81,38 +82,41 @@ function OtpForm() {
   };
 
   return (
-    <main className="min-h-screen flex items-center justify-center px-4 bg-[var(--background)]">
-      <div className="w-full max-w-sm rounded-2xl border border-[var(--border)] bg-[var(--card)] shadow-xl p-8">
-        <div className="w-14 h-14 bg-teal-100 dark:bg-teal-900/40 rounded-2xl flex items-center justify-center text-2xl mb-4 mx-auto">
-          💬
+    <main className="flex min-h-screen items-center justify-center px-4 bg-[var(--background)]">
+      <div className="w-full max-w-sm space-y-6">
+        <MobileAuthHeader title="Verify Your Phone" subtitle="Enter the 6-digit code sent to your phone" />
+        <div className="rounded-2xl border border-[var(--border)] bg-[var(--card)] shadow-xl p-6 md:p-8">
+          <div className="w-14 h-14 bg-teal-100 dark:bg-teal-900/40 rounded-2xl flex items-center justify-center text-2xl mb-4 mx-auto">
+            💬
+          </div>
+          <h1 className="text-xl font-extrabold text-center text-[var(--foreground)] mb-1 md:hidden">
+            Verify Your Phone
+          </h1>
+          <p className="text-xs text-[var(--muted-foreground)] text-center mb-6">
+            Code sent to <strong>{phoneNumber || "your phone"}</strong>
+          </p>
+          <form onSubmit={handleVerify} className="space-y-4">
+            <input
+              type="text"
+              inputMode="numeric"
+              maxLength={6}
+              value={otp}
+              onChange={(e) => setOtp(e.target.value)}
+              required
+              className="w-full rounded-xl border-2 border-teal-500 px-4 py-3 tracking-[0.4em] text-center text-lg font-extrabold outline-none bg-[var(--background)]"
+            />
+            {message && (
+              <p className="text-sm text-red-500 text-center">{message}</p>
+            )}
+            <button
+              type="submit"
+              disabled={loading}
+              className="w-full bg-teal-600 text-white font-bold py-3 rounded-xl"
+            >
+              {loading ? "Verifying..." : "Verify & Continue →"}
+            </button>
+          </form>
         </div>
-        <h1 className="text-xl font-extrabold text-center text-[var(--foreground)] mb-1">
-          Verify Your Phone
-        </h1>
-        <p className="text-xs text-[var(--muted-foreground)] text-center mb-6">
-          Code sent to <strong>{phoneNumber || "your phone"}</strong>
-        </p>
-        <form onSubmit={handleVerify} className="space-y-4">
-          <input
-            type="text"
-            inputMode="numeric"
-            maxLength={6}
-            value={otp}
-            onChange={(e) => setOtp(e.target.value)}
-            required
-            className="w-full rounded-xl border-2 border-teal-500 px-4 py-3 tracking-[0.4em] text-center text-lg font-extrabold outline-none bg-[var(--background)]"
-          />
-          {message && (
-            <p className="text-sm text-red-500 text-center">{message}</p>
-          )}
-          <button
-            type="submit"
-            disabled={loading}
-            className="w-full bg-teal-600 text-white font-bold py-3 rounded-xl"
-          >
-            {loading ? "Verifying..." : "Verify & Continue →"}
-          </button>
-        </form>
       </div>
     </main>
   );

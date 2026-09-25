@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import Link from "next/link";
 
 import { getApiUrl, paths } from "@/lib/api";
+import { MobileAuthHeader } from "../MobileAuthHeader";
 
 export default function ForgotPasswordPage() {
   const router = useRouter();
@@ -41,37 +42,37 @@ export default function ForgotPasswordPage() {
 
   return (
     <main className="flex min-h-screen items-center justify-center bg-[var(--background)] px-4">
-      <form
-        onSubmit={onSubmit}
-        className="w-full max-w-md space-y-4 rounded-2xl border border-[var(--border)] bg-[var(--card)] p-6"
-      >
-        <h1 className="text-xl font-extrabold">Forgot password</h1>
-        <p className="text-sm text-[var(--muted-foreground)]">
-          We will send an OTP to your phone via AfroMessage.
-        </p>
-        <input
-          value={phoneNumber}
-          onChange={(e) => setPhoneNumber(e.target.value)}
-          placeholder="0912345678"
-          className="w-full rounded-xl border border-[var(--border)] bg-[var(--background)] px-3 py-3 text-sm"
-        />
-        <button
-          type="submit"
-          disabled={loading}
-          className="w-full rounded-xl bg-[var(--primary)] py-3 text-sm font-bold text-white"
+      <div className="w-full max-w-md space-y-6">
+        <MobileAuthHeader title="Forgot password" subtitle="We will send an OTP to your phone via AfroMessage." />
+        <form
+          onSubmit={onSubmit}
+          className="w-full space-y-4 rounded-2xl border border-[var(--border)] bg-[var(--card)] p-6"
         >
-          {loading ? "Sending…" : "Send reset code"}
-        </button>
-        {message && (
-          <p className="text-sm text-[var(--warning)]">{message}</p>
-        )}
-        <Link
-          href="/login"
-          className="block text-center text-sm text-[var(--primary)]"
-        >
-          Back to login
-        </Link>
-      </form>
+          <h1 className="text-xl font-extrabold md:hidden">Reset password</h1>
+          <input
+            value={phoneNumber}
+            onChange={(e) => setPhoneNumber(e.target.value)}
+            className="w-full rounded-xl border border-[var(--border)] bg-[var(--background)] px-3 py-3 text-sm"
+            placeholder="Phone"
+          />
+          <button
+            type="submit"
+            disabled={loading}
+            className="w-full rounded-xl bg-[var(--primary)] py-3 text-sm font-bold text-white"
+          >
+            {loading ? "Sending…" : "Send reset code"}
+          </button>
+          {message && (
+            <p className="text-sm text-[var(--warning)]">{message}</p>
+          )}
+          <Link
+            href="/login"
+            className="block text-center text-sm text-[var(--primary)]"
+          >
+            Back to login
+          </Link>
+        </form>
+      </div>
     </main>
   );
 }
