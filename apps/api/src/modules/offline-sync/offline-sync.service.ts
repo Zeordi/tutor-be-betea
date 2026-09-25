@@ -108,18 +108,53 @@ export class OfflineSyncService {
       throw new OperationalException("weekNumber is required");
     }
 
-    return prisma.progressReport.create({
-      data: {
-        contractId,
-        weekNumber: Number(payload.weekNumber),
-        topicsCovered: payload.topicsCovered || "",
-        quizScore: payload.quizScore ?? null,
-        strengthsNotes: payload.strengthsNotes,
-        improvementAreas: payload.improvementAreas,
-        aiSummary: payload.aiSummary,
-        nextSessionPlan: payload.nextSessionPlan,
-      },
-    });
+    if (payload.offlineId) {
+      const existing = await prisma.progressReport.findFirst({
+        where: { offlineId: payload.offlineId },
+      });
+      if (existing) {
+        this.logger.log(
+          `Offline progress replay: offlineId=${payload.offlineId}, progressId=${existing.id}`,
+        );
+        return { ...existing, replayed: true };
+      }
+    }
+
+    try {
+      const created = await prisma.progressReport.create({
+        data: {
+          contractId,
+          weekNumber: Number(payload.weekNumber),
+          topicsCovered: payload.topicsCovered || "",
+          quizScore: payload.quizScore ?? null,
+          strengthsNotes: payload.strengthsNotes,
+          improvementAreas: payload.improvementAreas,
+          aiSummary: payload.aiSummary,
+          nextSessionPlan: payload.nextSessionPlan,
+          offlineId: payload.offlineId || null,
+        },
+      });
+
+      return { ...created, replayed: false };
+    } catch (err: any) {
+      if (err?.code === "P2002" && payload.offlineId) {
+        const existing = await prisma.progressReport.findFirst({
+          where: { offlineId: payload.offlineId },
+        });
+        if (existing) {
+          this.logger.log(
+            `Offline progress replay after P2002: offlineId=${payload.offlineId}`,
+          );
+          return { ...existing, replayed: true };
+        }
+        throw new OperationalException("Duplicate offline progress report", 409);
+      }
+      this.logger.error(
+        `Offline sync error: ${err?.message || err}`,
+        err?.stack,
+      );
+      throw new OperationalException("Failed to sync progress report");
+    }
   }
 
   async syncSupportTicket(
@@ -131,17 +166,50 @@ export class OfflineSyncService {
       throw new OperationalException("reasonType and explanation are required");
     }
 
-    const created = await prisma.supportTicket.create({
-      data: {
-        contractId: contractId || null,
-        submittedBy: userId,
-        reasonType: body.reasonType,
-        explanation: body.explanation,
-        evidenceAttachmentUrls: body.evidenceAttachmentUrls || [],
-        status: "OPEN",
-      },
-    });
+    if (body.offlineId) {
+      const existing = await prisma.supportTicket.findFirst({
+        where: { offlineId: body.offlineId },
+      });
+      if (existing) {
+        this.logger.log(
+          `Offline support replay: offlineId=${body.offlineId}, ticketId=${existing.id}`,
+        );
+        return { ...existing, replayed: true };
+      }
+    }
 
-    return { ...created, replayed: false };
+    try {
+      const created = await prisma.supportTicket.create({
+        data: {
+          contractId: contractId || null,
+          submittedBy: userId,
+          reasonType: body.reasonType,
+          explanation: body.explanation,
+          evidenceAttachmentUrls: body.evidenceAttachmentUrls || [],
+          status: "OPEN",
+          offlineId: body.offlineId || null,
+        },
+      });
+
+      return { ...created, replayed: false };
+    } catch (err: any) {
+      if (err?.code === "P2002" && body.offlineId) {
+        const existing = await prisma.supportTicket.findFirst({
+          where: { offlineId: body.offlineId },
+        });
+        if (existing) {
+          this.logger.log(
+            `Offline support replay after P2002: offlineId=${body.offlineId}`,
+          );
+          return { ...existing, replayed: true };
+        }
+        throw new OperationalException("Duplicate offline support ticket", 409);
+      }
+      this.logger.error(
+        `Offline sync error: ${err?.message || err}`,
+        err?.stack,
+      );
+      throw new OperationalException("Failed to sync support ticket");
+    }
   }
 }

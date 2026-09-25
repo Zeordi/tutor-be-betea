@@ -82,6 +82,22 @@ export function getConfiguredProviders(): string[] {
   return providers;
 }
 
+const DEFAULT_TIMEOUT_MS = 10_000;
+
+async function fetchWithTimeout(input: RequestInfo | URL, init: RequestInit & { timeoutMs?: number } = {}): Promise<Response> {
+  const { timeoutMs = DEFAULT_TIMEOUT_MS, ...rest } = init;
+  const controller = new AbortController();
+  const timeout = setTimeout(() => controller.abort(), timeoutMs);
+  try {
+    return await fetch(input, {
+      ...rest,
+      signal: controller.signal,
+    });
+  } finally {
+    clearTimeout(timeout);
+  }
+}
+
 /**
  * Request a payment checkout from a provider.
  * Returns a provider-specific checkout URL and a transaction reference.
@@ -111,7 +127,7 @@ export async function requestTelebirrCheckout(params: {
     timestamp: new Date().toISOString(),
   };
 
-  const response = await fetch(`${baseUrl}/v1/checkout/create`, {
+  const response = await fetchWithTimeout(`${baseUrl}/v1/checkout/create`, {
     method: "POST",
     headers: {
       "Content-Type": "application/json",
@@ -155,7 +171,7 @@ export async function requestCbeBirrCheckout(params: {
     timestamp: new Date().toISOString(),
   };
 
-  const response = await fetch(`${baseUrl}/v1/payments/initiate`, {
+  const response = await fetchWithTimeout(`${baseUrl}/v1/payments/initiate`, {
     method: "POST",
     headers: {
       "Content-Type": "application/json",
@@ -198,7 +214,7 @@ export async function requestMpesaCheckout(params: {
     timestamp: new Date().toISOString(),
   };
 
-  const response = await fetch(`${baseUrl}/v1/payments/initiate`, {
+  const response = await fetchWithTimeout(`${baseUrl}/v1/payments/initiate`, {
     method: "POST",
     headers: {
       "Content-Type": "application/json",
