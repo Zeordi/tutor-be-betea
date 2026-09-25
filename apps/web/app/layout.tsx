@@ -16,6 +16,11 @@ export default function RootLayout({
   return (
     <html lang="en">
       <body>
+        <script
+          dangerouslySetInnerHTML={{
+            __html: `(() => { try { const m = localStorage.getItem('tbb-theme'); if (m === 'dark' || (!m && window.matchMedia('(prefers-color-scheme: dark)').matches)) document.documentElement.classList.add('dark'); } catch (e) {} })();`,
+          }}
+        />
         <Providers>
           <div className="min-h-screen bg-[var(--background)] text-[var(--foreground)]">
             {children}

@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useState } from "react";
+import { useTheme } from "@tutor/ui";
 
 const NAV = [
   { href: "/", label: "Home" },
@@ -14,12 +15,13 @@ const NAV = [
   { href: "/blog", label: "Blog" },
 ];
 
-const LANGS = ["EN", "አማ", "ORO", "ትግ"];
+const LANGS = ["EN", "አማ"];
 
 export default function Header() {
   const pathname = usePathname();
   const [open, setOpen] = useState(false);
   const [lang, setLang] = useState("EN");
+  const { mode, toggleTheme } = useTheme();
 
   const isActive = (href: string) => {
     if (href === "/") return pathname === "/";
@@ -39,7 +41,7 @@ export default function Header() {
               Tutor Be Betea
             </div>
             <div className="text-[10px] font-semibold text-[var(--secondary)]">
-              ቱተር ቤ ቤቴ
+              ቱቶር በ ቤቴ
             </div>
           </div>
         </Link>
@@ -63,6 +65,15 @@ export default function Header() {
 
         {/* Desktop actions */}
         <div className="hidden items-center gap-2 md:flex">
+          <button
+            type="button"
+            onClick={toggleTheme}
+            className="flex h-8 w-8 items-center justify-center rounded-lg border border-[var(--border)] bg-[var(--muted)] text-sm"
+            aria-label="Toggle theme"
+          >
+            {mode === "dark" ? "☀️" : "🌙"}
+          </button>
+
           <div className="flex overflow-hidden rounded-lg border border-[var(--border)] bg-[var(--muted)]">
             {LANGS.map((l) => (
               <button

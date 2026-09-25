@@ -6,7 +6,7 @@ import Link from "next/link";
 import { setSession } from "@/lib/auth";
 import { getApiUrl, paths } from "@/lib/api";
 
-const LANGS = ["EN", "አማ", "ORO", "ትግ"] as const;
+const LANGS = ["EN", "አማ"] as const;
 
 export default function LoginPage() {
   const router = useRouter();

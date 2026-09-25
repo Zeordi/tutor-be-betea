@@ -17,7 +17,7 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
   const [mode, setModeState] = useState<ThemeMode>("light");
 
   useEffect(() => {
-    const stored = localStorage.getItem("theme-mode");
+    const stored = localStorage.getItem("tbb-theme");
     if (stored === "light" || stored === "dark") {
       setModeState(stored);
     }
@@ -30,7 +30,7 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
     } else {
       root.classList.remove("dark");
     }
-    localStorage.setItem("theme-mode", mode);
+    localStorage.setItem("tbb-theme", mode);
   }, [mode]);
 
   const setMode = useCallback((newMode: ThemeMode) => {

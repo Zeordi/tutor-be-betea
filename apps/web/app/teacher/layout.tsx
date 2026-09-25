@@ -4,6 +4,7 @@ import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import { apiFetch, paths, clearToken } from "@/lib/api";
+import { useTheme } from "@tutor/ui";
 
 const SECTIONS = [
   { href: "/teacher", label: "Overview", icon: "🏠", exact: true },
@@ -44,6 +45,7 @@ export default function TeacherLayout({
   const router = useRouter();
   const [ready, setReady] = useState(false);
   const [me, setMe] = useState<TeacherMe | null>(null);
+  const { mode, toggleTheme } = useTheme();
 
   useEffect(() => {
     const token = localStorage.getItem("token");
@@ -143,8 +145,18 @@ export default function TeacherLayout({
       <div className="flex min-w-0 flex-1 flex-col">
         <header className="flex h-14 items-center justify-between border-b border-[var(--border)] bg-[var(--card)] px-5 md:h-16 md:px-8">
           <p className="font-extrabold text-[var(--foreground)]">Teacher Portal</p>
-          <div className="flex items-center gap-2 rounded-lg border border-amber-200 bg-amber-50 px-3 py-1.5 text-xs font-bold text-amber-700 dark:border-amber-900 dark:bg-amber-950/40 dark:text-amber-300">
-            ⚡ {connects} Connects
+          <div className="flex items-center gap-3">
+            <button
+              type="button"
+              onClick={toggleTheme}
+              className="flex h-8 w-8 items-center justify-center rounded-lg border border-[var(--border)] bg-[var(--muted)] text-sm"
+              aria-label="Toggle theme"
+            >
+              {mode === "dark" ? "☀️" : "🌙"}
+            </button>
+            <div className="flex items-center gap-2 rounded-lg border border-amber-200 bg-amber-50 px-3 py-1.5 text-xs font-bold text-amber-700 dark:border-amber-900 dark:bg-amber-950/40 dark:text-amber-300">
+              ⚡ {connects} Connects
+            </div>
           </div>
         </header>
         <main className="flex-1 overflow-y-auto p-5 md:p-8">{children}</main>

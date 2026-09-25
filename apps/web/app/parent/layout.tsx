@@ -4,6 +4,7 @@ import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import { apiFetch, paths, logout, clearToken } from "@/lib/api";
+import { useTheme } from "@tutor/ui";
 
 type CurrentUser = {
   fullName: string;
@@ -48,6 +49,7 @@ export default function ParentLayout({
   const [ready, setReady] = useState(false);
   const [user, setUser] = useState<CurrentUser | null>(null);
   const [profileLoading, setProfileLoading] = useState(true);
+  const { mode, toggleTheme } = useTheme();
 
   useEffect(() => {
     const token = localStorage.getItem("token");
@@ -204,8 +206,16 @@ export default function ParentLayout({
             Parent Dashboard
           </p>
           <div className="flex items-center gap-3">
+            <button
+              type="button"
+              onClick={toggleTheme}
+              className="flex h-8 w-8 items-center justify-center rounded-lg border border-[var(--border)] bg-[var(--muted)] text-sm"
+              aria-label="Toggle theme"
+            >
+              {mode === "dark" ? "☀️" : "🌙"}
+            </button>
             <div className="hidden overflow-hidden rounded-lg border border-[var(--border)] bg-[var(--muted)] sm:flex">
-              {["EN", "አማ", "ORO", "ትግ"].map((l, i) => (
+              {["EN", "አማ"].map((l, i) => (
                 <span
                   key={l}
                   className={`px-2.5 py-1 text-[10px] font-bold ${
