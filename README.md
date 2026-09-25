@@ -1,11 +1,6 @@
-Here is a full **updated `README.md`** aligned with the current monorepo, hosting, and product scope.
-
-Copy into `README.md` at the repo root:
-
-```markdown
 # Tutor Be Betea (ቱተር በቤቴ)
 
-**Ethiopia’s premier home and online tutoring platform**  
+**Ethiopia's premier home and online tutoring platform**  
 Connecting verified tutors with families across Addis Ababa and beyond.
 
 | | |
@@ -211,7 +206,7 @@ Mobile (EAS / local):
 3. Role redirect: **PARENT** → parent dashboard, **TEACHER** → teacher dashboard.
 4. Protected routes require a valid token; marketing pages stay public.
 
-Root API URL may return `404 Cannot GET /` — that means Nest is up with no home route. Prefer `/health` if added, or call real routes such as auth endpoints.
+Root API URL may return `404 Cannot GET /` — that means Nest is up with no home route. Prefer `/health`, or call real routes such as auth endpoints.
 
 ---
 
@@ -236,7 +231,7 @@ Figma-driven screens were mapped into Expo Router and Next App Router routes; ba
 | `deploy-web.yml` / `deploy-admin.yml` | Optional GitHub → Vercel (prefer Vercel Git integration if already connected) |
 | `deploy-mobile.yml` | Manual EAS preview (`workflow_dispatch`, needs `EXPO_TOKEN`) |
 
-**Note:** If GitHub Actions Vercel deploy fails with “CLI version outdated”, either upgrade the workflow to `vercel@latest` or rely on **Vercel dashboard** deploys only. API deploys via **Render**, not Vercel.
+**Note:** If GitHub Actions Vercel deploy fails with "CLI version outdated", either upgrade the workflow to `vercel@latest` or rely on **Vercel dashboard** deploys only. API deploys via **Render**, not Vercel.
 
 ---
 
@@ -249,7 +244,7 @@ Figma-driven screens were mapped into Expo Router and Next App Router routes; ba
 - [ ] SMS OTP verified end-to-end with AfroMessage production credentials
 - [ ] Payment gateways live keys (Telebirr / CBE / Stripe as needed)
 - [ ] Mobile internal EAS build tested on device
-- [ ] Optional: health route on API root
+- [x] Health route public at GET /health
 - [ ] Visual parity / polish pass after core API stability
 
 ---
@@ -269,16 +264,3 @@ Private product repository.
 Product: **Tutor Be Betea** — home & online tutoring for Ethiopia.
 
 For local issues: check API logs on Render, Vercel function/build logs for web/admin, and `pnpm check-types` / `pnpm build` in CI.
-```
-
----
-
-### What changed vs the old README
-
-- Documented **Render API** + Vercel web/admin + Expo mobile  
-- Expanded **structure** (`packages/*`, workflows, `eas.json` location)  
-- Added **getting started**, scripts, env tables, auth overview  
-- Trust features and design-system notes  
-- CI/CD and production checklist reflecting current reality  
-
-Paste into the repo, commit, and push when ready.
