@@ -2,7 +2,7 @@
   "name": "tutor-be-betea",
   "version": "4.0.0",
   "private": true,
-  "description": "Tutor Be Betea – Ethiopia’s premier home and online tutoring platform",
+  "description": "Tutor Be Betea \u2013 Ethiopia\u2019s premier home and online tutoring platform",
   "packageManager": "pnpm@9.12.0",
   "engines": {
     "node": ">=20.0.0",
@@ -27,7 +27,8 @@
     "db:generate": "pnpm --filter @tutor/database generate",
     "db:push": "pnpm --filter @tutor/database push",
     "db:studio": "pnpm --filter @tutor/database studio",
-    "prepare": "husky || true"
+    "prepare": "husky || true",
+    "smoke": "bash scripts/smoke-test.sh"
   },
   "devDependencies": {
     "turbo": "^2.3.0",

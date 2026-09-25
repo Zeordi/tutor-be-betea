@@ -332,6 +332,7 @@ model ProgressReport {
   improvementAreas String?  @map("improvement_areas")
   aiSummary        String?  @map("ai_summary")
   nextSessionPlan  String?  @map("next_session_plan")
+  offlineId        String?  @map("offline_id")
   createdAt        DateTime @default(now()) @map("created_at")
 
   contract TutoringContract @relation(fields: [contractId], references: [id], onDelete: Cascade)
@@ -391,6 +392,7 @@ model SupportTicket {
   evidenceAttachmentUrls String[]     @map("evidence_attachment_urls")
   staffNotes             String?      @map("staff_notes")
   status                 TicketStatus @default(OPEN)
+  offlineId              String?  @map("offline_id")
   createdAt              DateTime     @default(now()) @map("created_at")
   updatedAt              DateTime     @updatedAt @map("updated_at")
 

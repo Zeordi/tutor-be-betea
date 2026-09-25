@@ -1,5 +1,7 @@
 import * as Sentry from "@sentry/node";
+import { StructuredLogger } from "./common/logging/logger.service";
 
+const sentryLogger = StructuredLogger.for("sentry");
 const dsn = process.env.SENTRY_DSN;
 
 if (dsn) {
@@ -52,7 +54,7 @@ if (dsn) {
     },
   });
 
-  console.log("🛡️  Sentry initialized successfully for API");
+  sentryLogger.info("Sentry initialized successfully for API");
 } else {
-  console.log("⚠️  Sentry DSN not provided. Error tracking is inactive in dev.");
+  sentryLogger.info("Sentry DSN not provided. Error tracking is inactive in dev.");
 }

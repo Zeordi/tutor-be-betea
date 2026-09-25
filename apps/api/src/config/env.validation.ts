@@ -1,3 +1,5 @@
+import { StructuredLogger } from "../common/logging/logger.service";
+
 const WEAK_SECRET_PATTERNS = [
   "dev-secret",
   "changeme",
@@ -17,13 +19,14 @@ function isWeakSecret(secret: string): boolean {
 
 export function validateCriticalSecrets(): void {
   const isProd = process.env.NODE_ENV === "production";
+  const logger = StructuredLogger.for("boot");
 
   const dbUrl = process.env.DATABASE_URL;
   if (!dbUrl || dbUrl.trim() === "") {
     if (isProd) {
       throw new Error("DATABASE_URL must be set in production");
     }
-    console.warn("[BOOT] DATABASE_URL is not set");
+    logger.warn("DATABASE_URL is not set");
   }
 
   const jwtSecret = process.env.JWT_SECRET;
@@ -33,7 +36,7 @@ export function validateCriticalSecrets(): void {
         "JWT_SECRET must be set and strong (>=16 chars, not a known weak value) in production",
       );
     }
-    console.warn("[BOOT] JWT_SECRET is missing or weak");
+    logger.warn("JWT_SECRET is missing or weak");
   }
 
   const vaultKey = process.env.VAULT_MASTER_KEY || process.env.ENCRYPTION_KEY;
@@ -43,13 +46,13 @@ export function validateCriticalSecrets(): void {
         "VAULT_MASTER_KEY or ENCRYPTION_KEY must be set in production",
       );
     }
-    console.warn("[BOOT] VAULT_MASTER_KEY/ENCRYPTION_KEY is not set");
+    logger.warn("VAULT_MASTER_KEY/ENCRYPTION_KEY is not set");
   } else if (vaultKey.length !== 64 && vaultKey.length < 32) {
     if (isProd) {
       throw new Error(
-        "VAULT_MASTER_KEY/ENCRYPTION_KEY must be 64-char hex or >=32 chars in production",
+        "VAULT_MASTER_KEY or ENCRYPTION_KEY must be 64-char hex or >=32 chars in production",
       );
     }
-    console.warn("[BOOT] VAULT_MASTER_KEY/ENCRYPTION_KEY is too short");
+    logger.warn("VAULT_MASTER_KEY/ENCRYPTION_KEY is too short");
   }
 }
