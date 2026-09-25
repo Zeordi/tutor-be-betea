@@ -1,6 +1,9 @@
-import { Controller, Get } from "@nestjs/common";
+import { Controller, Get, UseGuards } from "@nestjs/common";
 import { prisma } from "@tutor/database";
 import { getVaultKey } from "@tutor/encryption";
+import { JwtAuthGuard } from "../guards/jwt-auth.guard";
+import { RolesGuard } from "../guards/roles.guard";
+import { Roles } from "../decorators/roles.decorator";
 
 export type HealthStatus = "ok" | "degraded";
 
@@ -17,6 +20,8 @@ export interface HealthCheckResponse {
 @Controller("health")
 export class HealthController {
   @Get()
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles("SUPER_ADMIN", "FINANCE")
   async check(): Promise<HealthCheckResponse> {
     const timestamp = new Date().toISOString();
     const checks: HealthCheckResponse["checks"] = {

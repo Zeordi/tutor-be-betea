@@ -63,6 +63,11 @@ export class AllExceptionsFilter implements ExceptionFilter {
       status = exception.getStatus();
       message = exception.message;
       code = STATUS_CODE_MAP[status] || HttpStatus[status] || code;
+      this.logger.warn(`OperationalException: ${message}`, {
+        status,
+        code,
+        path: req.url,
+      });
     } else if (exception instanceof HttpException) {
       status = exception.getStatus();
       const body = exception.getResponse();
