@@ -2,12 +2,12 @@ import Link from "next/link";
 
 export default function LandingPage() {
   return (
-    <div>
+    <div className="w-full overflow-x-hidden">
       {/* Hero */}
       <section className="relative overflow-hidden">
         <div className="absolute inset-0 bg-gradient-to-br from-teal-50 to-blue-50 dark:from-teal-950/30 dark:to-blue-950/30" />
-        <div className="relative mx-auto max-w-6xl px-6 py-20 md:py-28">
-          <div className="grid items-center gap-12 md:grid-cols-2">
+        <div className="relative mx-auto max-w-6xl px-6 py-16 md:py-24">
+          <div className="grid items-center gap-10 md:grid-cols-2">
             <div>
               <div className="mb-6 inline-flex items-center gap-2 rounded-full border border-teal-200 bg-teal-50 px-4 py-1.5 dark:border-teal-800 dark:bg-teal-900/30">
                 <span className="h-1.5 w-1.5 animate-pulse rounded-full bg-teal-500" />
@@ -175,7 +175,7 @@ export default function LandingPage() {
         </div>
       </section>
 
-{/* Featured Tutors — V1 */}
+      {/* Featured Tutors — V1 */}
       <section className="py-20">
         <div className="mx-auto max-w-6xl px-6">
           <div className="mb-10 flex items-end justify-between gap-4">
@@ -395,9 +395,7 @@ export default function LandingPage() {
                     {t.name[0]}
                   </div>
                   <div>
-                    <p className="text-sm font-bold text-slate-800 dark:text-white">
-                      {t.name}
-                    </p>
+                    <p className="text-sm font-bold text-slate-800 dark:text-white">{t.name}</p>
                     <p className="text-xs text-slate-500">{t.role}</p>
                   </div>
                 </div>
