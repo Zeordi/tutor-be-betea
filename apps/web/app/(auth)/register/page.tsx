@@ -447,13 +447,16 @@ export default function RegisterPage() {
                   setOtp(e.target.value.replace(/\D/g, "").slice(0, 6))
                 }
                 placeholder="000000"
+                inputMode="numeric"
+                pattern="[0-9]*"
+                maxLength={6}
                 className="w-full rounded-2xl border border-slate-200 bg-slate-50 px-4 py-4 text-center tracking-[0.3em] text-2xl font-extrabold dark:border-slate-700 dark:bg-slate-800 dark:text-white"
               />
 
               <div className="flex items-center justify-between text-xs text-slate-500 dark:text-slate-400">
                 <span>
                   Expires in{" "}
-                  <span className="font-semibold">{countdown > 0 ? `${countdown}s` : "soon"}</span>
+                  <span className="font-semibold">{countdown > 0 ? `${countdown}s` : "expired"}</span>
                 </span>
                 <button
                   type="button"

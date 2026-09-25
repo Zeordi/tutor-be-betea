@@ -1,6 +1,6 @@
 "use client";
 
-import { Suspense, useMemo, useState } from "react";
+import { Suspense, useMemo, useState, useEffect } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
 import { MobileAuthHeader } from "../MobileAuthHeader";
@@ -78,6 +78,26 @@ function ResetForm() {
   const [loading, setLoading] = useState(false);
   const [message, setMessage] = useState("");
   const [resetStep, setResetStep] = useState<ResetStep>("otp");
+  const [countdown, setCountdown] = useState(0);
+
+  useEffect(() => {
+    if (countdown <= 0) return;
+    const t = setTimeout(() => setCountdown((c) => c - 1), 1000);
+    return () => clearTimeout(t);
+  }, [countdown]);
+
+  const formatTime = (s: number) => {
+    const m = Math.floor(s / 60);
+    const sec = s % 60;
+    return `${m}:${sec.toString().padStart(2, "0")}`;
+  };
+
+  // Start countdown when phone is available
+  useEffect(() => {
+    if (initialPhone && countdown === 0) {
+      setCountdown(60);
+    }
+  }, [initialPhone, countdown]);
 
   const strength =
     newPassword.length >= 10
@@ -180,6 +200,7 @@ function ResetForm() {
         throw new Error((data as any).message || "Failed to resend");
       }
       setMessage("New code sent — use only the latest SMS.");
+      setCountdown(60);
     } catch (err: any) {
       setMessage(err.message || "Resend failed");
     } finally {
@@ -221,32 +242,50 @@ function ResetForm() {
             <label className="mb-1.5 block text-xs md:text-sm font-semibold text-slate-700 dark:text-slate-200">
               6-Digit Code
             </label>
-            <div className="flex justify-between gap-1.5 md:gap-2">
+            <div className="flex items-center justify-center gap-1.5 sm:gap-2">
               {otpDigits.map((d, i) => (
                 <input
                   key={i}
+                  data-otp-index={i}
                   value={d}
                   onChange={(e) => setDigit(i, e.target.value)}
+                  onKeyDown={(e) => {
+                    if (e.key === "Backspace" && !d && i > 0) {
+                      const prev = document.querySelector<HTMLInputElement>(`input[data-otp-index="${i - 1}"]`);
+                      prev?.focus();
+                    }
+                  }}
+                  onInput={(e) => {
+                    const input = e.target as HTMLInputElement;
+                    if (input.value && i < otpDigits.length - 1) {
+                      const next = document.querySelector<HTMLInputElement>(`input[data-otp-index="${i + 1}"]`);
+                      next?.focus();
+                    }
+                  }}
                   maxLength={1}
-                  className="h-12 md:h-14 flex-1 rounded-xl md:rounded-2xl border-2 border-slate-200 bg-slate-50 text-center text-lg md:text-xl font-extrabold outline-none transition focus:border-[#008779] dark:border-slate-700 dark:bg-slate-800 dark:text-white"
+                  inputMode="numeric"
+                  pattern="[0-9]*"
+                  className="h-11 w-10 shrink-0 rounded-xl sm:h-12 sm:w-11 border-2 border-slate-200 bg-slate-50 text-center text-base sm:text-lg font-extrabold outline-none transition focus:border-[#008779] dark:border-slate-700 dark:bg-slate-800 dark:text-white"
                 />
               ))}
             </div>
-          </div>
 
-          <div className="flex items-center justify-between text-xs text-slate-500 dark:text-slate-400">
-            <span>
-              Expires in{" "}
-              <span className="font-semibold">soon</span>
-            </span>
-            <button
-              type="button"
-              disabled={loading}
-              onClick={resendOtp}
-              className="font-semibold text-[#008779] hover:underline"
-            >
-              Resend SMS
-            </button>
+            <div className="flex items-center justify-between text-xs text-slate-500 dark:text-slate-400">
+              <span>
+                Expires in{" "}
+                <span className="font-semibold">
+                  {countdown > 0 ? formatTime(countdown) : "expired"}
+                </span>
+              </span>
+              <button
+                type="button"
+                disabled={countdown > 0 || loading}
+                onClick={resendOtp}
+                className="font-semibold text-[#008779] hover:underline disabled:opacity-60"
+              >
+                {countdown > 0 ? "Resend" : "Resend SMS"}
+              </button>
+            </div>
           </div>
 
           {message && (
