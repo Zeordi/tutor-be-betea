@@ -137,6 +137,17 @@ export default function RegisterPage() {
 
   return (
     <div className="w-full">
+      {/* Mobile brand header */}
+      <div className="md:hidden mb-6 flex items-center gap-2.5">
+        <div className="flex h-9 w-9 items-center justify-center rounded-[10px] bg-gradient-to-br from-[var(--primary)] to-teal-300 text-lg">
+          🎓
+        </div>
+        <div>
+          <p className="text-sm font-extrabold text-slate-900 dark:text-white">TUTOR BE BETEA</p>
+          <p className="text-[10px] font-semibold text-slate-500 dark:text-slate-400">ቱቶር በ ቤቴ</p>
+        </div>
+      </div>
+
       <div className="mb-6 flex items-center justify-between">
         <div>
           <h1 className="text-2xl font-bold text-slate-900 dark:text-white">
@@ -188,58 +199,64 @@ export default function RegisterPage() {
 
       {step === 1 && (
         <div className="space-y-3">
-          <button
-            type="button"
-            onClick={() => setRole("PARENT")}
-            className={`w-full rounded-2xl border px-4 py-4 text-left transition ${
-              role === "PARENT"
-                ? "border-[#008779] bg-teal-50 dark:bg-teal-900/20"
-                : "border-slate-200 dark:border-slate-700"
-            }`}
-          >
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm font-bold text-slate-800 dark:text-white">
-                  Parent / Guardian
-                </p>
-                <p className="text-xs text-slate-500 dark:text-slate-400">
-                  Find tutors for my child
-                </p>
+          <p className="text-base font-bold text-slate-900 dark:text-white">Welcome to Tutor Be Betea</p>
+          <p className="text-sm text-slate-500 dark:text-slate-400">How would you like to join?</p>
+          <div className="grid grid-cols-2 gap-3">
+            <button
+              type="button"
+              onClick={() => setRole("PARENT")}
+              className={`rounded-2xl border px-3 py-4 text-left transition ${
+                role === "PARENT"
+                  ? "border-[#008779] bg-teal-50 dark:bg-teal-900/20"
+                  : "border-slate-200 dark:border-slate-700"
+              }`}
+            >
+              <div className="text-2xl mb-2">👨‍👩‍👧</div>
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-sm font-bold text-slate-800 dark:text-white">
+                    Parent / Guardian
+                  </p>
+                  <p className="text-[11px] text-slate-500 dark:text-slate-400">
+                    Find tutors for my child
+                  </p>
+                </div>
+                {role === "PARENT" && (
+                  <span className="text-[#008779] text-lg">✓</span>
+                )}
               </div>
-              {role === "PARENT" && (
-                <span className="text-[#008779] text-lg">✓</span>
-              )}
-            </div>
-          </button>
-          <button
-            type="button"
-            onClick={() => setRole("TEACHER")}
-            className={`w-full rounded-2xl border px-4 py-4 text-left transition ${
-              role === "TEACHER"
-                ? "border-[#008779] bg-teal-50 dark:bg-teal-900/20"
-                : "border-slate-200 dark:border-slate-700"
-            }`}
-          >
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm font-bold text-slate-800 dark:text-white">
-                  Tutor / Teacher
-                </p>
-                <p className="text-xs text-slate-500 dark:text-slate-400">
-                  Offer tutoring services
-                </p>
+            </button>
+            <button
+              type="button"
+              onClick={() => setRole("TEACHER")}
+              className={`rounded-2xl border px-3 py-4 text-left transition ${
+                role === "TEACHER"
+                  ? "border-[#008779] bg-teal-50 dark:bg-teal-900/20"
+                  : "border-slate-200 dark:border-slate-700"
+              }`}
+            >
+              <div className="text-2xl mb-2">🧑‍🏫</div>
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-sm font-bold text-slate-800 dark:text-white">
+                    Tutor / Teacher
+                  </p>
+                  <p className="text-[11px] text-slate-500 dark:text-slate-400">
+                    Offer tutoring services
+                  </p>
+                </div>
+                {role === "TEACHER" && (
+                  <span className="text-[#008779] text-lg">✓</span>
+                )}
               </div>
-              {role === "TEACHER" && (
-                <span className="text-[#008779] text-lg">✓</span>
-              )}
-            </div>
-          </button>
+            </button>
+          </div>
           <button
             type="button"
             onClick={() => setStep(2)}
             className="w-full rounded-2xl bg-[#008779] py-3 text-sm font-bold text-white hover:bg-[#006b5f]"
           >
-            Continue
+            Continue as {role === "PARENT" ? "Parent" : "Tutor"} →
           </button>
         </div>
       )}

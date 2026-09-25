@@ -16,6 +16,7 @@ export default function LoginPage() {
   const [phoneNumber, setPhoneNumber] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [showPassword, setShowPassword] = useState(false);
   const [otp, setOtp] = useState("");
   const [loading, setLoading] = useState(false);
   const [message, setMessage] = useState("");
@@ -137,6 +138,17 @@ export default function LoginPage() {
 
   return (
     <div className="w-full">
+      {/* Mobile brand header */}
+      <div className="md:hidden mb-6 flex items-center gap-2.5">
+        <div className="flex h-9 w-9 items-center justify-center rounded-[10px] bg-gradient-to-br from-[var(--primary)] to-teal-300 text-lg">
+          🎓
+        </div>
+        <div>
+          <p className="text-sm font-extrabold text-slate-900 dark:text-white">TUTOR BE BETEA</p>
+          <p className="text-[10px] font-semibold text-slate-500 dark:text-slate-400">ቱቶር በ ቤቴ</p>
+        </div>
+      </div>
+
       <div className="mb-6 flex items-center justify-between">
         <div>
           <h1 className="text-2xl font-bold text-slate-900 dark:text-white">
@@ -222,13 +234,22 @@ export default function LoginPage() {
                 className="w-full rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm dark:border-slate-700 dark:bg-slate-800 dark:text-white"
               />
             )}
-            <input
-              type="password"
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              placeholder="Password"
-              className="w-full rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm dark:border-slate-700 dark:bg-slate-800 dark:text-white"
-            />
+            <div className="relative">
+              <input
+                type={showPassword ? "text" : "password"}
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                placeholder="Password"
+                className="w-full rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm dark:border-slate-700 dark:bg-slate-800 dark:text-white"
+              />
+              <button
+                type="button"
+                onClick={() => setShowPassword((v) => !v)}
+                className="absolute right-3 top-1/2 -translate-y-1/2 text-xs text-slate-400"
+              >
+                {showPassword ? "Hide" : "Show"}
+              </button>
+            </div>
             <div className="flex items-center justify-between text-xs">
               <label className="flex items-center gap-2 text-slate-500 dark:text-slate-400">
                 <input

@@ -68,7 +68,7 @@ export default function AuthLayout({
         </div>
 
         {/* Form panel */}
-        <div className="flex w-full items-center justify-center bg-[var(--background)] dark:bg-[#0A1628] px-4 py-10 md:px-10">
+        <div className="flex w-full items-center justify-center bg-[var(--background)] dark:bg-[#0A1628] px-4 py-8 md:px-10 md:py-10">
           <div className="w-full max-w-md">{children}</div>
         </div>
       </div>
