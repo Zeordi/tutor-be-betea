@@ -34,8 +34,8 @@ const COLS = [
 export default function Footer() {
   return (
     <footer className="bg-[#0A1628] text-white">
-      <div className="mx-auto max-w-6xl px-4 pb-8 pt-14 md:px-6">
-        <div className="mb-12 grid gap-10 md:grid-cols-2 lg:grid-cols-4">
+      <div className="mx-auto max-w-6xl px-4 pb-8 pt-10 md:px-6 md:pt-14">
+        <div className="mb-12 grid gap-8 md:gap-10 md:grid-cols-2 lg:grid-cols-4">
           {/* Brand */}
           <div className="lg:col-span-1">
             <div className="mb-1 flex items-center gap-2.5">
