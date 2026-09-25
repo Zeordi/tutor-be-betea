@@ -7,12 +7,10 @@ import { useTheme } from "@tutor/ui";
 
 const NAV = [
   { href: "/", label: "Home" },
-  { href: "/tutors", label: "Find Tutors" },
-  { href: "/how-it-works", label: "How It Works" },
   { href: "/for-parents", label: "For Parents" },
-  { href: "/for-tutors", label: "Become a Tutor" },
+  { href: "/for-tutors", label: "For Tutors" },
+  { href: "/how-it-works", label: "How It Works" },
   { href: "/pricing", label: "Pricing" },
-  { href: "/blog", label: "Blog" },
 ];
 
 const LANGS = ["EN", "አማ"];
@@ -29,16 +27,16 @@ export default function Header() {
   };
 
   return (
-    <header className="sticky top-0 z-50 border-b border-[var(--border)] bg-[var(--background)]/95 backdrop-blur supports-[backdrop-filter]:bg-[var(--background)]/80">
+    <header className="sticky top-0 z-50 border-b border-[var(--border)] bg-white/95 backdrop-blur supports-[backdrop-filter]:bg-white/80 dark:border-slate-700 dark:bg-[#0A1628]/95 dark:supports-[backdrop-filter]:bg-[#0A1628]/80">
       <div className="mx-auto flex h-16 max-w-6xl items-center gap-3 px-4 md:gap-4 md:px-6">
         {/* Logo */}
         <Link href="/" className="flex shrink-0 items-center gap-2.5">
           <div className="flex h-9 w-9 items-center justify-center rounded-[10px] bg-gradient-to-br from-[var(--primary)] to-teal-300 text-lg">
-            📚
+            🎓
           </div>
           <div className="leading-tight">
             <div className="text-base font-extrabold text-[var(--foreground)]">
-              Tutor Be Betea
+              TUTOR BE BETEA
             </div>
             <div className="text-[10px] font-semibold text-[var(--secondary)]">
               ቱቶር በ ቤቴ
@@ -95,13 +93,13 @@ export default function Header() {
             href="/login"
             className="rounded-[10px] border border-[var(--primary)] px-3 py-1.5 text-[13px] font-bold text-[var(--primary)]"
           >
-            Log In
+            Sign In
           </Link>
           <Link
             href="/register"
             className="rounded-[10px] bg-[var(--primary)] px-3 py-1.5 text-[13px] font-bold text-white"
           >
-            Get Started
+            Get Started Free
           </Link>
         </div>
 
@@ -169,14 +167,14 @@ export default function Header() {
                   onClick={() => setOpen(false)}
                   className="flex-1 rounded-[10px] border border-[var(--primary)] py-2.5 text-center text-sm font-bold text-[var(--primary)]"
                 >
-                  Log In
+                  Sign In
                 </Link>
                 <Link
                   href="/register"
                   onClick={() => setOpen(false)}
                   className="flex-1 rounded-[10px] bg-[var(--primary)] py-2.5 text-center text-sm font-bold text-white"
                 >
-                  Get Started
+                  Get Started Free
                 </Link>
               </div>
             </div>
