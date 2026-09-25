@@ -1,6 +1,11 @@
+> [!WARNING]
+> This document is deprecated. The canonical, up-to-date Privacy Policy is at `docs/legal/privacy-policy.md` and served at `/privacy` on the marketing site. This file is kept for historical reference only.
+
 # Privacy Policy – Tutor Be Betea
 
 **Last updated:** August 2026
+
+_This version is superseded by `docs/legal/privacy-policy.md`._
 
 Tutor Be Betea ("we", "our", or "us") operates the Tutor Be Betea mobile application and website.
 

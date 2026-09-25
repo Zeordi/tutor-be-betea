@@ -1,5 +1,15 @@
 # Go-Live Checklist
 
+## Pre-Deployment (run from monorepo root)
+
+- [ ] `pnpm check-types` — runs `turbo check-types` across web, api, admin, and workspace packages
+- [ ] `pnpm build` — runs `turbo build` (web, admin, api, and dependent packages)
+- [ ] `pnpm lint` — runs `turbo lint`
+- [ ] `pnpm test` — runs `turbo test` (if test suite exists)
+- [ ] `pnpm db:push` — applies any pending Prisma schema changes (`pnpm --filter @tutor/database push`)
+- [ ] `pnpm db:generate` — regenerates Prisma client if schema changed (`pnpm --filter @tutor/database generate`)
+- [ ] `pnpm smoke` — runs `scripts/smoke-test.sh` (health + auth + rate-limit probe)
+
 ## API (Render / VPS)
 
 - [ ] `DATABASE_URL` set
@@ -29,13 +39,14 @@
 
 ## Database
 
-- [ ] Run `pnpm --filter @tutor/database db:push` for any pending schema changes
+- [ ] Run `pnpm db:push` for any pending schema changes
 - [ ] Verify `schema.prisma` is at expected version
-- [ ] Run `pnpm --filter @tutor/database build` to regenerate Prisma client if needed
+- [ ] Run `pnpm db:generate` to regenerate Prisma client if needed
 - [ ] Automated backups configured per Phase I runbook `01-backup-restore.md`
 
 ## Post-Deployment Verification
 
+- [ ] Smoke tests pass: `pnpm smoke`
 - [ ] OTP send/verify flow works end-to-end
 - [ ] Payment initiation succeeds for a test contract
 - [ ] Vault document upload succeeds and admin can decrypt

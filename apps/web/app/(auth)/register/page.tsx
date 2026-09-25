@@ -34,6 +34,7 @@ export default function RegisterPage() {
   const [message, setMessage] = useState("");
   const [countdown, setCountdown] = useState(0);
   const [lang, setLang] = useState<(typeof LANGS)[number]>("EN");
+  const [agreedToTerms, setAgreedToTerms] = useState(false);
   const strength = passwordStrength(password);
 
   useEffect(() => {
@@ -61,6 +62,9 @@ export default function RegisterPage() {
     try {
       if (!fullName.trim() || !phoneNumber.trim() || password.length < 6) {
         throw new Error("Name, phone, and password (min 6) are required.");
+      }
+      if (!agreedToTerms) {
+        throw new Error("Please accept the Terms and Privacy Policy.");
       }
       await sendOtp();
       setStep(3);
@@ -277,9 +281,23 @@ export default function RegisterPage() {
                   {password ? strength.label : ""}
                 </span>
               </div>
-              <p className="text-[11px] text-slate-500">
-                By continuing you agree to Terms, Privacy, and Escrow Agreement.
-              </p>
+              <label className="flex items-center gap-2 text-[11px] text-slate-500">
+                <input
+                  type="checkbox"
+                  checked={agreedToTerms}
+                  onChange={(e) => setAgreedToTerms(e.target.checked)}
+                  className="h-4 w-4 rounded border-slate-300"
+                />
+                I agree to the{" "}
+                <Link href="/terms" className="font-semibold text-[#008779]">
+                  Terms of Service
+                </Link>{" "}
+                and{" "}
+                <Link href="/privacy" className="font-semibold text-[#008779]">
+                  Privacy Policy
+                </Link>
+                .
+              </label>
               <div className="flex gap-2 pt-1">
                 <button
                   type="button"

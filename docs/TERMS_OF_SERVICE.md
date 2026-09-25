@@ -1,8 +1,11 @@
+> [!WARNING]
+> This document is deprecated. The canonical, up-to-date Terms of Service is at `docs/legal/terms-of-service.md` and served at `/terms` on the marketing site. This file is kept for historical reference only.
+
 # Terms of Service – Tutor Be Betea
 
 **Last updated:** August 2026
 
-## 1. Acceptance of Terms
+_This version is superseded by `docs/legal/terms-of-service.md`._
 
 By creating an account or using Tutor Be Betea, you agree to these Terms of Service.
 
