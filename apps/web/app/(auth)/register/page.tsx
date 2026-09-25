@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { setSession } from "@/lib/auth";
 import { getApiUrl, paths } from "@/lib/api";
+import { useTheme } from "@tutor/ui";
 
 const LANGS = ["EN", "አማ"] as const;
 type Role = "PARENT" | "TEACHER";
@@ -36,6 +37,7 @@ export default function RegisterPage() {
   const [lang, setLang] = useState<(typeof LANGS)[number]>("EN");
   const [agreedToTerms, setAgreedToTerms] = useState(false);
   const strength = passwordStrength(password);
+  const { mode, toggleTheme } = useTheme();
 
   useEffect(() => {
     if (countdown <= 0) return;
@@ -100,7 +102,7 @@ export default function RegisterPage() {
         );
       }
 
-        const registerRes = await fetch(getApiUrl() + paths.authRegister, {
+      const registerRes = await fetch(getApiUrl() + paths.authRegister, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
@@ -134,251 +136,271 @@ export default function RegisterPage() {
   };
 
   return (
-    <main className="min-h-screen flex items-center justify-center bg-[#F0FDFA] dark:bg-[var(--background)] px-4 py-10">
-      <div className="w-full max-w-md">
-        <div className="mb-4 flex justify-end gap-2">
-          {LANGS.map((l) => (
-            <button
-              key={l}
-              type="button"
-              onClick={() => setLang(l)}
-              className={`rounded-full px-2.5 py-1 text-xs font-semibold ${
-                lang === l
-                  ? "bg-[#008779] text-white"
-                  : "bg-white text-slate-500 border border-slate-200"
-              }`}
-            >
-              {l}
-            </button>
-          ))}
-        </div>
-
-        <div className="rounded-3xl border border-slate-100 bg-white dark:bg-[var(--card)] p-6 shadow-lg">
+    <div className="w-full">
+      <div className="mb-6 flex items-center justify-between">
+        <div>
           <h1 className="text-2xl font-bold text-slate-900 dark:text-white">
             Create account
           </h1>
-          <p className="text-sm text-slate-500 mb-4">
+          <p className="text-sm text-slate-500 dark:text-slate-400">
             Step {step} of 3 —{" "}
             {step === 1 ? "Role" : step === 2 ? "Details" : "Verify phone"}
           </p>
-
-          <div className="mb-6 flex gap-1">
-            {[1, 2, 3].map((s) => (
-              <div
-                key={s}
-                className={`h-1.5 flex-1 rounded-full ${
-                  s <= step ? "bg-[#008779]" : "bg-slate-200"
+        </div>
+        <div className="flex items-center gap-2">
+          <button
+            type="button"
+            onClick={toggleTheme}
+            className="flex h-8 w-8 items-center justify-center rounded-md border border-[var(--border)] bg-[var(--muted)] text-sm"
+            aria-label="Toggle theme"
+          >
+            {mode === "dark" ? "☀️" : "🌙"}
+          </button>
+          <div className="flex overflow-hidden rounded-md border border-[var(--border)] bg-[var(--muted)]">
+            {LANGS.map((l) => (
+              <button
+                key={l}
+                type="button"
+                onClick={() => setLang(l)}
+                className={`px-2 py-1 text-[11px] font-bold transition ${
+                  lang === l
+                    ? "bg-[var(--primary)] text-white"
+                    : "text-[var(--secondary)]"
                 }`}
-              />
+              >
+                {l}
+              </button>
             ))}
           </div>
-
-          {/* Phone only — no Google idToken */}
-          <div className="mb-4 flex rounded-full bg-slate-100 p-1">
-            <div className="flex-1 rounded-full bg-[#008779] py-2 text-center text-sm font-semibold text-white">
-              Phone
-            </div>
-            <div
-              className="flex-1 rounded-full py-2 text-center text-sm font-medium text-slate-400"
-              title="Email signup uses optional email on step 2; real Google OAuth later"
-            >
-              Email optional
-            </div>
-          </div>
-
-          {step === 1 && (
-            <div className="space-y-3">
-              <button
-                type="button"
-                onClick={() => setRole("PARENT")}
-                className={`w-full rounded-2xl border px-4 py-3 text-left text-sm font-semibold ${
-                  role === "PARENT"
-                    ? "border-[#008779] bg-[#F0FDFA]"
-                    : "border-slate-200"
-                }`}
-              >
-                Parent — find tutors for my child
-              </button>
-              <button
-                type="button"
-                onClick={() => setRole("TEACHER")}
-                className={`w-full rounded-2xl border px-4 py-3 text-left text-sm font-semibold ${
-                  role === "TEACHER"
-                    ? "border-[#008779] bg-[#F0FDFA]"
-                    : "border-slate-200"
-                }`}
-              >
-                Teacher — offer tutoring
-              </button>
-              <button
-                type="button"
-                onClick={() => setStep(2)}
-                className="w-full rounded-2xl bg-[#008779] py-3 text-sm font-bold text-white"
-              >
-                Continue
-              </button>
-            </div>
-          )}
-
-          {step === 2 && (
-            <form onSubmit={handleDetailsContinue} className="space-y-3">
-              <label className="block text-xs font-medium text-slate-600">
-                Full name *
-              </label>
-              <input
-                value={fullName}
-                onChange={(e) => setFullName(e.target.value)}
-                className="w-full rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm"
-              />
-              <label className="block text-xs font-medium text-slate-600">
-                Phone *
-              </label>
-              <div className="flex rounded-2xl border border-slate-200 bg-slate-50 overflow-hidden">
-                <span className="px-3 py-3 text-sm text-slate-500 border-r border-slate-200">
-                  +251
-                </span>
-                <input
-                  value={phoneNumber.replace(/^\+?251/, "")}
-                  onChange={(e) => {
-                    const d = e.target.value.replace(/\D/g, "");
-                    setPhoneNumber(d ? `+251${d.replace(/^0/, "")}` : "");
-                  }}
-                  placeholder="7xxxxxxxx"
-                  className="flex-1 bg-transparent px-3 py-3 text-sm outline-none"
-                />
-              </div>
-              <label className="block text-xs font-medium text-slate-600">
-                Email (optional)
-              </label>
-              <input
-                type="email"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                placeholder="you@gmail.com"
-                className="w-full rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm"
-              />
-              <label className="block text-xs font-medium text-slate-600">
-                Password *
-              </label>
-              <input
-                type="password"
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                placeholder="Password"
-                className="w-full rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm"
-              />
-              <div className="flex items-center gap-2">
-                <div className="flex flex-1 gap-1">
-                  {[0, 1, 2, 3, 4].map((i) => (
-                    <div
-                      key={i}
-                      className={`h-1 flex-1 rounded-full ${
-                        i < strength.score ? strength.color : "bg-slate-200"
-                      }`}
-                    />
-                  ))}
-                </div>
-                <span className="text-xs text-slate-500">
-                  {password ? strength.label : ""}
-                </span>
-              </div>
-              <label className="flex items-center gap-2 text-[11px] text-slate-500">
-                <input
-                  type="checkbox"
-                  checked={agreedToTerms}
-                  onChange={(e) => setAgreedToTerms(e.target.checked)}
-                  className="h-4 w-4 rounded border-slate-300"
-                />
-                I agree to the{" "}
-                <Link href="/terms" className="font-semibold text-[#008779]">
-                  Terms of Service
-                </Link>{" "}
-                and{" "}
-                <Link href="/privacy" className="font-semibold text-[#008779]">
-                  Privacy Policy
-                </Link>
-                .
-              </label>
-              <div className="flex gap-2 pt-1">
-                <button
-                  type="button"
-                  onClick={() => setStep(1)}
-                  className="rounded-2xl border border-slate-200 px-4 py-3 text-sm"
-                >
-                  Back
-                </button>
-                <button
-                  type="submit"
-                  disabled={loading}
-                  className="flex-1 rounded-2xl bg-[#008779] py-3 text-sm font-bold text-white disabled:opacity-60"
-                >
-                  {loading ? "Sending…" : "Next — Verify Phone →"}
-                </button>
-              </div>
-            </form>
-          )}
-
-          {step === 3 && (
-            <form onSubmit={handleVerifyAndRegister} className="space-y-3">
-              <p className="text-sm text-slate-500">
-                Enter OTP sent to {phoneNumber}
-              </p>
-              <input
-                value={otp}
-                onChange={(e) =>
-                  setOtp(e.target.value.replace(/\D/g, "").slice(0, 6))
-                }
-                placeholder="6-digit code"
-                className="w-full rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-center tracking-[0.3em] text-center font-semibold"
-              />
-              <button
-                type="submit"
-                disabled={loading}
-                className="w-full rounded-2xl bg-[#008779] py-3 text-sm font-bold text-white"
-              >
-                {loading ? "Creating…" : "Verify & Create account"}
-              </button>
-              <button
-                type="button"
-                disabled={countdown > 0 || loading}
-                onClick={async () => {
-                  try {
-                    setLoading(true);
-                    await sendOtp();
-                    setCountdown(60);
-                    setMessage("New code sent — use only the latest SMS.");
-                  } catch (err: any) {
-                    setMessage(err.message);
-                  } finally {
-                    setLoading(false);
-                  }
-                }}
-                className="w-full text-sm font-semibold text-[#008779]"
-              >
-                {countdown > 0 ? `Resend in ${countdown}s` : "Resend code"}
-              </button>
-              <button
-                type="button"
-                onClick={() => setStep(2)}
-                className="w-full text-xs text-slate-500"
-              >
-                ← Back
-              </button>
-            </form>
-          )}
-
-          {message && (
-            <p className="mt-4 text-center text-sm text-amber-600">{message}</p>
-          )}
-
-          <p className="mt-6 text-center text-xs text-slate-500">
-            Already a member?{" "}
-            <Link href="/login" className="font-semibold text-[#008779]">
-              Sign in
-            </Link>
-          </p>
         </div>
       </div>
-    </main>
+
+      <div className="mb-6 flex gap-1">
+        {[1, 2, 3].map((s) => (
+          <div
+            key={s}
+            className={`h-1.5 flex-1 rounded-full ${
+              s <= step ? "bg-[#008779]" : "bg-slate-200 dark:bg-slate-700"
+            }`}
+          />
+        ))}
+      </div>
+
+      {step === 1 && (
+        <div className="space-y-3">
+          <button
+            type="button"
+            onClick={() => setRole("PARENT")}
+            className={`w-full rounded-2xl border px-4 py-4 text-left transition ${
+              role === "PARENT"
+                ? "border-[#008779] bg-teal-50 dark:bg-teal-900/20"
+                : "border-slate-200 dark:border-slate-700"
+            }`}
+          >
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm font-bold text-slate-800 dark:text-white">
+                  Parent / Guardian
+                </p>
+                <p className="text-xs text-slate-500 dark:text-slate-400">
+                  Find tutors for my child
+                </p>
+              </div>
+              {role === "PARENT" && (
+                <span className="text-[#008779] text-lg">✓</span>
+              )}
+            </div>
+          </button>
+          <button
+            type="button"
+            onClick={() => setRole("TEACHER")}
+            className={`w-full rounded-2xl border px-4 py-4 text-left transition ${
+              role === "TEACHER"
+                ? "border-[#008779] bg-teal-50 dark:bg-teal-900/20"
+                : "border-slate-200 dark:border-slate-700"
+            }`}
+          >
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm font-bold text-slate-800 dark:text-white">
+                  Tutor / Teacher
+                </p>
+                <p className="text-xs text-slate-500 dark:text-slate-400">
+                  Offer tutoring services
+                </p>
+              </div>
+              {role === "TEACHER" && (
+                <span className="text-[#008779] text-lg">✓</span>
+              )}
+            </div>
+          </button>
+          <button
+            type="button"
+            onClick={() => setStep(2)}
+            className="w-full rounded-2xl bg-[#008779] py-3 text-sm font-bold text-white hover:bg-[#006b5f]"
+          >
+            Continue
+          </button>
+        </div>
+      )}
+
+      {step === 2 && (
+        <form onSubmit={handleDetailsContinue} className="space-y-3">
+          <label className="block text-xs font-medium text-slate-600 dark:text-slate-300">
+            Full name *
+          </label>
+          <input
+            value={fullName}
+            onChange={(e) => setFullName(e.target.value)}
+            className="w-full rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm dark:border-slate-700 dark:bg-slate-800 dark:text-white"
+          />
+          <label className="block text-xs font-medium text-slate-600 dark:text-slate-300">
+            Phone *
+          </label>
+          <div className="flex rounded-2xl border border-slate-200 bg-slate-50 overflow-hidden dark:border-slate-700 dark:bg-slate-800">
+            <span className="px-3 py-3 text-sm text-slate-500 border-r border-slate-200 dark:border-slate-700 dark:text-slate-300">
+              +251
+            </span>
+            <input
+              value={phoneNumber.replace(/^\+?251/, "")}
+              onChange={(e) => {
+                const d = e.target.value.replace(/\D/g, "");
+                setPhoneNumber(d ? `+251${d.replace(/^0/, "")}` : "");
+              }}
+              placeholder="7xxxxxxxx"
+              className="flex-1 bg-transparent px-3 py-3 text-sm outline-none dark:text-white"
+            />
+          </div>
+          <label className="block text-xs font-medium text-slate-600 dark:text-slate-300">
+            Email (optional)
+          </label>
+          <input
+            type="email"
+            value={email}
+            onChange={(e) => setEmail(e.target.value)}
+            placeholder="you@gmail.com"
+            className="w-full rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm dark:border-slate-700 dark:bg-slate-800 dark:text-white"
+          />
+          <label className="block text-xs font-medium text-slate-600 dark:text-slate-300">
+            Password *
+          </label>
+          <input
+            type="password"
+            value={password}
+            onChange={(e) => setPassword(e.target.value)}
+            placeholder="Password"
+            className="w-full rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm dark:border-slate-700 dark:bg-slate-800 dark:text-white"
+          />
+          <div className="flex items-center gap-2">
+            <div className="flex flex-1 gap-1">
+              {[0, 1, 2, 3, 4].map((i) => (
+                <div
+                  key={i}
+                  className={`h-1 flex-1 rounded-full ${
+                    i < strength.score ? strength.color : "bg-slate-200 dark:bg-slate-700"
+                  }`}
+                />
+              ))}
+            </div>
+            <span className="text-xs text-slate-500 dark:text-slate-400">
+              {password ? strength.label : ""}
+            </span>
+          </div>
+          <label className="flex items-center gap-2 text-[11px] text-slate-500 dark:text-slate-400">
+            <input
+              type="checkbox"
+              checked={agreedToTerms}
+              onChange={(e) => setAgreedToTerms(e.target.checked)}
+              className="h-4 w-4 rounded border-slate-300"
+            />
+            I agree to the{" "}
+            <Link href="/terms" className="font-semibold text-[#008779]">
+              Terms of Service
+            </Link>{" "}
+            and{" "}
+            <Link href="/privacy" className="font-semibold text-[#008779]">
+              Privacy Policy
+            </Link>
+            .
+          </label>
+          <div className="flex gap-2 pt-1">
+            <button
+              type="button"
+              onClick={() => setStep(1)}
+              className="rounded-2xl border border-slate-200 px-4 py-3 text-sm dark:border-slate-700"
+            >
+              Back
+            </button>
+            <button
+              type="submit"
+              disabled={loading}
+              className="flex-1 rounded-2xl bg-[#008779] py-3 text-sm font-bold text-white hover:bg-[#006b5f] disabled:opacity-60"
+            >
+              {loading ? "Sending…" : "Next — Verify Phone →"}
+            </button>
+          </div>
+        </form>
+      )}
+
+      {step === 3 && (
+        <form onSubmit={handleVerifyAndRegister} className="space-y-3">
+          <p className="text-sm text-slate-500 dark:text-slate-400">
+            Enter OTP sent to {phoneNumber}
+          </p>
+          <input
+            value={otp}
+            onChange={(e) =>
+              setOtp(e.target.value.replace(/\D/g, "").slice(0, 6))
+            }
+            placeholder="6-digit code"
+            className="w-full rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-center tracking-[0.3em] font-semibold dark:border-slate-700 dark:bg-slate-800 dark:text-white"
+          />
+          <button
+            type="submit"
+            disabled={loading}
+            className="w-full rounded-2xl bg-[#008779] py-3 text-sm font-bold text-white hover:bg-[#006b5f] disabled:opacity-60"
+          >
+            {loading ? "Creating…" : "Verify & Create account"}
+          </button>
+          <button
+            type="button"
+            disabled={countdown > 0 || loading}
+            onClick={async () => {
+              try {
+                setLoading(true);
+                await sendOtp();
+                setCountdown(60);
+                setMessage("New code sent — use only the latest SMS.");
+              } catch (err: any) {
+                setMessage(err.message);
+              } finally {
+                setLoading(false);
+              }
+            }}
+            className="w-full text-sm font-semibold text-[#008779]"
+          >
+            {countdown > 0 ? `Resend in ${countdown}s` : "Resend code"}
+          </button>
+          <button
+            type="button"
+            onClick={() => setStep(2)}
+            className="w-full text-xs text-slate-500 dark:text-slate-400"
+          >
+            ← Back
+          </button>
+        </form>
+      )}
+
+      {message && (
+        <p className="mt-4 text-center text-sm text-amber-600">{message}</p>
+      )}
+
+      <p className="mt-6 text-center text-xs text-slate-500 dark:text-slate-400">
+        Already a member?{" "}
+        <Link href="/login" className="font-semibold text-[#008779]">
+          Sign in
+        </Link>
+      </p>
+    </div>
   );
 }

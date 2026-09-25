@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { setSession } from "@/lib/auth";
 import { getApiUrl, paths } from "@/lib/api";
+import { useTheme } from "@tutor/ui";
 
 const LANGS = ["EN", "አማ"] as const;
 
@@ -20,6 +21,7 @@ export default function LoginPage() {
   const [message, setMessage] = useState("");
   const [lang, setLang] = useState<(typeof LANGS)[number]>("EN");
   const [countdown, setCountdown] = useState(0);
+  const { mode, toggleTheme } = useTheme();
 
   useEffect(() => {
     if (countdown <= 0) return;
@@ -54,7 +56,7 @@ export default function LoginPage() {
         return;
       }
       if (tab === "email") {
-          const res = await fetch(getApiUrl() + paths.authLogin, {
+        const res = await fetch(getApiUrl() + paths.authLogin, {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
@@ -107,7 +109,7 @@ export default function LoginPage() {
           (verifyData as any).message || "Invalid or expired OTP",
         );
       }
-        const loginRes = await fetch(getApiUrl() + paths.authLogin, {
+      const loginRes = await fetch(getApiUrl() + paths.authLogin, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
@@ -134,157 +136,190 @@ export default function LoginPage() {
   };
 
   return (
-    <main className="min-h-screen flex items-center justify-center bg-[#F0FDFA] dark:bg-[var(--background)] px-4 py-10">
-      <div className="w-full max-w-md">
-        <div className="mb-4 flex justify-end gap-2">
-          {LANGS.map((l) => (
-            <button
-              key={l}
-              type="button"
-              onClick={() => setLang(l)}
-              className={`rounded-full px-2.5 py-1 text-xs font-semibold ${
-                lang === l
-                  ? "bg-[#008779] text-white"
-                  : "bg-white text-slate-500 border border-slate-200"
-              }`}
-            >
-              {l}
-            </button>
-          ))}
-        </div>
-
-        <div className="rounded-3xl border border-slate-100 bg-white p-6 shadow-lg dark:bg-[var(--card)]">
-          <h1 className="text-2xl font-bold text-slate-900 dark:text-white mb-4">
+    <div className="w-full">
+      <div className="mb-6 flex items-center justify-between">
+        <div>
+          <h1 className="text-2xl font-bold text-slate-900 dark:text-white">
             Sign in
           </h1>
-
-          {step === "credentials" && (
-            <>
-              <div className="mb-4 flex rounded-full bg-slate-100 p-1">
-                <button
-                  type="button"
-                  onClick={() => setTab("phone")}
-                  className={`flex-1 rounded-full py-2 text-sm font-semibold ${
-                    tab === "phone"
-                      ? "bg-[#008779] text-white"
-                      : "text-slate-500"
-                  }`}
-                >
-                  Phone
-                </button>
-                <button
-                  type="button"
-                  onClick={() => setTab("email")}
-                  className={`flex-1 rounded-full py-2 text-sm font-semibold ${
-                    tab === "email"
-                      ? "bg-[#008779] text-white"
-                      : "text-slate-500"
-                  }`}
-                >
-                  Email
-                </button>
-              </div>
-              <form onSubmit={handleCredentials} className="space-y-3">
-                {tab === "phone" ? (
-                  <input
-                    value={phoneNumber}
-                    onChange={(e) => setPhoneNumber(e.target.value)}
-                    placeholder="Phone (+251… or 09…)"
-                    className="w-full rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm"
-                  />
-                ) : (
-                  <input
-                    type="email"
-                    value={email}
-                    onChange={(e) => setEmail(e.target.value)}
-                    placeholder="Email (Gmail, etc.)"
-                    className="w-full rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm"
-                  />
-                )}
-                <input
-                  type="password"
-                  value={password}
-                  onChange={(e) => setPassword(e.target.value)}
-                  placeholder="Password"
-                  className="w-full rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm"
-                />
-                <button
-                  type="submit"
-                  disabled={loading}
-                  className="w-full rounded-2xl bg-[#008779] py-3 text-sm font-bold text-white disabled:opacity-60"
-                >
-                  {loading
-                    ? "Please wait…"
-                    : tab === "phone"
-                      ? "Continue — Send OTP"
-                      : "Sign in with email"}
-                </button>
-              </form>
-            </>
-          )}
-
-          {step === "otp" && (
-            <form onSubmit={handleOtpLogin} className="space-y-3">
-              <p className="text-sm text-slate-500">
-                Enter OTP sent to {phoneNumber}
-              </p>
-              <input
-                value={otp}
-                onChange={(e) =>
-                  setOtp(e.target.value.replace(/\D/g, "").slice(0, 6))
-                }
-                placeholder="6-digit code"
-                className="w-full rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-center tracking-[0.3em] font-semibold"
-              />
+          <p className="text-sm text-slate-500 dark:text-slate-400">
+            Welcome back — continue to your account
+          </p>
+        </div>
+        <div className="flex items-center gap-2">
+          <button
+            type="button"
+            onClick={toggleTheme}
+            className="flex h-8 w-8 items-center justify-center rounded-md border border-[var(--border)] bg-[var(--muted)] text-sm"
+            aria-label="Toggle theme"
+          >
+            {mode === "dark" ? "☀️" : "🌙"}
+          </button>
+          <div className="flex overflow-hidden rounded-md border border-[var(--border)] bg-[var(--muted)]">
+            {LANGS.map((l) => (
               <button
-                type="submit"
-                disabled={loading}
-                className="w-full rounded-2xl bg-[#008779] py-3 text-sm font-bold text-white"
-              >
-                {loading ? "Verifying…" : "Verify & sign in"}
-              </button>
-              <button
+                key={l}
                 type="button"
-                disabled={countdown > 0 || loading}
-                onClick={async () => {
-                  try {
-                    setLoading(true);
-                    await sendPhoneOtp();
-                    setCountdown(60);
-                  } catch (err: any) {
-                    setMessage(err.message);
-                  } finally {
-                    setLoading(false);
-                  }
-                }}
-                className="w-full text-sm font-semibold text-[#008779]"
+                onClick={() => setLang(l)}
+                className={`px-2 py-1 text-[11px] font-bold transition ${
+                  lang === l
+                    ? "bg-[var(--primary)] text-white"
+                    : "text-[var(--secondary)]"
+                }`}
               >
-                {countdown > 0 ? `Resend in ${countdown}s` : "Resend code"}
+                {l}
               </button>
-              <button
-                type="button"
-                onClick={() => setStep("credentials")}
-                className="w-full text-xs text-slate-500"
-              >
-                ← Back
-              </button>
-            </form>
-          )}
-
-          {message && (
-            <p className="mt-4 text-center text-sm text-amber-600">{message}</p>
-          )}
-
-          <div className="mt-6 space-y-2 text-center text-sm">
-            <Link href="/forgot-password" className="block text-[#008779]">
-              Forgot password?
-            </Link>
-            <Link href="/register" className="block text-slate-500">
-              Create account
-            </Link>
+            ))}
           </div>
         </div>
       </div>
-    </main>
+
+      {step === "credentials" && (
+        <>
+          <div className="mb-4 flex rounded-full bg-slate-100 p-1 dark:bg-slate-800">
+            <button
+              type="button"
+              onClick={() => setTab("phone")}
+              className={`flex-1 rounded-full py-2 text-sm font-semibold transition ${
+                tab === "phone"
+                  ? "bg-[#008779] text-white"
+                  : "text-slate-500 dark:text-slate-300"
+              }`}
+            >
+              Phone Number
+            </button>
+            <button
+              type="button"
+              onClick={() => setTab("email")}
+              className={`flex-1 rounded-full py-2 text-sm font-semibold transition ${
+                tab === "email"
+                  ? "bg-[#008779] text-white"
+                  : "text-slate-500 dark:text-slate-300"
+              }`}
+            >
+              Email / Gmail
+            </button>
+          </div>
+          <form onSubmit={handleCredentials} className="space-y-3">
+            {tab === "phone" ? (
+              <div className="flex rounded-2xl border border-slate-200 bg-slate-50 overflow-hidden dark:border-slate-700 dark:bg-slate-800">
+                <span className="px-3 py-3 text-sm text-slate-500 border-r border-slate-200 dark:border-slate-700 dark:text-slate-300">
+                  +251
+                </span>
+                <input
+                  value={phoneNumber}
+                  onChange={(e) => setPhoneNumber(e.target.value)}
+                  placeholder="912345678"
+                  className="flex-1 bg-transparent px-3 py-3 text-sm outline-none dark:text-white"
+                />
+              </div>
+            ) : (
+              <input
+                type="email"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                placeholder="you@gmail.com"
+                className="w-full rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm dark:border-slate-700 dark:bg-slate-800 dark:text-white"
+              />
+            )}
+            <input
+              type="password"
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+              placeholder="Password"
+              className="w-full rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm dark:border-slate-700 dark:bg-slate-800 dark:text-white"
+            />
+            <div className="flex items-center justify-between text-xs">
+              <label className="flex items-center gap-2 text-slate-500 dark:text-slate-400">
+                <input
+                  type="checkbox"
+                  className="h-4 w-4 rounded border-slate-300"
+                />
+                Remember me
+              </label>
+              <Link href="/forgot-password" className="text-[#008779]">
+                Forgot password?
+              </Link>
+            </div>
+            <button
+              type="submit"
+              disabled={loading}
+              className="w-full rounded-2xl bg-[#008779] py-3 text-sm font-bold text-white hover:bg-[#006b5f] disabled:opacity-60"
+            >
+              {loading
+                ? "Please wait…"
+                : tab === "phone"
+                  ? "Continue — Send OTP"
+                  : "Sign in with email"}
+            </button>
+          </form>
+        </>
+      )}
+
+      {step === "otp" && (
+        <form onSubmit={handleOtpLogin} className="space-y-3">
+          <p className="text-sm text-slate-500 dark:text-slate-400">
+            Enter OTP sent to {phoneNumber}
+          </p>
+          <input
+            value={otp}
+            onChange={(e) =>
+              setOtp(e.target.value.replace(/\D/g, "").slice(0, 6))
+            }
+            placeholder="6-digit code"
+            className="w-full rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-center tracking-[0.3em] font-semibold dark:border-slate-700 dark:bg-slate-800 dark:text-white"
+          />
+          <button
+            type="submit"
+            disabled={loading}
+            className="w-full rounded-2xl bg-[#008779] py-3 text-sm font-bold text-white hover:bg-[#006b5f] disabled:opacity-60"
+          >
+            {loading ? "Verifying…" : "Verify & sign in"}
+          </button>
+          <button
+            type="button"
+            disabled={countdown > 0 || loading}
+            onClick={async () => {
+              try {
+                setLoading(true);
+                await sendPhoneOtp();
+                setCountdown(60);
+              } catch (err: any) {
+                setMessage(err.message);
+              } finally {
+                setLoading(false);
+              }
+            }}
+            className="w-full text-sm font-semibold text-[#008779]"
+          >
+            {countdown > 0 ? `Resend in ${countdown}s` : "Resend code"}
+          </button>
+          <button
+            type="button"
+            onClick={() => setStep("credentials")}
+            className="w-full text-xs text-slate-500 dark:text-slate-400"
+          >
+            ← Back
+          </button>
+        </form>
+      )}
+
+      {message && (
+        <p className="mt-4 text-center text-sm text-amber-600">{message}</p>
+      )}
+
+      <div className="mt-6 space-y-3 text-center text-sm">
+        <Link
+          href="/register"
+          className="block rounded-2xl border border-[var(--primary)] py-2.5 text-sm font-bold text-[var(--primary)]"
+        >
+          Create free account
+        </Link>
+        <p className="text-xs text-slate-500 dark:text-slate-400">
+          Need help?{" "}
+          <Link href="/help" className="text-[#008779]">Contact support</Link>
+        </p>
+      </div>
+    </div>
   );
 }
