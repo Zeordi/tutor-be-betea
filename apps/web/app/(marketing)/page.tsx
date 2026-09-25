@@ -118,7 +118,7 @@ export default function LandingPage() {
       </section>
 
       {/* How it works */}
-      <section className="bg-slate-50 py-12 dark:bg-[#0D1B33] md:py-20">
+      <section className="bg-slate-50 dark:bg-[#0A1628] py-12 md:py-20">
         <div className="mx-auto max-w-6xl px-4 md:px-6">
           <div className="mb-12 text-center">
             <h2 className="mb-3 text-3xl font-extrabold text-slate-900 dark:text-white">
@@ -161,15 +161,15 @@ export default function LandingPage() {
                     →
                   </div>
                 )}
-                <div className="relative rounded-2xl border border-slate-100 bg-white p-6 shadow-sm dark:border-slate-700/60 dark:bg-slate-800/80">
+                <div className="relative rounded-2xl border border-slate-100 bg-white p-6 shadow-sm dark:border-slate-700 dark:bg-[#112240]">
                   <div className="mb-4 text-4xl">{s.icon}</div>
-                  <div className="absolute right-4 top-4 text-xs font-bold text-slate-200 dark:text-slate-700">
+                  <div className="absolute right-4 top-4 text-xs font-bold text-slate-200 dark:text-slate-500">
                     {s.step}
                   </div>
                   <h3 className="mb-2 font-bold text-slate-800 dark:text-white">
                     {s.title}
                   </h3>
-                  <p className="text-sm leading-relaxed text-slate-500 dark:text-slate-400">
+                  <p className="text-sm leading-relaxed text-slate-500 dark:text-slate-300">
                     {s.desc}
                   </p>
                 </div>
@@ -180,7 +180,7 @@ export default function LandingPage() {
       </section>
 
       {/* Featured Tutors — V1 */}
-      <section className="bg-slate-50 py-12 dark:bg-[#0D1B33] md:py-20">
+      <section className="bg-slate-50 dark:bg-[#0A1628] py-12 md:py-20">
         <div className="mx-auto max-w-6xl px-4 md:px-6">
           <div className="mb-10 flex flex-col md:flex-row md:items-end md:justify-between gap-4">
             <div>
@@ -193,7 +193,7 @@ export default function LandingPage() {
             </div>
             <Link
               href="/tutors"
-              className="shrink-0 rounded-xl border border-teal-600 px-4 py-2 text-sm font-bold text-teal-600 hover:bg-teal-50 dark:hover:bg-teal-900/20"
+              className="shrink-0 rounded-xl border border-teal-600 px-4 py-2 text-sm font-bold text-teal-600 hover:bg-teal-50 dark:text-teal-400 dark:hover:bg-teal-900/20"
             >
               View All Tutors →
             </Link>
@@ -233,7 +233,7 @@ export default function LandingPage() {
             ].map((t) => (
               <div
                 key={t.name}
-                className="rounded-2xl border border-slate-100 bg-white p-5 shadow-sm transition hover:-translate-y-0.5 hover:shadow-lg dark:border-slate-700/60 dark:bg-slate-800/80"
+                className="rounded-2xl border border-slate-100 bg-white p-5 shadow-sm transition hover:-translate-y-0.5 hover:shadow-lg dark:border-slate-700 dark:bg-[#112240]"
               >
                 <div className="flex gap-3">
                   <div className="relative flex h-14 w-14 shrink-0 items-center justify-center rounded-2xl bg-teal-600 text-sm font-bold text-white">
@@ -249,20 +249,20 @@ export default function LandingPage() {
                   <div className="min-w-0 flex-1">
                     <div className="flex items-start justify-between gap-2">
                       <p className="font-bold text-slate-800 dark:text-white">{t.name}</p>
-                      <p className="shrink-0 text-sm font-bold text-teal-600">
+                      <p className="shrink-0 text-sm font-bold text-teal-600 dark:text-teal-400">
                         {t.rate}
                         <span className="text-xs font-normal text-slate-400"> ETB/hr</span>
                       </p>
                     </div>
-                    <p className="text-xs text-slate-500">{t.subjects}</p>
-                    <p className="mt-0.5 text-xs text-slate-500">
+                    <p className="text-xs text-slate-500 dark:text-slate-400">{t.subjects}</p>
+                    <p className="mt-0.5 text-xs text-slate-500 dark:text-slate-400">
                       ★ {t.rating} ({t.reviews}) · 📍 {t.location}
                     </p>
                     <div className="mt-2 flex flex-wrap gap-1">
                       {t.badges.map((b) => (
                         <span
                           key={b}
-                          className="rounded-full bg-teal-50 px-2 py-0.5 text-[10px] font-bold text-teal-700 dark:bg-teal-900/30 dark:text-teal-300"
+                          className="rounded-full bg-teal-50 px-2 py-0.5 text-[10px] font-bold text-teal-700 dark:bg-teal-900/40 dark:text-teal-300"
                         >
                           {b}
                         </span>
@@ -279,7 +279,7 @@ export default function LandingPage() {
                   </Link>
                   <Link
                     href="/tutors"
-                    className="flex-1 rounded-xl border border-teal-600 py-2.5 text-center text-xs font-bold text-teal-600 hover:bg-teal-50 dark:hover:bg-teal-900/20"
+                    className="flex-1 rounded-xl border border-teal-600 py-2.5 text-center text-xs font-bold text-teal-600 hover:bg-teal-50 dark:hover:bg-teal-900/20 dark:text-teal-400"
                   >
                     View Profile
                   </Link>
@@ -363,7 +363,7 @@ export default function LandingPage() {
       </section>
 
       {/* Testimonials */}
-      <section className="bg-slate-50 py-12 dark:bg-[#0D1B33] md:py-20">
+      <section className="bg-slate-50 dark:bg-[#0A1628] py-12 md:py-20">
         <div className="mx-auto max-w-6xl px-4 md:px-6">
           <h2 className="mb-10 text-center text-3xl font-extrabold text-slate-900 dark:text-white">
             What Families Say
@@ -388,10 +388,10 @@ export default function LandingPage() {
             ].map((t) => (
               <div
                 key={t.name}
-                className="rounded-2xl border border-slate-100 bg-white p-6 shadow-sm dark:border-slate-700/60 dark:bg-slate-800/80"
+                className="rounded-2xl border border-slate-100 bg-white p-6 shadow-sm dark:border-slate-700 dark:bg-[#112240]"
               >
                 <p className="mb-3 text-amber-400">★★★★★</p>
-                <p className="mb-4 text-sm leading-relaxed text-slate-600 dark:text-slate-400">
+                <p className="mb-4 text-sm leading-relaxed text-slate-600 dark:text-slate-300">
                   &quot;{t.text}&quot;
                 </p>
                 <div className="flex items-center gap-2">
@@ -400,7 +400,7 @@ export default function LandingPage() {
                   </div>
                   <div>
                     <p className="text-sm font-bold text-slate-800 dark:text-white">{t.name}</p>
-                    <p className="text-xs text-slate-500">{t.role}</p>
+                    <p className="text-xs text-slate-500 dark:text-slate-400">{t.role}</p>
                   </div>
                 </div>
               </div>
@@ -410,7 +410,7 @@ export default function LandingPage() {
       </section>
 
       {/* CTA */}
-      <section className="py-12 md:py-20">
+      <section className="dark:bg-[#0A1628] py-12 md:py-20">
         <div className="mx-auto max-w-3xl px-4 md:px-6 text-center">
           <h2 className="mb-4 text-4xl font-extrabold text-slate-900 dark:text-white">
             Ready to find the perfect tutor?
@@ -428,7 +428,7 @@ export default function LandingPage() {
             </Link>
             <Link
               href="/login"
-              className="rounded-xl border-2 border-teal-600 px-6 py-3 text-sm font-bold text-teal-600"
+              className="rounded-xl border-2 border-teal-600 px-6 py-3 text-sm font-bold text-teal-600 dark:text-teal-400"
             >
               Post a Job
             </Link>
