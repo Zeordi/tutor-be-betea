@@ -12,7 +12,8 @@ Roll back to previous release if any of the following occur:
 
 - >10% 5xx error rate over a 15-minute window
 - Health check endpoint returns degraded status
-- Sentry error volume spikes >3x baseline within 1 hour
+- Sentry error volume spikes >3x baseline within 1 hour (only if `SENTRY_DSN` is configured)
+- If Sentry is not configured, use application error rate from health checks or logs as the equivalent signal
 
 ## Pre-Rollback Steps
 
