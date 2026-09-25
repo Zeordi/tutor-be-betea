@@ -24,7 +24,7 @@ This runbook documents how support tickets are created, triaged, and resolved ac
 |-------|------|----------|-------|
 | `contractId` | `string?` (UUID) | No | Related tutoring contract |
 | `submittedBy` | `string` (UUID) | Yes | User ID |
-| `reasonType` | `enum` | Yes | `BILLING`, `SAFETY`, `TECHNICAL`, `CONTENT`, `OTHER` |
+| `reasonType` | `string` | Yes | Free-text category. Parent web uses values like `no-show`, `late`, `quality`, `escrow`, `behavior`, `other`. Teacher risk-flag appeals use `SAFETY`. |
 | `explanation` | `string` | Yes | Free-text description |
 | `evidenceAttachmentUrls` | `string[]` | No | URLs to supporting evidence |
 | `staffNotes` | `string?` | No | Internal notes from support team |
@@ -32,7 +32,7 @@ This runbook documents how support tickets are created, triaged, and resolved ac
 ## Ticket Status Flow
 
 ```
-OPEN → UNDER_REVIEW → APPROED | REJECTED
+OPEN → UNDER_REVIEW → APPROVED | REJECTED
 ```
 
 - **OPEN:** Newly created, awaiting triage
@@ -104,6 +104,20 @@ RiskFlags are created by admins when a user is flagged for trust/safety concerns
 - `GET /support` — List all tickets (SUPER_ADMIN, SUPPORT_AGENT, VERIFICATION_OFFICER)
 - `GET /support/ticket/:id` — Get single ticket
 - `GET /support/contract/:contractId` — Get tickets by contract
+
+## Web App Flows
+
+### Parent — Report a Problem
+
+- **Route:** `/parent/support/create`
+- **Payload:** `POST /support` with `reasonType` (issue type id), `explanation` (free text, min 10 chars), `evidenceAttachmentUrls: []`
+- **Issue type ids:** `no-show`, `late`, `quality`, `escrow`, `behavior`, `other`
+
+### Teacher — Risk Flag Appeal
+
+- **Route:** `/teacher/risk-flag`
+- **Payload:** `POST /support` with `reasonType: "SAFETY"`, `explanation` (appeal text)
+- **Context:** Submitted when a teacher appeals an active risk flag.
 
 ## Runbook Links
 

@@ -67,9 +67,9 @@ export default function TeacherRiskFlagPage() {
       await apiFetch(paths.supportCreate, {
         method: "POST",
         body: JSON.stringify({
-          category: "SAFETY",
-          subject: `Appeal for risk flag ${flag.id}`,
-          description: appealText,
+          reasonType: "SAFETY",
+          explanation: `Appeal for risk flag ${flag.id}: ${appealText}`,
+          evidenceAttachmentUrls: [],
         }),
       });
       alert("Appeal submitted successfully.");
