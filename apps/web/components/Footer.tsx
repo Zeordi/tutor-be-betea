@@ -56,7 +56,7 @@ export default function Footer() {
                   Tutor Be Betea
                 </span>
                 <span className="block text-[10px] font-semibold text-white/55">
-                  ቱተር ቤ ቤቴ
+                  ቱቶር በ ቤቴ
                 </span>
               </div>
             </div>

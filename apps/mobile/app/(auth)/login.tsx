@@ -18,7 +18,7 @@ import { useAuth } from "@/hooks/useAuth";
 import { api, setSession } from "@/lib/api";
 import { getBiometricEnabled } from "@/lib/preferences";
 
-const LANGS = ["EN", "አማ", "ORO", "ትግ"] as const;
+const LANGS = ["EN", "አማ"] as const;
 
 export default function LoginScreen() {
   const router = useRouter();
@@ -301,7 +301,7 @@ export default function LoginScreen() {
 
           <TouchableOpacity onPress={() => router.push("/(auth)/role-select")}>
             <Text style={[styles.link, { color: primary }]}>
-              Don’t have an account? Create account
+              Don't have an account? Create account
             </Text>
           </TouchableOpacity>
         </ScrollView>

@@ -63,8 +63,6 @@ const NOTIFS: { label: string; desc: string; key: string; defaultOn: boolean }[]
 const LANGS = [
   ["EN", "English"],
   ["አማ", "Amharic"],
-  ["ORO", "Afaan Oromoo"],
-  ["ትግ", "Tigrinya"],
 ] as const;
 
 export default function TeacherSettingsPage() {
@@ -230,7 +228,7 @@ export default function TeacherSettingsPage() {
         <h2 className="mb-4 text-base font-extrabold text-[var(--foreground)]">
           Language
         </h2>
-        <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
+        <div className="grid grid-cols-2 gap-3 sm:grid-cols-2">
           {LANGS.map(([code, name]) => (
             <button
               key={code}

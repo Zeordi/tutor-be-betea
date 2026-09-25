@@ -6,7 +6,7 @@ import Link from "next/link";
 import { setSession } from "@/lib/auth";
 import { getApiUrl, paths } from "@/lib/api";
 
-const LANGS = ["EN", "አማ", "ORO", "ትግ"] as const;
+const LANGS = ["EN", "አማ"] as const;
 type Role = "PARENT" | "TEACHER";
 
 function passwordStrength(pw: string) {
@@ -264,6 +264,7 @@ export default function RegisterPage() {
                 type="password"
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
+                placeholder="Password"
                 className="w-full rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm"
               />
               <div className="flex items-center gap-2">
@@ -328,7 +329,7 @@ export default function RegisterPage() {
                   setOtp(e.target.value.replace(/\D/g, "").slice(0, 6))
                 }
                 placeholder="6-digit code"
-                className="w-full rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm tracking-[0.3em] text-center font-semibold"
+                className="w-full rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-center tracking-[0.3em] text-center font-semibold"
               />
               <button
                 type="submit"
