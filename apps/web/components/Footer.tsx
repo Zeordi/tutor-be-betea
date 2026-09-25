@@ -107,10 +107,10 @@ export default function Footer() {
             © 2026 Tutor Be Betea · Addis Ababa, Ethiopia · All rights reserved
           </p>
           <div className="flex flex-wrap gap-5">
-            {[
+             {[
               { href: "/privacy", label: "Privacy Policy" },
               { href: "/terms", label: "Terms of Service" },
-              { href: "/about", label: "Cookie Policy" },
+              { href: "/cookies", label: "Cookie Policy" },
             ].map((l) => (
               <Link
                 key={l.label}
