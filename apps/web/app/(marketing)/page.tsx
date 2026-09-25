@@ -128,7 +128,7 @@ export default function LandingPage() {
               From search to session — safe, verified, effortless
             </p>
           </div>
-          <div className="grid gap-6 md:grid-cols-4">
+          <div className="relative grid gap-6 md:grid-cols-4">
             {[
               {
                 step: "01",
@@ -154,21 +154,25 @@ export default function LandingPage() {
                 title: "Track Progress",
                 desc: "AI-generated reports, attendance tracking, and multi-child dashboards.",
               },
-            ].map((s) => (
-              <div
-                key={s.step}
-                className="relative rounded-2xl border border-slate-100 bg-white p-6 shadow-sm dark:border-slate-700/60 dark:bg-slate-800/80"
-              >
-                <div className="mb-4 text-4xl">{s.icon}</div>
-                <div className="absolute right-4 top-4 text-xs font-bold text-slate-200 dark:text-slate-700">
-                  {s.step}
+            ].map((s, i) => (
+              <div key={s.step} className="relative">
+                {i < 3 && (
+                  <div className="absolute top-1/2 -right-3 z-10 hidden -translate-y-1/2 text-2xl text-teal-400 md:block">
+                    →
+                  </div>
+                )}
+                <div className="relative rounded-2xl border border-slate-100 bg-white p-6 shadow-sm dark:border-slate-700/60 dark:bg-slate-800/80">
+                  <div className="mb-4 text-4xl">{s.icon}</div>
+                  <div className="absolute right-4 top-4 text-xs font-bold text-slate-200 dark:text-slate-700">
+                    {s.step}
+                  </div>
+                  <h3 className="mb-2 font-bold text-slate-800 dark:text-white">
+                    {s.title}
+                  </h3>
+                  <p className="text-sm leading-relaxed text-slate-500 dark:text-slate-400">
+                    {s.desc}
+                  </p>
                 </div>
-                <h3 className="mb-2 font-bold text-slate-800 dark:text-white">
-                  {s.title}
-                </h3>
-                <p className="text-sm leading-relaxed text-slate-500 dark:text-slate-400">
-                  {s.desc}
-                </p>
               </div>
             ))}
           </div>
@@ -176,7 +180,7 @@ export default function LandingPage() {
       </section>
 
       {/* Featured Tutors — V1 */}
-      <section className="py-20">
+      <section className="bg-slate-50 py-20 dark:bg-[#0D1B33]">
         <div className="mx-auto max-w-6xl px-6">
           <div className="mb-10 flex items-end justify-between gap-4">
             <div>

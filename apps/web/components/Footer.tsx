@@ -12,16 +12,7 @@ const COLS = [
     ],
   },
   {
-    title: "Support",
-    links: [
-      { href: "/help", label: "Help Center" },
-      { href: "/contact", label: "Contact Us" },
-      { href: "/contact", label: "Report Issue" },
-      { href: "/help", label: "FAQ" },
-    ],
-  },
-  {
-    title: "Trust & Safety",
+    title: "Tutors",
     links: [
       { href: "/about", label: "Background Checks" },
       { href: "/about", label: "Fayda ID Verify" },
@@ -30,30 +21,30 @@ const COLS = [
     ],
   },
   {
-    title: "Company",
+    title: "Support",
     links: [
-      { href: "/about", label: "About Us" },
-      { href: "/blog", label: "Blog" },
-      { href: "/contact", label: "Careers" },
-      { href: "/contact", label: "Press" },
+      { href: "/help", label: "Help Center" },
+      { href: "/contact", label: "Contact Us" },
+      { href: "/help", label: "FAQ" },
+      { href: "/contact", label: "Report Issue" },
     ],
   },
 ];
 
 export default function Footer() {
   return (
-    <footer className="bg-[var(--primary)] text-white dark:bg-[#0A1628]">
+    <footer className="bg-[#0A1628] text-white">
       <div className="mx-auto max-w-6xl px-4 pb-8 pt-14 md:px-6">
-        <div className="mb-12 grid gap-10 md:grid-cols-2 lg:grid-cols-5">
-          {/* Brand — V5 content details, existing design */}
+        <div className="mb-12 grid gap-10 md:grid-cols-2 lg:grid-cols-4">
+          {/* Brand */}
           <div className="lg:col-span-1">
             <div className="mb-1 flex items-center gap-2.5">
               <div className="flex h-9 w-9 items-center justify-center rounded-[10px] bg-white/15 text-lg">
-                📚
+                🎓
               </div>
               <div>
                 <span className="block text-base font-extrabold leading-tight">
-                  Tutor Be Betea
+                  TUTOR BE BETEA
                 </span>
                 <span className="block text-[10px] font-semibold text-white/55">
                   ቱቶር በ ቤቴ
@@ -124,7 +115,7 @@ export default function Footer() {
         </div>
       </div>
 
-      {/* Ethiopian tri-stripe — content detail from V5; colors kept simple */}
+      {/* Ethiopian tri-stripe */}
       <div className="flex h-1.5">
         <div className="flex-1 bg-green-500" />
         <div className="flex-1 bg-yellow-400" />
