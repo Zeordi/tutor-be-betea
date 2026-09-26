@@ -28,7 +28,7 @@ export default function ContactPage() {
                   key={label}
                   className="flex gap-4 rounded-2xl border border-[var(--border)] bg-[var(--card)] p-4"
                 >
-                  <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-teal-50 text-xl dark:bg-teal-950/40">
+                  <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-[var(--primary-light)] text-xl dark:bg-[var(--primary-light)]/40">
                     {icon}
                   </div>
                   <div>
@@ -43,7 +43,7 @@ export default function ContactPage() {
               ))}
             </div>
 
-            <div className="flex h-48 items-center justify-center rounded-2xl border border-[var(--border)] bg-gradient-to-br from-teal-50 to-teal-100/50 dark:from-teal-950/30 dark:to-[#0A1628]">
+            <div className="flex h-48 items-center justify-center rounded-2xl border border-[var(--border)] bg-gradient-to-br from-[var(--primary-light)] to-[var(--muted)] dark:from-[var(--primary-dark)]/30 dark:to-[var(--background)]">
               <div className="text-center">
                 <div className="mb-2 text-4xl">📍</div>
                 <p className="font-bold text-[var(--primary)]">
@@ -60,7 +60,7 @@ export default function ContactPage() {
             </h2>
 
             {sent ? (
-              <div className="rounded-xl bg-teal-50 p-6 text-center dark:bg-teal-950/30">
+               <div className="rounded-xl bg-[var(--primary-light)] p-6 text-center dark:bg-[var(--primary-light)]/30">
                 <p className="font-bold text-[var(--primary)]">Ticket submitted</p>
                 <p className="mt-2 text-sm text-[var(--secondary)]">
                   We will reply by email or Telegram during business hours.

@@ -88,7 +88,7 @@ export default function HowItWorksPage() {
   return (
     <main className="bg-[var(--background)]">
       {/* Hero */}
-      <section className="border-b border-[var(--border)] bg-gradient-to-b from-teal-50/80 to-[var(--background)] px-4 py-16 dark:from-[#0A1628] dark:to-[var(--background)] md:px-6 md:py-20">
+      <section className="border-b border-[var(--border)] bg-gradient-to-b from-[var(--primary-light)]/80 to-[var(--background)] px-4 py-16 dark:from-[var(--primary-dark)]/30 dark:to-[var(--background)] md:px-6 md:py-20">
         <div className="mx-auto max-w-3xl text-center">
           <p className="mb-3 text-xs font-bold uppercase tracking-[0.12em] text-[var(--primary)]">
             Simple & Safe
@@ -131,7 +131,7 @@ export default function HowItWorksPage() {
               <div className="absolute right-5 top-4 text-4xl font-black text-[var(--primary)]/15 md:text-5xl">
                 {s.n}
               </div>
-              <div className="mb-4 flex h-12 w-12 items-center justify-center rounded-2xl bg-teal-50 text-2xl dark:bg-teal-950/40">
+              <div className="mb-4 flex h-12 w-12 items-center justify-center rounded-2xl bg-[var(--primary-light)] text-2xl dark:bg-[var(--primary-light)]/40">
                 {s.icon}
               </div>
               <h3 className="mb-2 text-lg font-extrabold text-[var(--foreground)]">{s.title}</h3>

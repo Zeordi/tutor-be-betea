@@ -60,7 +60,7 @@ export default function BlogPage() {
               </div>
               <div className="p-6">
                 <div className="mb-3 flex flex-wrap gap-2">
-                  <span className="rounded-full bg-teal-50 px-2.5 py-0.5 text-[11px] font-bold text-[var(--primary)] dark:bg-teal-950/40">
+                   <span className="rounded-full bg-[var(--primary-light)] px-2.5 py-0.5 text-[11px] font-bold text-[var(--primary)] dark:bg-[var(--primary-light)]/40">
                     {a.cat}
                   </span>
                   <span className="rounded-full bg-[var(--muted)] px-2.5 py-0.5 text-[11px] text-[var(--secondary)]">

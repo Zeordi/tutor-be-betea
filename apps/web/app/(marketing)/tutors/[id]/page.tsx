@@ -287,7 +287,7 @@ export default function MarketingTutorProfilePage() {
                             key={slot}
                             className={`mb-1 rounded-md px-1 py-1.5 text-center text-[10px] font-semibold ${
                               avail
-                                ? "bg-teal-50 text-[var(--primary)] dark:bg-teal-950/40"
+                                 ? "bg-[var(--primary-light)] text-[var(--primary)] dark:bg-[var(--primary-light)]/40"
                                 : "bg-[var(--muted)] text-[var(--border)]"
                             }`}
                           >
@@ -325,7 +325,7 @@ export default function MarketingTutorProfilePage() {
                     onClick={() => setSelectedPkg(i)}
                     className={`rounded-xl border-[1.5px] p-3.5 text-left transition ${
                       selectedPkg === i
-                        ? "border-[var(--primary)] bg-teal-50 dark:bg-teal-950/30"
+                         ? "border-[var(--primary)] bg-[var(--primary-light)] dark:bg-[var(--primary-light)]/30"
                         : "border-[var(--border)] bg-[var(--muted)]"
                     }`}
                   >
