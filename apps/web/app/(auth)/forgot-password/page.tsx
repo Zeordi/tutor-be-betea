@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
+import { useTheme } from "@tutor/ui";
 import { MobileAuthHeader } from "../MobileAuthHeader";
 import { getApiUrl, paths } from "@/lib/api";
 
@@ -72,6 +73,7 @@ export default function ForgotPasswordPage() {
   const [loading, setLoading] = useState(false);
   const [message, setMessage] = useState("");
   const [lang, setLang] = useState<(typeof LANGS)[number]>("EN");
+  const { mode, toggleTheme } = useTheme();
 
   const onSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -134,6 +136,14 @@ export default function ForgotPasswordPage() {
               </button>
             ))}
           </div>
+          <button
+            type="button"
+            onClick={toggleTheme}
+            className="flex h-8 w-8 items-center justify-center rounded-lg border border-[var(--border)] bg-[var(--muted)] text-sm"
+            aria-label="Toggle theme"
+          >
+            {mode === "dark" ? "☀️" : "🌙"}
+          </button>
         </div>
       </div>
 

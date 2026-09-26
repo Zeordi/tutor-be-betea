@@ -249,6 +249,26 @@ export default function LoginPage() {
                 {showPassword ? "Hide" : "Show"}
               </button>
             </div>
+
+            {/* Visual-only payment/bio tiles */}
+            <div className="flex flex-wrap items-center gap-2">
+              {[
+                { icon: "💳", label: "Telebirr" },
+                { icon: "🏦", label: "CBE Birr" },
+                { icon: "🔐", label: "Biometric" },
+              ].map((tile) => (
+                <button
+                  key={tile.label}
+                  type="button"
+                  disabled
+                  className="inline-flex items-center gap-1.5 rounded-xl border border-[var(--border)] bg-[var(--muted)] px-3 py-2 text-xs font-semibold text-[var(--muted-foreground)] opacity-75"
+                >
+                  <span>{tile.icon}</span>
+                  {tile.label}
+                </button>
+              ))}
+            </div>
+
             <div className="flex items-center justify-between text-xs">
               <label className="flex items-center gap-2 text-[var(--muted-foreground)]">
                 <input

@@ -1,10 +1,10 @@
 import Link from "next/link";
 
 const FEATURES = [
-  ["🛡️", "Fayda ID Verified"],
-  ["💰", "Escrow Protected"],
-  ["📊", "AI Progress"],
-  ["📍", "GPS Geofencing"],
+  { icon: "🛡️", title: "Fayda ID Verified", subtitle: "National ID + degree checks" },
+  { icon: "💰", title: "Escrow Protected", subtitle: "Funds held until milestones clear" },
+  { icon: "📊", title: "AI Progress", subtitle: "Weekly mastery & attendance reports" },
+  { icon: "📍", title: "GPS Geofencing", subtitle: "150m check-in / check-out" },
 ];
 
 export default function AuthLayout({
@@ -35,10 +35,13 @@ export default function AuthLayout({
               through Fayda, every session protected.
             </p>
             <div className="mt-8 grid grid-cols-2 gap-3">
-              {FEATURES.map(([icon, label]) => (
-                <div key={label} className="flex items-center gap-2 rounded-xl bg-white/10 px-3 py-2">
-                  <span>{icon}</span>
-                  <span className="text-xs font-semibold text-white/80">{label}</span>
+              {FEATURES.map((f) => (
+                <div key={f.title} className="flex items-start gap-2.5 rounded-xl bg-white/10 px-3 py-2.5">
+                  <span className="text-base leading-none">{f.icon}</span>
+                  <div className="leading-tight">
+                    <span className="block text-xs font-semibold text-white/90">{f.title}</span>
+                    <span className="block text-[11px] text-white/60">{f.subtitle}</span>
+                  </div>
                 </div>
               ))}
             </div>
