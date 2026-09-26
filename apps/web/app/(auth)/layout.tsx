@@ -16,7 +16,7 @@ export default function AuthLayout({
     <div className="min-h-screen w-full overflow-x-hidden">
       <div className="grid min-h-screen md:grid-cols-2">
         {/* Brand panel — hidden on small screens */}
-        <div className="hidden min-h-screen md:flex flex-col justify-between bg-gradient-to-br from-[var(--primary)] to-teal-700 p-10 text-white">
+        <div className="hidden min-h-screen md:flex flex-col justify-between bg-gradient-to-br from-[var(--primary)] to-[var(--primary-dark)] p-10 text-white">
           <div>
             <div className="flex items-center gap-2.5">
               <div className="flex h-10 w-10 items-center justify-center rounded-[10px] bg-white/15 text-xl">
@@ -68,7 +68,7 @@ export default function AuthLayout({
         </div>
 
         {/* Form panel */}
-        <div className="flex min-h-screen w-full items-center justify-center bg-[var(--background)] dark:bg-[#0A1628] px-4 py-8 md:px-10 md:py-10">
+        <div className="flex min-h-screen w-full items-center justify-center bg-[var(--background)] px-4 py-8 md:px-10 md:py-10">
           <div className="w-full max-w-md">{children}</div>
         </div>
       </div>

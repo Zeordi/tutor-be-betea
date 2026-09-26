@@ -18,11 +18,12 @@ export default function LoginPage() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
-  const [otp, setOtp] = useState("");
+  const [otpDigits, setOtpDigits] = useState(["", "", "", "", "", ""]);
   const [loading, setLoading] = useState(false);
   const [message, setMessage] = useState("");
   const [countdown, setCountdown] = useState(0);
   const { mode, toggleTheme } = useTheme();
+  const [lang, setLang] = useState<(typeof LANGS)[number]>("EN");
 
   useEffect(() => {
     if (countdown <= 0) return;
@@ -45,6 +46,12 @@ export default function LoginPage() {
       const err = await res.json().catch(() => ({}));
       throw new Error((err as any).message || "Failed to send OTP");
     }
+  };
+
+  const setDigit = (i: number, v: string) => {
+    const next = [...otpDigits];
+    next[i] = v.replace(/\D/g, "").slice(-1);
+    setOtpDigits(next);
   };
 
   const handleCredentials = async (e: React.FormEvent) => {
@@ -82,7 +89,7 @@ export default function LoginPage() {
       await sendPhoneOtp();
       setStep("otp");
       setCountdown(60);
-      setOtp("");
+      setOtpDigits(["", "", "", "", "", ""]);
     } catch (err: any) {
       setMessage(err.message || "Failed");
     } finally {
@@ -95,13 +102,14 @@ export default function LoginPage() {
     setLoading(true);
     setMessage("");
     try {
-      if (otp.trim().length !== 6) throw new Error("Enter 6-digit code");
+      const code = otpDigits.join("");
+      if (code.length !== 6) throw new Error("Enter 6-digit code");
       const verifyRes = await fetch(getApiUrl() + paths.authOtpVerify, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           phoneNumber: phoneNumber.trim(),
-          code: otp.trim(),
+          code,
         }),
       });
       const verifyData = await verifyRes.json().catch(() => ({}));
@@ -142,18 +150,34 @@ export default function LoginPage() {
 
       <div className="mb-6 hidden md:flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-bold text-slate-900 dark:text-white">
+          <h1 className="text-2xl font-extrabold text-[var(--foreground)]">
             Sign in
           </h1>
-          <p className="text-sm text-slate-500 dark:text-slate-400">
+          <p className="text-sm text-[var(--muted-foreground)]">
             Welcome back — continue to your account
           </p>
         </div>
         <div className="flex items-center gap-2">
+          <div className="flex overflow-hidden rounded-lg border border-[var(--border)] bg-[var(--muted)]">
+            {LANGS.map((l) => (
+              <button
+                key={l}
+                type="button"
+                onClick={() => setLang(l)}
+                className={`px-2 py-1 text-[11px] font-bold transition ${
+                  lang === l
+                    ? "bg-[var(--primary)] text-white"
+                    : "text-[var(--secondary)]"
+                }`}
+              >
+                {l}
+              </button>
+            ))}
+          </div>
           <button
             type="button"
             onClick={toggleTheme}
-            className="flex h-8 w-8 items-center justify-center rounded-md border border-[var(--border)] bg-[var(--muted)] text-sm"
+            className="flex h-8 w-8 items-center justify-center rounded-lg border border-[var(--border)] bg-[var(--muted)] text-sm"
             aria-label="Toggle theme"
           >
             {mode === "dark" ? "☀️" : "🌙"}
@@ -163,14 +187,14 @@ export default function LoginPage() {
 
       {step === "credentials" && (
         <>
-          <div className="mb-4 flex rounded-full bg-slate-100 p-1 dark:bg-slate-800">
+          <div className="mb-4 flex rounded-full bg-[var(--muted)] p-1">
             <button
               type="button"
               onClick={() => setTab("phone")}
               className={`flex-1 rounded-full py-2 text-sm font-semibold transition ${
                 tab === "phone"
-                  ? "bg-[#008779] text-white"
-                  : "text-slate-500 dark:text-slate-300"
+                  ? "bg-[var(--primary)] text-white"
+                  : "text-[var(--muted-foreground)]"
               }`}
             >
               Phone Number
@@ -180,8 +204,8 @@ export default function LoginPage() {
               onClick={() => setTab("email")}
               className={`flex-1 rounded-full py-2 text-sm font-semibold transition ${
                 tab === "email"
-                  ? "bg-[#008779] text-white"
-                  : "text-slate-500 dark:text-slate-300"
+                  ? "bg-[var(--primary)] text-white"
+                  : "text-[var(--muted-foreground)]"
               }`}
             >
               Email / Gmail
@@ -189,15 +213,15 @@ export default function LoginPage() {
           </div>
           <form onSubmit={handleCredentials} className="space-y-3">
             {tab === "phone" ? (
-              <div className="flex rounded-2xl border border-slate-200 bg-slate-50 overflow-hidden dark:border-slate-700 dark:bg-slate-800">
-                <span className="px-3 py-3 text-sm text-slate-500 border-r border-slate-200 dark:border-slate-700 dark:text-slate-300">
+              <div className="flex rounded-2xl border border-[var(--border)] bg-[var(--muted)] dark:bg-[var(--card)] overflow-hidden">
+                <span className="px-3 py-3 text-sm text-[var(--muted-foreground)] border-r border-[var(--border)]">
                   +251
                 </span>
                 <input
                   value={phoneNumber}
                   onChange={(e) => setPhoneNumber(e.target.value)}
                   placeholder="912345678"
-                  className="flex-1 bg-transparent px-3 py-3 text-sm outline-none dark:text-white"
+                  className="flex-1 bg-transparent px-3 py-3 text-sm outline-none text-[var(--foreground)]"
                 />
               </div>
             ) : (
@@ -206,7 +230,7 @@ export default function LoginPage() {
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
                 placeholder="you@gmail.com"
-                className="w-full rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm dark:border-slate-700 dark:bg-slate-800 dark:text-white"
+                className="w-full rounded-2xl border border-[var(--border)] bg-[var(--muted)] dark:bg-[var(--card)] px-4 py-3 text-sm text-[var(--foreground)]"
               />
             )}
             <div className="relative">
@@ -215,32 +239,32 @@ export default function LoginPage() {
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
                 placeholder="Password"
-                className="w-full rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm dark:border-slate-700 dark:bg-slate-800 dark:text-white"
+                className="w-full rounded-2xl border border-[var(--border)] bg-[var(--muted)] dark:bg-[var(--card)] px-4 py-3 text-sm text-[var(--foreground)]"
               />
               <button
                 type="button"
                 onClick={() => setShowPassword((v) => !v)}
-                className="absolute right-3 top-1/2 -translate-y-1/2 text-xs text-slate-400"
+                className="absolute right-3 top-1/2 -translate-y-1/2 text-xs text-[var(--muted-foreground)]"
               >
                 {showPassword ? "Hide" : "Show"}
               </button>
             </div>
             <div className="flex items-center justify-between text-xs">
-              <label className="flex items-center gap-2 text-slate-500 dark:text-slate-400">
+              <label className="flex items-center gap-2 text-[var(--muted-foreground)]">
                 <input
                   type="checkbox"
-                  className="h-4 w-4 rounded border-slate-300"
+                  className="h-4 w-4 rounded border-[var(--border)]"
                 />
                 Remember me
               </label>
-              <Link href="/forgot-password" className="text-[#008779]">
+              <Link href="/forgot-password" className="text-[var(--primary)]">
                 Forgot password?
               </Link>
             </div>
             <button
               type="submit"
               disabled={loading}
-              className="w-full rounded-2xl bg-[#008779] py-3 text-sm font-bold text-white hover:bg-[#006b5f] disabled:opacity-60"
+              className="w-full rounded-2xl bg-[var(--primary)] py-3 text-sm font-bold text-white hover:bg-[var(--primary-dark)] disabled:opacity-60"
             >
               {loading
                 ? "Please wait…"
@@ -254,21 +278,40 @@ export default function LoginPage() {
 
       {step === "otp" && (
         <form onSubmit={handleOtpLogin} className="space-y-3">
-          <p className="text-sm text-slate-500 dark:text-slate-400">
+          <p className="text-sm text-[var(--muted-foreground)]">
             Enter OTP sent to {phoneNumber}
           </p>
-          <input
-            value={otp}
-            onChange={(e) =>
-              setOtp(e.target.value.replace(/\D/g, "").slice(0, 6))
-            }
-            placeholder="6-digit code"
-            className="w-full rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-center tracking-[0.3em] font-semibold dark:border-slate-700 dark:bg-slate-800 dark:text-white"
-          />
+          <div className="flex items-center justify-center gap-2">
+            {otpDigits.map((d, i) => (
+              <input
+                key={i}
+                data-otp-index={i}
+                value={d}
+                onChange={(e) => setDigit(i, e.target.value)}
+                onKeyDown={(e) => {
+                  if (e.key === "Backspace" && !d && i > 0) {
+                    const prev = document.querySelector<HTMLInputElement>(`input[data-otp-index="${i - 1}"]`);
+                    prev?.focus();
+                  }
+                }}
+                onInput={(e) => {
+                  const input = e.target as HTMLInputElement;
+                  if (input.value && i < otpDigits.length - 1) {
+                    const next = document.querySelector<HTMLInputElement>(`input[data-otp-index="${i + 1}"]`);
+                    next?.focus();
+                  }
+                }}
+                maxLength={1}
+                inputMode="numeric"
+                pattern="[0-9]*"
+                className="w-10 h-12 md:w-12 md:h-14 shrink-0 rounded-xl border-2 border-[var(--border)] bg-[var(--muted)] dark:bg-[var(--card)] text-center text-base md:text-lg font-extrabold outline-none transition focus:border-[var(--primary)]"
+              />
+            ))}
+          </div>
           <button
             type="submit"
             disabled={loading}
-            className="w-full rounded-2xl bg-[#008779] py-3 text-sm font-bold text-white hover:bg-[#006b5f] disabled:opacity-60"
+            className="w-full rounded-2xl bg-[var(--primary)] py-3 text-sm font-bold text-white hover:bg-[var(--primary-dark)] disabled:opacity-60"
           >
             {loading ? "Verifying…" : "Verify & sign in"}
           </button>
@@ -280,20 +323,21 @@ export default function LoginPage() {
                 setLoading(true);
                 await sendPhoneOtp();
                 setCountdown(60);
+                setOtpDigits(["", "", "", "", "", ""]);
               } catch (err: any) {
                 setMessage(err.message);
               } finally {
                 setLoading(false);
               }
             }}
-            className="w-full text-sm font-semibold text-[#008779]"
+            className="w-full text-sm font-semibold text-[var(--primary)]"
           >
             {countdown > 0 ? `Resend in ${countdown}s` : "Resend code"}
           </button>
           <button
             type="button"
             onClick={() => setStep("credentials")}
-            className="w-full text-xs text-slate-500 dark:text-slate-400"
+            className="w-full text-xs text-[var(--muted-foreground)]"
           >
             ← Back
           </button>
@@ -311,9 +355,9 @@ export default function LoginPage() {
         >
           Create free account
         </Link>
-        <p className="text-xs text-slate-500 dark:text-slate-400">
+        <p className="text-xs text-[var(--muted-foreground)]">
           Need help?{" "}
-          <Link href="/help" className="text-[#008779]">Contact support</Link>
+          <Link href="/help" className="text-[var(--primary)]">Contact support</Link>
         </p>
       </div>
     </div>

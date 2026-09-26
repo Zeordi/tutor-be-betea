@@ -23,12 +23,12 @@ export function MobileAuthHeader({
             🎓
           </div>
           <div>
-            <p className="text-sm font-extrabold text-slate-900 dark:text-white">
-              TUTOR BE BETEA
-            </p>
-            <p className="text-[10px] font-semibold text-slate-500 dark:text-slate-400">
-              ቱቶር በ ቤቴ
-            </p>
+          <p className="text-sm font-extrabold text-[var(--foreground)]">
+            TUTOR BE BETEA
+          </p>
+          <p className="text-[10px] font-semibold text-[var(--muted-foreground)]">
+            ቱቶር በ ቤቴ
+          </p>
           </div>
         </div>
         <div className="flex items-center gap-2">
@@ -60,11 +60,11 @@ export function MobileAuthHeader({
       </div>
       {title && (
         <div className="mt-5">
-          <h1 className="text-2xl font-bold text-slate-900 dark:text-white">
+          <h1 className="text-2xl font-bold text-[var(--foreground)]">
             {title}
           </h1>
           {subtitle && (
-            <p className="mt-1 text-sm text-slate-500 dark:text-slate-400">
+            <p className="mt-1 text-sm text-[var(--muted-foreground)]">
               {subtitle}
             </p>
           )}
