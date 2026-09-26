@@ -32,11 +32,11 @@ export default function AboutPage() {
             <div key={step.n} className="flex flex-1 items-center">
               <div className="flex-1 px-2 text-center">
                 <div
-                  className={`mx-auto mb-3 flex h-14 w-14 items-center justify-center rounded-full border-2 text-2xl ${
-                    i === 4
-                      ? "border-teal-300 bg-teal-50 dark:bg-teal-950/40"
-                      : "border-teal-200 bg-teal-50/80 dark:border-teal-800 dark:bg-teal-950/20"
-                  }`}
+                 className={`mx-auto mb-3 flex h-14 w-14 items-center justify-center rounded-full border-2 text-2xl ${
+                   i === 4
+                     ? "border-[var(--primary)] bg-[var(--primary-light)] dark:bg-[var(--primary-light)]/40"
+                     : "border-[var(--border)] bg-[var(--primary-light)]/80 dark:border-[var(--border)] dark:bg-[var(--primary-light)]/20"
+                 }`}
                 >
                   {step.icon}
                 </div>
@@ -48,13 +48,13 @@ export default function AboutPage() {
                 </p>
               </div>
               {i < 4 && (
-                <div className="hidden h-0.5 w-8 shrink-0 bg-teal-200 dark:bg-teal-800 md:block" />
+                <div className="hidden h-0.5 w-8 shrink-0 bg-[var(--border)] dark:bg-[var(--border)] md:block" />
               )}
             </div>
           ))}
         </div>
 
-        <div className="rounded-2xl bg-gradient-to-br from-[var(--primary)] to-teal-700 px-8 py-12 text-center text-white dark:from-[#0D2A40] dark:to-[#0A1628]">
+        <div className="rounded-2xl bg-gradient-to-br from-[var(--primary)] to-[var(--primary-dark)] px-8 py-12 text-center text-white dark:from-[var(--primary-dark)] dark:to-[var(--background)]">
           <div className="mb-4 text-5xl">🔄</div>
           <h2 className="mb-3 text-3xl font-black">100% Replacement Guarantee</h2>
           <p className="mx-auto mb-6 max-w-xl text-white/75">

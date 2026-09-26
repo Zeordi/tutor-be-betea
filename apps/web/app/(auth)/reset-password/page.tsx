@@ -3,10 +3,13 @@
 import { Suspense, useMemo, useState, useEffect } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
+import { useTheme } from "@tutor/ui";
 import { MobileAuthHeader } from "../MobileAuthHeader";
 import { getApiUrl, paths } from "@/lib/api";
 
 type ResetStep = "otp" | "newPassword";
+
+const LANGS = ["EN", "አማ"] as const;
 
 function Stepper({ currentStep }: { currentStep: number }) {
   const steps = [
@@ -24,10 +27,10 @@ function Stepper({ currentStep }: { currentStep: number }) {
               <div
                 className={`flex h-7 w-7 md:h-8 md:w-8 items-center justify-center rounded-full border-2 text-xs md:text-sm font-bold transition ${
                   currentStep > step.num
-                    ? "border-[#008779] bg-[#008779] text-white"
+                    ? "border-[var(--primary)] bg-[var(--primary)] text-white"
                     : currentStep === step.num
-                      ? "border-[#008779] bg-[#008779] text-white"
-                      : "border-slate-200 bg-white text-slate-400 dark:border-slate-700 dark:bg-[#112240]"
+                      ? "border-[var(--primary)] bg-[var(--primary)] text-white"
+                      : "border-[var(--border)] bg-[var(--card)] text-[var(--muted-foreground)]"
                 }`}
               >
                 {currentStep > step.num ? "✓" : step.num}
@@ -35,8 +38,8 @@ function Stepper({ currentStep }: { currentStep: number }) {
               <span
                 className={`mt-1 text-[10px] md:text-xs font-medium ${
                   currentStep >= step.num
-                    ? "text-slate-900 dark:text-white"
-                    : "text-slate-400 dark:text-slate-500"
+                    ? "text-[var(--foreground)]"
+                    : "text-[var(--muted-foreground)]"
                 }`}
               >
                 {step.label}
@@ -45,7 +48,7 @@ function Stepper({ currentStep }: { currentStep: number }) {
             {idx < steps.length - 1 && (
               <div
                 className={`mx-1 md:mx-2 h-0.5 flex-1 ${
-                  currentStep > step.num ? "bg-[#008779]" : "bg-slate-200 dark:bg-slate-700"
+                  currentStep > step.num ? "bg-[var(--primary)]" : "bg-[var(--border)]"
                 }`}
               />
             )}
@@ -59,6 +62,7 @@ function Stepper({ currentStep }: { currentStep: number }) {
 function ResetForm() {
   const router = useRouter();
   const params = useSearchParams();
+  const { mode, toggleTheme } = useTheme();
 
   const initialPhone = useMemo(
     () =>
@@ -79,6 +83,7 @@ function ResetForm() {
   const [message, setMessage] = useState("");
   const [resetStep, setResetStep] = useState<ResetStep>("otp");
   const [countdown, setCountdown] = useState(0);
+  const [lang, setLang] = useState<(typeof LANGS)[number]>("EN");
 
   useEffect(() => {
     if (countdown <= 0) return;
@@ -223,15 +228,43 @@ function ResetForm() {
       </div>
 
       {/* Desktop header */}
-      <div className="hidden md:block mb-8">
-        <h1 className="text-3xl font-extrabold text-slate-900 dark:text-white">
-          {resetStep === "otp" ? "Enter OTP" : "New Password"}
-        </h1>
-        <p className="mt-2 text-sm text-slate-500 dark:text-slate-400">
-          {resetStep === "otp"
-            ? `Enter the 6-digit code sent to ${phoneNumber.replace(/^\+?251/, "***")}`
-            : "Create a strong password for your account"}
-        </p>
+      <div className="hidden md:flex mb-8 items-center justify-between">
+        <div>
+          <h1 className="text-3xl font-extrabold text-[var(--foreground)]">
+            {resetStep === "otp" ? "Enter OTP" : "New Password"}
+          </h1>
+          <p className="mt-2 text-sm text-[var(--muted-foreground)]">
+            {resetStep === "otp"
+              ? `Enter the 6-digit code sent to ${phoneNumber.replace(/^\+?251/, "***")}`
+              : "Create a strong password for your account"}
+          </p>
+        </div>
+        <div className="flex items-center gap-2">
+          <div className="flex overflow-hidden rounded-lg border border-[var(--border)] bg-[var(--muted)]">
+            {LANGS.map((l) => (
+              <button
+                key={l}
+                type="button"
+                onClick={() => setLang(l)}
+                className={`px-2 py-1 text-[11px] font-bold transition ${
+                  lang === l
+                    ? "bg-[var(--primary)] text-white"
+                    : "text-[var(--secondary)]"
+                }`}
+              >
+                {l}
+              </button>
+            ))}
+          </div>
+          <button
+            type="button"
+            onClick={toggleTheme}
+            className="flex h-8 w-8 items-center justify-center rounded-lg border border-[var(--border)] bg-[var(--muted)] text-sm"
+            aria-label="Toggle theme"
+          >
+            {mode === "dark" ? "☀️" : "🌙"}
+          </button>
+        </div>
       </div>
 
       <Stepper currentStep={resetStep === "otp" ? 2 : 3} />
@@ -239,10 +272,10 @@ function ResetForm() {
       {resetStep === "otp" && (
         <form onSubmit={handleVerifyOtp} className="space-y-4 md:space-y-5">
           <div>
-            <label className="mb-1.5 block text-xs md:text-sm font-semibold text-slate-700 dark:text-slate-200">
+            <label className="mb-1.5 block text-xs md:text-sm font-semibold text-[var(--foreground)]">
               6-Digit Code
             </label>
-            <div className="flex items-center justify-center gap-1.5 sm:gap-2">
+            <div className="flex items-center justify-center gap-2">
               {otpDigits.map((d, i) => (
                 <input
                   key={i}
@@ -265,12 +298,12 @@ function ResetForm() {
                   maxLength={1}
                   inputMode="numeric"
                   pattern="[0-9]*"
-                  className="h-11 w-10 shrink-0 rounded-xl sm:h-12 sm:w-11 border-2 border-slate-200 bg-slate-50 text-center text-base sm:text-lg font-extrabold outline-none transition focus:border-[#008779] dark:border-slate-700 dark:bg-slate-800 dark:text-white"
+                  className="w-10 h-12 md:w-12 md:h-14 shrink-0 rounded-xl border-2 border-[var(--border)] bg-[var(--muted)] dark:bg-[var(--card)] text-center text-base md:text-lg font-extrabold outline-none transition focus:border-[var(--primary)]"
                 />
               ))}
             </div>
 
-            <div className="flex items-center justify-between text-xs text-slate-500 dark:text-slate-400">
+            <div className="flex items-center justify-between text-xs text-[var(--muted-foreground)]">
               <span>
                 Expires in{" "}
                 <span className="font-semibold">
@@ -281,7 +314,7 @@ function ResetForm() {
                 type="button"
                 disabled={countdown > 0 || loading}
                 onClick={resendOtp}
-                className="font-semibold text-[#008779] hover:underline disabled:opacity-60"
+                className="font-semibold text-[var(--primary)] hover:underline disabled:opacity-60"
               >
                 {countdown > 0 ? "Resend" : "Resend SMS"}
               </button>
@@ -295,22 +328,22 @@ function ResetForm() {
           <button
             type="submit"
             disabled={loading}
-            className="w-full rounded-2xl bg-[#008779] py-3 md:py-3.5 text-sm font-bold text-white hover:bg-[#006b5f] disabled:opacity-60"
+            className="w-full rounded-2xl bg-[var(--primary)] py-3 md:py-3.5 text-sm font-bold text-white hover:bg-[var(--primary-dark)] disabled:opacity-60"
           >
-            {loading ? "Verifying…" : "Verify Code →"}
+            {loading ? "Updating…" : "Set Password & Sign In →"}
           </button>
 
           <div className="space-y-2 text-center">
             <button
               type="button"
               onClick={() => router.push("/forgot-password")}
-              className="block w-full text-xs text-slate-500 hover:text-[#008779] dark:text-slate-400"
+              className="block w-full text-xs text-[var(--muted-foreground)] hover:text-[var(--primary)]"
             >
               ← Change phone number
             </button>
             <Link
               href="/login"
-              className="block text-xs text-slate-500 hover:text-[#008779] dark:text-slate-400"
+              className="block text-xs text-[var(--muted-foreground)] hover:text-[var(--primary)]"
             >
               Back to Sign In
             </Link>
@@ -321,7 +354,7 @@ function ResetForm() {
       {resetStep === "newPassword" && (
         <form onSubmit={handleResetPassword} className="space-y-4 md:space-y-5">
           <div>
-            <label className="mb-1.5 block text-xs md:text-sm font-semibold text-slate-700 dark:text-slate-200">
+            <label className="mb-1.5 block text-xs md:text-sm font-semibold text-[var(--foreground)]">
               New Password <span className="text-red-500">*</span>
             </label>
             <div className="relative">
@@ -330,12 +363,12 @@ function ResetForm() {
                 value={newPassword}
                 onChange={(e) => setNewPassword(e.target.value)}
                 placeholder="Enter new password"
-                className="w-full rounded-2xl border border-slate-200 bg-slate-50 px-3 md:px-4 py-2.5 md:py-3 text-sm dark:border-slate-700 dark:bg-slate-800 dark:text-white"
+                className="w-full rounded-2xl border border-[var(--border)] bg-[var(--muted)] dark:bg-[var(--card)] px-3 md:px-4 py-2.5 md:py-3 text-sm text-[var(--foreground)]"
               />
               <button
                 type="button"
                 onClick={() => setShowPassword((v) => !v)}
-                className="absolute right-3 top-1/2 -translate-y-1/2 text-xs text-slate-400"
+                className="absolute right-3 top-1/2 -translate-y-1/2 text-xs text-[var(--muted-foreground)]"
               >
                 {showPassword ? "Hide" : "Show"}
               </button>
@@ -346,7 +379,7 @@ function ResetForm() {
           </div>
 
           <div>
-            <label className="mb-1.5 block text-xs md:text-sm font-semibold text-slate-700 dark:text-slate-200">
+            <label className="mb-1.5 block text-xs md:text-sm font-semibold text-[var(--foreground)]">
               Confirm Password <span className="text-red-500">*</span>
             </label>
             <div className="relative">
@@ -355,12 +388,12 @@ function ResetForm() {
                 value={confirm}
                 onChange={(e) => setConfirm(e.target.value)}
                 placeholder="Re-enter new password"
-                className="w-full rounded-2xl border border-slate-200 bg-slate-50 px-3 md:px-4 py-2.5 md:py-3 text-sm dark:border-slate-700 dark:bg-slate-800 dark:text-white"
+                className="w-full rounded-2xl border border-[var(--border)] bg-[var(--muted)] dark:bg-[var(--card)] px-3 md:px-4 py-2.5 md:py-3 text-sm text-[var(--foreground)]"
               />
               <button
                 type="button"
                 onClick={() => setShowConfirm((v) => !v)}
-                className="absolute right-3 top-1/2 -translate-y-1/2 text-xs text-slate-400"
+                className="absolute right-3 top-1/2 -translate-y-1/2 text-xs text-[var(--muted-foreground)]"
               >
                 {showConfirm ? "Hide" : "Show"}
               </button>
@@ -372,10 +405,10 @@ function ResetForm() {
             )}
           </div>
 
-          <div className="flex items-center gap-2 rounded-2xl border border-slate-100 bg-slate-50 px-3 md:px-4 py-2.5 md:py-3 dark:border-slate-700 dark:bg-slate-800/50">
+          <div className="flex items-center gap-2 rounded-2xl border border-[var(--border)] bg-[var(--muted)] dark:bg-[var(--card)] px-3 md:px-4 py-2.5 md:py-3">
             <span className="text-base md:text-lg">🔒</span>
-            <p className="text-[11px] md:text-xs text-slate-500 dark:text-slate-400">
-              Your password is protected with <span className="font-semibold text-slate-700 dark:text-slate-200">AES-256</span> encryption.
+            <p className="text-[11px] md:text-xs text-[var(--muted-foreground)]">
+              Your password is protected with <span className="font-semibold text-[var(--foreground)]">AES-256</span> encryption.
             </p>
           </div>
 
@@ -386,14 +419,14 @@ function ResetForm() {
           <button
             type="submit"
             disabled={loading}
-            className="w-full rounded-2xl bg-[#008779] py-3 md:py-3.5 text-sm font-bold text-white hover:bg-[#006b5f] disabled:opacity-60"
+            className="w-full rounded-2xl bg-[var(--primary)] py-3 md:py-3.5 text-sm font-bold text-white hover:bg-[var(--primary-dark)] disabled:opacity-60"
           >
             {loading ? "Updating…" : "Set Password & Sign In →"}
           </button>
 
           <Link
             href="/login"
-            className="block text-center text-xs md:text-sm font-medium text-slate-500 hover:text-[#008779] dark:text-slate-400"
+            className="block text-center text-xs md:text-sm font-medium text-[var(--muted-foreground)] hover:text-[var(--primary)]"
           >
             ← Back to Sign In
           </Link>

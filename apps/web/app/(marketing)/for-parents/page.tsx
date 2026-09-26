@@ -117,10 +117,10 @@ export default function ForParentsPage() {
                 ["4.9", "Parent rating"],
                 ["24h", "Replacement"],
               ].map(([v, l]) => (
-                <div
-                  key={l}
-                  className="rounded-xl bg-teal-50 py-3 dark:bg-teal-950/30"
-                >
+                 <div
+                   key={l}
+                   className="rounded-xl bg-[var(--primary-light)] py-3 dark:bg-[var(--primary-light)]"
+                 >
                   <p className="text-lg font-black text-[var(--primary)]">{v}</p>
                   <p className="text-[10px] text-[var(--secondary)]">{l}</p>
                 </div>
@@ -131,7 +131,7 @@ export default function ForParentsPage() {
       </section>
 
       {/* Steps */}
-      <section className="border-b border-[var(--border)] bg-slate-50 px-4 py-14 dark:bg-[#0D1B33] md:px-6">
+      <section className="border-b border-[var(--border)] bg-[var(--muted)] px-4 py-14 dark:bg-[var(--background)] md:px-6">
         <div className="mx-auto max-w-6xl">
           <h2 className="mb-8 text-center text-2xl font-black text-[var(--foreground)] md:text-3xl">
             How parents use Tutor Be Betea
@@ -142,7 +142,7 @@ export default function ForParentsPage() {
                 key={s.step}
                 className="relative rounded-2xl border border-[var(--border)] bg-[var(--card)] p-5"
               >
-                <span className="absolute right-4 top-4 text-xs font-bold text-slate-200 dark:text-slate-700">
+                <span className="absolute right-4 top-4 text-xs font-bold text-[var(--muted-foreground)]">
                   {s.step}
                 </span>
                 <h3 className="mb-2 pr-8 font-extrabold text-[var(--foreground)]">
@@ -183,19 +183,19 @@ export default function ForParentsPage() {
       </section>
 
       {/* CTA */}
-      <section className="border-t border-[var(--border)] bg-gradient-to-br from-teal-700 to-teal-900 px-4 py-14 text-center text-white md:px-6">
+      <section className="border-t border-[var(--border)] bg-gradient-to-br from-[var(--primary-dark)] to-[var(--primary)] px-4 py-14 text-center text-white md:px-6">
         <div className="mx-auto max-w-2xl">
           <h2 className="mb-3 text-2xl font-black md:text-3xl">
             Start with a verified tutor today
           </h2>
-          <p className="mb-8 text-sm text-teal-100 md:text-base">
+          <p className="mb-8 text-sm text-white/75 md:text-base">
             Join thousands of families who choose escrow, badges, and clear progress
             over informal arrangements.
           </p>
           <div className="flex flex-wrap justify-center gap-3">
             <Link
               href="/register"
-              className="rounded-xl bg-white px-8 py-3.5 text-sm font-bold text-teal-800"
+              className="rounded-xl bg-white px-8 py-3.5 text-sm font-bold text-[var(--primary-dark)]"
             >
               Create parent account
             </Link>
