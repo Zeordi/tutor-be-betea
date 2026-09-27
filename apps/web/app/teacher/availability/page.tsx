@@ -30,30 +30,16 @@ type Availability = {
   weeklyHours: number;
 };
 
-const DEFAULT_SCHEDULE: ScheduleSlot[] = [
-  { day: "Mon", slots: ["09:00–11:00", "16:00–19:00"] },
-  { day: "Tue", slots: ["14:00–18:00"] },
-  { day: "Wed", slots: [] },
-  { day: "Thu", slots: ["09:00–11:00", "16:00–19:00"] },
-  { day: "Fri", slots: ["16:00–20:00"] },
-  { day: "Sat", slots: ["09:00–13:00", "14:00–17:00"] },
-  { day: "Sun", slots: [] },
-];
-
-const DEFAULT_PACKAGES: Package[] = [
-  { id: "1", name: "Standard", sessions: 8, hrs: 1, total: 3600, popular: false },
-  { id: "2", name: "Intensive", sessions: 12, hrs: 1.5, total: 8100, popular: true },
-  { id: "3", name: "Weekend Boost", sessions: 6, hrs: 2, total: 5040, popular: false },
-];
+const DAYS = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"];
 
 export default function TeacherAvailabilityPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [tab, setTab] = useState<"weekly" | "packages">("weekly");
-  const [schedule, setSchedule] = useState<ScheduleSlot[]>(DEFAULT_SCHEDULE);
+  const [schedule, setSchedule] = useState<ScheduleSlot[]>([]);
   const [blocked, setBlocked] = useState<BlockedDate[]>([]);
-  const [packages, setPackages] = useState<Package[]>(DEFAULT_PACKAGES);
-  const [weeklyHours, setWeeklyHours] = useState(22);
+  const [packages, setPackages] = useState<Package[]>([]);
+  const [weeklyHours, setWeeklyHours] = useState(0);
 
   useEffect(() => {
     let cancelled = false;
@@ -64,6 +50,7 @@ export default function TeacherAvailabilityPage() {
       .then((data) => {
         if (!cancelled) {
           if (data?.weeklySchedule) setSchedule(data.weeklySchedule);
+          else setSchedule(DAYS.map((day) => ({ day, slots: [] })));
           if (data?.blockedDates) setBlocked(data.blockedDates);
           if (data?.packages) setPackages(data.packages);
           if (typeof data?.weeklyHours === "number") setWeeklyHours(data.weeklyHours);
@@ -76,15 +63,32 @@ export default function TeacherAvailabilityPage() {
         if (!cancelled) setLoading(false);
       });
 
-    return () => {
-      cancelled = true;
-    };
+    return () => { cancelled = true; };
   }, []);
+
+  const save = async () => {
+    try {
+      await apiFetch(paths.availabilitySlots, {
+        method: "PUT",
+        body: JSON.stringify({
+          slots: schedule,
+          blockedDates: blocked,
+        }),
+      });
+      await apiFetch(paths.availabilityPackages, {
+        method: "POST",
+        body: JSON.stringify({ packages }),
+      });
+      alert("Availability saved.");
+    } catch (err: any) {
+      alert(err.message || "Failed to save");
+    }
+  };
 
   if (loading) {
     return (
-      <div className="mx-auto max-w-3xl space-y-5 p-6">
-        <div className="h-6 w-48 animate-pulse rounded bg-slate-200 dark:bg-slate-800" />
+      <div className="space-y-5 p-4 md:p-8">
+        <div className="h-7 w-48 animate-pulse rounded bg-slate-200 dark:bg-slate-800" />
         <div className="h-10 animate-pulse rounded bg-slate-100 dark:bg-slate-800" />
         <div className="h-96 animate-pulse rounded-2xl bg-slate-100 dark:bg-slate-800" />
       </div>
@@ -106,46 +110,25 @@ export default function TeacherAvailabilityPage() {
     );
   }
 
-  const save = async () => {
-    try {
-      await apiFetch(paths.availabilitySlots, {
-        method: "PUT",
-        body: JSON.stringify({
-          slots: schedule,
-          blockedDates: blocked,
-        }),
-      });
-      await apiFetch(paths.availabilityPackages, {
-        method: "POST",
-        body: JSON.stringify({ packages }),
-      });
-      alert("Availability saved.");
-    } catch (err: any) {
-      alert(err.message || "Failed to save");
-    }
-  };
-
   return (
-    <div className="mx-auto max-w-3xl space-y-5">
+    <div className="space-y-5 p-4 md:p-8">
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div>
-          <h1 className="text-2xl font-extrabold text-[var(--foreground)]">
-            Availability & Packages
-          </h1>
-          <p className="text-sm text-[var(--secondary)]">
+          <h1 className="text-xl font-extrabold text-slate-800 dark:text-white">Availability & Packages</h1>
+          <p className="text-sm text-slate-500 dark:text-slate-400">
             Weekly hours parents can book · package offers
           </p>
         </div>
         <button
           type="button"
           onClick={save}
-          className="rounded-xl bg-[var(--primary)] px-4 py-2 text-sm font-bold text-white"
+          className="rounded-xl bg-teal-600 px-4 py-2 text-sm font-bold text-white transition hover:bg-teal-700"
         >
           Save
         </button>
       </div>
 
-      <div className="flex border-b border-[var(--border)]">
+      <div className="flex border-b border-slate-200 dark:border-slate-700">
         {([
           ["weekly", "📅 Weekly Hours"],
           ["packages", "📦 Packages"],
@@ -155,12 +138,12 @@ export default function TeacherAvailabilityPage() {
             type="button"
             onClick={() => setTab(id)}
             className={`relative flex-1 py-3 text-sm font-bold ${
-              tab === id ? "text-[var(--primary)]" : "text-[var(--secondary)]"
+              tab === id ? "text-teal-700 dark:text-teal-300" : "text-slate-500 dark:text-slate-400"
             }`}
           >
             {label}
             {tab === id && (
-              <span className="absolute bottom-0 left-1/4 right-1/4 h-0.5 rounded-full bg-[var(--primary)]" />
+              <span className="absolute bottom-0 left-1/4 right-1/4 h-0.5 rounded-full bg-teal-600" />
             )}
           </button>
         ))}
@@ -168,25 +151,23 @@ export default function TeacherAvailabilityPage() {
 
       {tab === "weekly" ? (
         <>
-          <div className="rounded-xl border border-blue-200 bg-blue-50 px-4 py-3 text-xs text-blue-800 dark:border-blue-900 dark:bg-blue-950/30 dark:text-blue-300">
+          <div className="rounded-2xl border border-teal-200 bg-teal-50 px-4 py-3 text-xs font-semibold text-teal-800 dark:border-teal-900 dark:bg-teal-950/30 dark:text-teal-300">
             ⏱ Weekly capacity: <strong>{weeklyHours} hrs</strong> · Max recommended: 30 hrs/week
           </div>
 
-          <div className="rounded-2xl border border-[var(--border)] bg-[var(--card)] p-5">
-            <p className="mb-3 text-[10px] font-bold tracking-wide text-[var(--secondary)]">
-              RECURRING SCHEDULE
-            </p>
+          <div className="rounded-2xl border border-slate-100 bg-white p-5 shadow-sm dark:border-slate-800 dark:bg-[#112240]">
+            <p className="mb-3 text-[10px] font-bold uppercase tracking-wider text-slate-400">Recurring Schedule</p>
             <div className="space-y-3">
               {schedule.map((d) => (
                 <div
                   key={d.day}
-                  className="flex flex-wrap items-start gap-3 border-b border-[var(--border)] pb-3 last:border-0"
+                  className="flex flex-wrap items-start gap-3 border-b border-slate-100 pb-3 last:border-0 dark:border-slate-800"
                 >
                   <div
-                    className={`flex h-10 w-10 items-center justify-center rounded-xl text-xs font-extrabold ${
+                    className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-xl text-xs font-extrabold ${
                       d.slots.length
-                        ? "bg-teal-50 text-[var(--primary)] dark:bg-teal-950/40"
-                        : "bg-[var(--muted)] text-[var(--secondary)]"
+                        ? "bg-teal-50 text-teal-700 dark:bg-teal-950/40 dark:text-teal-300"
+                        : "bg-slate-100 text-slate-500 dark:bg-slate-800 dark:text-slate-400"
                     }`}
                   >
                     {d.day}
@@ -197,14 +178,14 @@ export default function TeacherAvailabilityPage() {
                         {d.slots.map((s) => (
                           <span
                             key={s}
-                            className="rounded-lg border border-teal-200 bg-teal-50 px-2 py-1 text-xs font-semibold text-[var(--primary)] dark:border-teal-800 dark:bg-teal-950/40"
+                            className="rounded-lg border border-teal-200 bg-teal-50 px-2 py-1 text-xs font-semibold text-teal-700 dark:border-teal-800 dark:bg-teal-950/40 dark:text-teal-300"
                           >
                             {s}
                           </span>
                         ))}
                         <button
                           type="button"
-                          className="text-xs font-bold text-[var(--primary)]"
+                          className="text-xs font-bold text-teal-600"
                         >
                           + Add
                         </button>
@@ -212,7 +193,7 @@ export default function TeacherAvailabilityPage() {
                     ) : (
                       <button
                         type="button"
-                        className="text-xs text-[var(--secondary)]"
+                        className="text-xs text-slate-500 dark:text-slate-400"
                       >
                         + Add slots
                       </button>
@@ -223,92 +204,108 @@ export default function TeacherAvailabilityPage() {
             </div>
           </div>
 
-          <div className="rounded-2xl border border-[var(--border)] bg-[var(--card)] p-5">
+          <div className="rounded-2xl border border-slate-100 bg-white p-5 shadow-sm dark:border-slate-800 dark:bg-[#112240]">
             <div className="mb-3 flex items-center justify-between">
-              <p className="text-[10px] font-bold tracking-wide text-[var(--secondary)]">
-                BLOCK DATES
-              </p>
+              <p className="text-[10px] font-bold uppercase tracking-wider text-slate-400">Block Dates</p>
               <button
                 type="button"
-                className="text-xs font-bold text-[var(--primary)]"
+                className="text-xs font-bold text-teal-600"
               >
                 + Block
               </button>
             </div>
             {blocked.length > 0 ? (
-              blocked.map((b) => (
-                <div key={b.id} className="mb-2 flex items-center gap-3">
-                  <span className="h-2 w-2 rounded-full bg-amber-500" />
-                  <div className="flex-1">
-                    <p className="text-sm font-bold text-[var(--foreground)]">{b.dateRange}</p>
-                    <p className="text-xs text-[var(--secondary)]">{b.reason}</p>
+              <div className="space-y-2">
+                {blocked.map((b) => (
+                  <div key={b.id} className="flex items-center gap-3">
+                    <span className="h-2 w-2 rounded-full bg-amber-500" />
+                    <div className="min-w-0 flex-1">
+                      <p className="text-sm font-bold text-slate-800 dark:text-white">{b.dateRange}</p>
+                      <p className="text-xs text-slate-500 dark:text-slate-400">{b.reason}</p>
+                    </div>
+                    <button
+                      type="button"
+                      className="text-xs text-slate-400 hover:text-red-500"
+                    >
+                      🗑
+                    </button>
                   </div>
-                  <span className="text-[var(--secondary)]">🗑</span>
-                </div>
-              ))
+                ))}
+              </div>
             ) : (
-              <p className="text-xs text-[var(--secondary)]">No blocked dates.</p>
+              <p className="text-xs text-slate-400">No blocked dates.</p>
             )}
           </div>
         </>
       ) : (
         <>
-          {packages.map((p) => (
-            <div
-              key={p.id}
-              className={`rounded-2xl border bg-[var(--card)] p-5 ${
-                p.popular ? "border-2 border-[var(--primary)]" : "border-[var(--border)]"
-              }`}
-            >
-              <div className="mb-3 flex items-center justify-between">
-                <p className="text-lg font-extrabold text-[var(--foreground)]">{p.name}</p>
-                {p.popular && (
-                  <span className="rounded-full bg-emerald-100 px-2.5 py-0.5 text-[10px] font-bold text-emerald-700">
-                    Popular
-                  </span>
-                )}
-              </div>
-              <div className="mb-3 grid grid-cols-3 gap-2">
-                {[
-                  [`${p.sessions}`, "Sessions"],
-                  [`${p.hrs}h`, "Per session"],
-                  [p.total.toLocaleString(), "ETB total"],
-                ].map(([v, l]) => (
-                  <div
-                    key={l as string}
-                    className="rounded-xl bg-[var(--muted)] p-3 text-center"
-                  >
-                    <p className="text-sm font-extrabold text-[var(--foreground)]">{v}</p>
-                    <p className="text-[10px] text-[var(--secondary)]">{l}</p>
-                  </div>
-                ))}
-              </div>
-              <p className="mb-3 text-[10px] text-[var(--secondary)]">
-                ✅ Valid 60 days · Escrow per session · Telebirr / CBE Birr
-              </p>
-              <div className="flex gap-2">
-                <button
-                  type="button"
-                  className="flex-1 rounded-xl border border-[var(--border)] py-2.5 text-xs font-bold text-[var(--secondary)]"
-                >
-                  Edit
-                </button>
-                <button
-                  type="button"
-                  className={`flex-1 rounded-xl py-2.5 text-xs font-bold ${
+          {packages.length === 0 ? (
+            <div className="rounded-2xl border border-dashed border-slate-300 bg-white p-10 text-center dark:border-slate-700 dark:bg-[#112240]">
+              <p className="text-sm font-bold text-slate-600 dark:text-slate-300">No packages yet</p>
+              <p className="mt-1 text-xs text-slate-400">Create a package to offer structured sessions.</p>
+            </div>
+          ) : (
+            <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
+              {packages.map((p) => (
+                <div
+                  key={p.id}
+                  className={`rounded-2xl border bg-white p-5 shadow-sm dark:bg-[#112240] ${
                     p.popular
-                      ? "bg-[var(--primary)] text-white"
-                      : "border border-[var(--border)] text-[var(--secondary)]"
+                      ? "border-teal-600 dark:border-teal-500"
+                      : "border-slate-100 dark:border-slate-800"
                   }`}
                 >
-                  {p.popular ? "Active ✓" : "Activate"}
-                </button>
-              </div>
+                  <div className="mb-3 flex items-center justify-between">
+                    <p className="text-lg font-extrabold text-slate-900 dark:text-white">{p.name}</p>
+                    {p.popular && (
+                      <span className="rounded-full bg-emerald-50 px-2.5 py-0.5 text-[10px] font-bold text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-300">
+                        Popular
+                      </span>
+                    )}
+                  </div>
+                  <div className="mb-3 grid grid-cols-3 gap-2">
+                    {[
+                      [`${p.sessions}`, "Sessions"],
+                      [`${p.hrs}h`, "Per session"],
+                      [p.total.toLocaleString(), "ETB total"],
+                    ].map(([v, l]) => (
+                      <div
+                        key={l}
+                        className="rounded-xl border border-slate-100 bg-slate-50 p-3 text-center dark:border-slate-800 dark:bg-slate-900/60"
+                      >
+                        <p className="text-sm font-extrabold text-slate-900 dark:text-white">{v}</p>
+                        <p className="text-[10px] text-slate-500 dark:text-slate-400">{l}</p>
+                      </div>
+                    ))}
+                  </div>
+                  <p className="mb-3 text-[10px] text-slate-500 dark:text-slate-400">
+                    ✅ Valid 60 days · Escrow per session · Telebirr / CBE Birr
+                  </p>
+                  <div className="flex gap-2">
+                    <button
+                      type="button"
+                      className="flex-1 rounded-xl border border-slate-200 py-2.5 text-xs font-bold text-slate-700 transition hover:bg-slate-50 dark:border-slate-700 dark:text-slate-200 dark:hover:bg-slate-800"
+                    >
+                      Edit
+                    </button>
+                    <button
+                      type="button"
+                      className={`flex-1 rounded-xl py-2.5 text-xs font-bold ${
+                        p.popular
+                          ? "bg-teal-600 text-white"
+                          : "border border-slate-200 text-slate-700 dark:border-slate-700 dark:text-slate-200"
+                      }`}
+                    >
+                      {p.popular ? "Active ✓" : "Activate"}
+                    </button>
+                  </div>
+                </div>
+              ))}
             </div>
-          ))}
+          )}
           <button
             type="button"
-            className="w-full rounded-2xl border-2 border-dashed border-[var(--border)] py-4 text-sm font-bold text-[var(--secondary)]"
+            className="w-full rounded-2xl border-2 border-dashed border-slate-200 py-4 text-sm font-bold text-slate-500 transition hover:border-teal-400 hover:text-teal-600 dark:border-slate-700 dark:text-slate-400 dark:hover:border-teal-500"
           >
             + Create Custom Package
           </button>

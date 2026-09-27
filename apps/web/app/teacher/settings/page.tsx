@@ -100,9 +100,7 @@ export default function TeacherSettingsPage() {
         if (!cancelled) setLoading(false);
       });
 
-    return () => {
-      cancelled = true;
-    };
+    return () => { cancelled = true; };
   }, []);
 
   const handleSave = async () => {
@@ -133,9 +131,9 @@ export default function TeacherSettingsPage() {
 
   if (loading) {
     return (
-      <div className="mx-auto max-w-3xl p-6">
-        <div className="h-6 w-48 animate-pulse rounded bg-slate-200 dark:bg-slate-800" />
-        <div className="mt-4 h-64 animate-pulse rounded-2xl bg-slate-100 dark:bg-slate-800" />
+      <div className="space-y-5 p-4 md:p-8">
+        <div className="h-7 w-48 animate-pulse rounded bg-slate-200 dark:bg-slate-800" />
+        <div className="h-64 animate-pulse rounded-2xl bg-slate-100 dark:bg-slate-800" />
       </div>
     );
   }
@@ -156,19 +154,16 @@ export default function TeacherSettingsPage() {
   }
 
   return (
-    <div className="mx-auto max-w-3xl space-y-5">
+    <div className="space-y-5 p-4 md:p-8">
       <div>
-        <h1 className="text-2xl font-black text-[var(--foreground)]">Settings</h1>
-        <p className="mt-1 text-sm text-[var(--secondary)]">
+        <h1 className="text-xl font-extrabold text-slate-800 dark:text-white">Settings</h1>
+        <p className="text-sm text-slate-500 dark:text-slate-400">
           Profile, notifications, language, and payout preferences
         </p>
       </div>
 
-      {/* Profile */}
-      <section className="rounded-2xl border border-[var(--border)] bg-[var(--card)] p-6">
-        <h2 className="mb-4 text-base font-extrabold text-[var(--foreground)]">
-          Profile information
-        </h2>
+      <section className="rounded-2xl border border-slate-100 bg-white p-5 shadow-sm dark:border-slate-800 dark:bg-[#112240]">
+        <h2 className="mb-4 text-base font-extrabold text-slate-800 dark:text-white">Profile information</h2>
         <div className="grid gap-4 sm:grid-cols-2">
           {[
             ["Full Name", me?.fullName || ""],
@@ -177,29 +172,26 @@ export default function TeacherSettingsPage() {
             ["Sub-city", me?.subCity || ""],
           ].map(([label, value]) => (
             <label key={String(label)} className="block">
-              <span className="mb-1.5 block text-[11px] font-bold uppercase tracking-wide text-[var(--secondary)]">
+              <span className="mb-1.5 block text-[10px] font-bold uppercase tracking-wide text-slate-500 dark:text-slate-400">
                 {label}
               </span>
               <input
                 defaultValue={String(value)}
-                className="w-full rounded-xl border border-[var(--border)] bg-[var(--muted)] px-3.5 py-2.5 text-sm text-[var(--foreground)] outline-none focus:border-[var(--primary)]"
+                className="w-full rounded-xl border border-slate-200 bg-slate-50 px-3.5 py-2.5 text-sm text-slate-800 outline-none focus:border-teal-500 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-200"
               />
             </label>
           ))}
         </div>
       </section>
 
-      {/* Notifications */}
-      <section className="rounded-2xl border border-[var(--border)] bg-[var(--card)] p-6">
-        <h2 className="mb-4 text-base font-extrabold text-[var(--foreground)]">
-          Notification preferences
-        </h2>
-        <div className="divide-y divide-[var(--border)]">
+      <section className="rounded-2xl border border-slate-100 bg-white p-5 shadow-sm dark:border-slate-800 dark:bg-[#112240]">
+        <h2 className="mb-4 text-base font-extrabold text-slate-800 dark:text-white">Notification preferences</h2>
+        <div className="divide-y divide-slate-100 dark:divide-slate-800">
           {NOTIFS.map((n) => (
-            <div key={n.key} className="flex items-center gap-4 py-3.5">
+            <div key={n.key} className="flex items-center gap-4 py-3.5 first:pt-0 last:pb-0">
               <div className="min-w-0 flex-1">
-                <p className="text-sm font-bold text-[var(--foreground)]">{n.label}</p>
-                <p className="text-xs text-[var(--secondary)]">{n.desc}</p>
+                <p className="text-sm font-bold text-slate-800 dark:text-white">{n.label}</p>
+                <p className="text-xs text-slate-500 dark:text-slate-400">{n.desc}</p>
               </div>
               <button
                 type="button"
@@ -209,7 +201,7 @@ export default function TeacherSettingsPage() {
                   setToggles((t) => ({ ...t, [n.key]: !t[n.key] }))
                 }
                 className={`relative h-6 w-11 shrink-0 rounded-full transition ${
-                  toggles[n.key] ? "bg-[var(--primary)]" : "bg-[var(--muted)]"
+                  toggles[n.key] ? "bg-teal-600" : "bg-slate-200 dark:bg-slate-700"
                 }`}
               >
                 <span
@@ -223,11 +215,8 @@ export default function TeacherSettingsPage() {
         </div>
       </section>
 
-      {/* Language */}
-      <section className="rounded-2xl border border-[var(--border)] bg-[var(--card)] p-6">
-        <h2 className="mb-4 text-base font-extrabold text-[var(--foreground)]">
-          Language
-        </h2>
+      <section className="rounded-2xl border border-slate-100 bg-white p-5 shadow-sm dark:border-slate-800 dark:bg-[#112240]">
+        <h2 className="mb-4 text-base font-extrabold text-slate-800 dark:text-white">Language</h2>
         <div className="grid grid-cols-2 gap-3 sm:grid-cols-2">
           {LANGS.map(([code, name]) => (
             <button
@@ -236,30 +225,27 @@ export default function TeacherSettingsPage() {
               onClick={() => setLang(code)}
               className={`rounded-xl border p-4 text-center transition ${
                 lang === code
-                  ? "border-[var(--primary)] bg-teal-50 dark:bg-teal-950/30"
-                  : "border-[var(--border)] bg-[var(--muted)]"
+                  ? "border-teal-600 bg-teal-50 dark:bg-teal-950/30"
+                  : "border-slate-200 bg-white dark:border-slate-700 dark:bg-slate-900"
               }`}
             >
               <p
                 className={`text-lg font-black ${
-                  lang === code ? "text-[var(--primary)]" : "text-[var(--foreground)]"
+                  lang === code ? "text-teal-700 dark:text-teal-300" : "text-slate-800 dark:text-slate-200"
                 }`}
               >
                 {code}
               </p>
-              <p className="text-[11px] text-[var(--secondary)]">{name}</p>
+              <p className="text-[11px] text-slate-500 dark:text-slate-400">{name}</p>
             </button>
           ))}
         </div>
       </section>
 
-      {/* Payout */}
-      <section className="rounded-2xl border border-[var(--border)] bg-[var(--card)] p-6">
-        <h2 className="mb-2 text-base font-extrabold text-[var(--foreground)]">
-          Payout method
-        </h2>
-        <p className="mb-4 text-sm text-[var(--secondary)]">
-          Preferred rail for escrow releases (Telebirr / CBE Birr / M-Pesa)
+      <section className="rounded-2xl border border-slate-100 bg-white p-5 shadow-sm dark:border-slate-800 dark:bg-[#112240]">
+        <h2 className="mb-2 text-base font-extrabold text-slate-800 dark:text-white">Payout method</h2>
+        <p className="mb-4 text-sm text-slate-500 dark:text-slate-400">
+          Preferred rail for escrow releases
         </p>
         <div className="flex flex-wrap gap-2">
           {[
@@ -275,9 +261,9 @@ export default function TeacherSettingsPage() {
                 onClick={() => setSelectedPayout(m.value)}
                 className="rounded-full border px-4 py-2 text-xs font-bold"
                 style={{
-                  borderColor: active ? m.color : "var(--border)",
-                  color: active ? m.color : "var(--secondary)",
-                  background: active ? `${m.color}12` : "transparent",
+                  borderColor: active ? m.color : undefined,
+                  color: active ? m.color : undefined,
+                  background: active ? `${m.color}12` : undefined,
                 }}
               >
                 {m.name}
@@ -292,7 +278,7 @@ export default function TeacherSettingsPage() {
           type="button"
           onClick={handleSave}
           disabled={saving}
-          className="rounded-xl bg-[var(--primary)] px-6 py-3 text-sm font-bold text-white disabled:opacity-70"
+          className="rounded-xl bg-teal-600 px-6 py-3 text-sm font-bold text-white transition hover:bg-teal-700 disabled:opacity-70"
         >
           {saving ? "Saving…" : saved ? "✓ Saved" : "Save settings"}
         </button>
@@ -302,7 +288,7 @@ export default function TeacherSettingsPage() {
             await logout();
             router.push("/login");
           }}
-          className="rounded-xl border border-[var(--border)] px-6 py-3 text-sm font-bold text-[var(--foreground)]"
+          className="rounded-xl border border-slate-200 px-6 py-3 text-sm font-bold text-slate-700 transition hover:bg-slate-50 dark:border-slate-700 dark:text-slate-200 dark:hover:bg-slate-800"
         >
           Log out
         </button>
