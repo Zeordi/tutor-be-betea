@@ -97,8 +97,8 @@ export default function ParentChatInboxPage() {
   return (
     <div className="mx-auto max-w-2xl">
       <div className="mb-6">
-        <h1 className="text-2xl font-black text-[var(--foreground)]">Messages</h1>
-        <p className="mt-1 text-sm text-[var(--secondary)]">
+        <h1 className="text-2xl font-black text-slate-800 dark:text-white">Messages</h1>
+        <p className="mt-1 text-sm text-slate-500 dark:text-slate-400">
           On-platform chat only · contact details are blocked for escrow & safety
         </p>
       </div>
@@ -108,16 +108,16 @@ export default function ParentChatInboxPage() {
         redacted automatically.
       </div>
 
-      <div className="overflow-hidden rounded-2xl border border-[var(--border)] bg-[var(--card)]">
+      <div className="overflow-hidden rounded-2xl border border-slate-200 bg-white dark:border-slate-800 dark:bg-[#112240]">
         {conversations.map((c, i) => (
           <Link
             key={c.id}
             href={`/parent/chat/${c.id}`}
-            className={`flex items-center gap-3 px-4 py-4 transition hover:bg-[var(--muted)] ${
-              i < conversations.length - 1 ? "border-b border-[var(--border)]" : ""
+            className={`flex items-center gap-3 px-4 py-4 transition hover:bg-slate-50 dark:hover:bg-slate-800 ${
+              i < conversations.length - 1 ? "border-b border-slate-100 dark:border-slate-800" : ""
             }`}
           >
-            <div className="flex h-12 w-12 items-center justify-center rounded-full bg-gradient-to-br from-[var(--primary)] to-teal-300 text-xl">
+            <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-full bg-gradient-to-br from-teal-600 to-teal-300 text-xl text-white">
               {c.otherUser.avatarUrl ? (
                 <img
                   className="h-12 w-12 rounded-full object-cover"
@@ -130,19 +130,19 @@ export default function ParentChatInboxPage() {
             </div>
             <div className="min-w-0 flex-1">
               <div className="flex items-center justify-between gap-2">
-                <p className="truncate font-bold text-[var(--foreground)]">{c.otherUser.fullName}</p>
+                <p className="truncate font-bold text-slate-800 dark:text-white">{c.otherUser.fullName}</p>
                 {c.lastMessage && (
-                  <span className="shrink-0 text-xs text-[var(--secondary)]">
+                  <span className="shrink-0 text-xs text-slate-400">
                     {formatTime(c.lastMessage.createdAt)}
                   </span>
                 )}
               </div>
               {c.lastMessage && (
-                <p className="mt-0.5 truncate text-sm text-[var(--secondary)]">{c.lastMessage.body}</p>
+                <p className="mt-0.5 truncate text-sm text-slate-500 dark:text-slate-400">{c.lastMessage.body}</p>
               )}
             </div>
             {c.unreadCount > 0 && (
-              <span className="flex h-5 min-w-5 items-center justify-center rounded-full bg-[var(--primary)] px-1.5 text-[11px] font-bold text-white">
+              <span className="flex h-5 min-w-5 items-center justify-center rounded-full bg-teal-600 px-1.5 text-[11px] font-bold text-white">
                 {c.unreadCount}
               </span>
             )}
@@ -151,7 +151,7 @@ export default function ParentChatInboxPage() {
       </div>
 
       {conversations.length === 0 && (
-        <div className="rounded-2xl border border-dashed border-[var(--border)] p-10 text-center text-sm text-[var(--secondary)]">
+        <div className="rounded-2xl border border-dashed border-slate-300 p-10 text-center text-sm text-slate-500 dark:border-slate-700">
           No conversations yet. Start a conversation from a tutor's profile.
         </div>
       )}

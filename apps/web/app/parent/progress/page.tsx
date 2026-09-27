@@ -53,7 +53,7 @@ export default function ParentProgressPage() {
     return (
       <div className="space-y-5 p-6">
         <div className="h-6 w-56 animate-pulse rounded bg-slate-200 dark:bg-slate-800" />
-        <div className="grid gap-4 md:grid-cols-4">
+        <div className="grid grid-cols-2 gap-4 md:grid-cols-4">
           {[1, 2, 3, 4].map((i) => (
             <div key={i} className="h-24 animate-pulse rounded-2xl bg-slate-100 dark:bg-slate-800" />
           ))}
@@ -91,9 +91,9 @@ export default function ParentProgressPage() {
 
   return (
     <div className="space-y-5 p-6">
-      <div className="flex items-center justify-between">
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <h2 className="text-xl font-extrabold text-slate-800 dark:text-white">Progress Reports</h2>
-        <div className="flex gap-2">
+        <div className="flex flex-wrap gap-2">
           {children.map((c) => (
             <button
               key={c.childId}
@@ -110,23 +110,23 @@ export default function ParentProgressPage() {
         </div>
       </div>
 
-      <div className="grid gap-4 md:grid-cols-4">
-        <div className="rounded-2xl border border-slate-100 bg-white p-4 text-center dark:border-slate-800 dark:bg-[#112240]">
+      <div className="grid grid-cols-2 gap-4 md:grid-cols-4">
+        <div className="rounded-2xl border border-slate-100 bg-white p-4 dark:border-slate-800 dark:bg-[#112240]">
           <p className="mb-1 text-2xl">📊</p>
           <p className="text-xl font-extrabold text-teal-600">{selected.overallScore}%</p>
           <p className="text-xs text-slate-500">Overall</p>
         </div>
-        <div className="rounded-2xl border border-slate-100 bg-white p-4 text-center dark:border-slate-800 dark:bg-[#112240]">
+        <div className="rounded-2xl border border-slate-100 bg-white p-4 dark:border-slate-800 dark:bg-[#112240]">
           <p className="mb-1 text-2xl">📚</p>
           <p className="text-xl font-extrabold text-teal-600">{selected.sessionsThisMonth}</p>
           <p className="text-xs text-slate-500">Sessions</p>
         </div>
-        <div className="rounded-2xl border border-slate-100 bg-white p-4 text-center dark:border-slate-800 dark:bg-[#112240]">
+        <div className="rounded-2xl border border-slate-100 bg-white p-4 dark:border-slate-800 dark:bg-[#112240]">
           <p className="mb-1 text-2xl">⏰</p>
           <p className="text-xl font-extrabold text-teal-600">{selected.attendancePct}%</p>
           <p className="text-xs text-slate-500">Attendance</p>
         </div>
-        <div className="rounded-2xl border border-slate-100 bg-white p-4 text-center dark:border-slate-800 dark:bg-[#112240]">
+        <div className="rounded-2xl border border-slate-100 bg-white p-4 dark:border-slate-800 dark:bg-[#112240]">
           <p className="mb-1 text-2xl">✅</p>
           <p className="text-xl font-extrabold text-teal-600">{selected.homeworkPct}%</p>
           <p className="text-xs text-slate-500">Homework</p>
@@ -160,12 +160,15 @@ export default function ParentProgressPage() {
             {selected.aiInsights.map((tip) => (
               <div
                 key={tip}
-                className="flex gap-2 rounded-xl bg-teal-50 p-2 dark:bg-teal-900/20"
+                className="flex gap-2 rounded-xl bg-teal-50 p-3 dark:bg-teal-900/20"
               >
                 <span className="mt-0.5 text-sm text-teal-500">💡</span>
                 <p className="text-xs text-slate-600 dark:text-slate-400">{tip}</p>
               </div>
             ))}
+            {selected.aiInsights.length === 0 && (
+              <p className="text-xs text-slate-400">No insights available yet.</p>
+            )}
           </div>
         </div>
       </div>

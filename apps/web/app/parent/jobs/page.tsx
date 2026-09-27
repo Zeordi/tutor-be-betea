@@ -24,11 +24,21 @@ type ParentJob = {
   createdAt: string;
 };
 
+const TABS = ["My Jobs", "Applications", "Hired"] as const;
+type Tab = (typeof TABS)[number];
+
+const STATUS_COPY: Record<string, string> = {
+  OPEN: "Active",
+  FILLED: "Hired",
+  CLOSED: "Closed",
+  EXPIRED: "Expired",
+};
+
 export default function ParentJobsPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [jobs, setJobs] = useState<ParentJob[]>([]);
-  const [tab, setTab] = useState("My Jobs");
+  const [tab, setTab] = useState<Tab>("My Jobs");
 
   useEffect(() => {
     let cancelled = false;
@@ -59,31 +69,75 @@ export default function ParentJobsPage() {
     .filter((j) => j.status === "FILLED")
     .map((j) => ({
       id: j.id,
-      teacherName: j.applications.find((a) => a.status === "ACCEPTED")?.teacher.fullName || "Unknown",
+      teacherName:
+        j.applications.find((a) => a.status === "ACCEPTED")?.teacher.fullName ||
+        "Unknown",
       subject: j.subjects.join(", "),
       student: j.student.studentName,
     }));
 
+  const statusPill = (status: string) => {
+    const copy = STATUS_COPY[status] || status.toLowerCase();
+    const isOpen = status === "OPEN";
+    const isFilled = status === "FILLED";
+    return (
+      <span
+        className={`rounded-full px-2 py-0.5 text-[10px] font-bold ${
+          isOpen
+            ? "bg-emerald-50 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-300"
+            : isFilled
+              ? "bg-blue-50 text-blue-700 dark:bg-blue-900/30 dark:text-blue-300"
+              : "bg-slate-100 text-slate-600 dark:bg-slate-800 dark:text-slate-300"
+        }`}
+      >
+        {copy}
+      </span>
+    );
+  };
+
+  const applicationStatusPill = (status: string) => {
+    const s = status.toLowerCase();
+    if (s === "pending") {
+      return (
+        <span className="rounded-full bg-amber-50 px-2 py-0.5 text-[10px] font-bold text-amber-700 dark:bg-amber-900/30 dark:text-amber-300">
+          New
+        </span>
+      );
+    }
+    if (s === "shortlisted" || s === "reviewed") {
+      return (
+        <span className="rounded-full bg-sky-50 px-2 py-0.5 text-[10px] font-bold text-sky-700 dark:bg-sky-900/30 dark:text-sky-300">
+          {status}
+        </span>
+      );
+    }
+    return (
+      <span className="rounded-full bg-slate-100 px-2 py-0.5 text-[10px] font-bold text-slate-600 dark:bg-slate-800 dark:text-slate-300">
+        {status}
+      </span>
+    );
+  };
+
   return (
     <div className="space-y-5 p-6">
-      <div className="flex items-center justify-between">
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <h2 className="text-xl font-extrabold text-slate-800 dark:text-white">My Jobs</h2>
         <Link
           href="/parent/jobs/create"
-          className="rounded-xl bg-teal-600 px-4 py-2 text-sm font-bold text-white"
+          className="rounded-xl bg-teal-600 px-4 py-2 text-center text-sm font-bold text-white"
         >
           + Post Job
         </Link>
       </div>
 
-      <div className="flex gap-2">
-        {["My Jobs", "Applications", "Hired"].map((t) => (
+      <div className="flex flex-wrap gap-2">
+        {TABS.map((t) => (
           <button
             key={t}
             onClick={() => setTab(t)}
             className={`rounded-xl px-4 py-1.5 text-sm font-semibold transition-all ${
               tab === t
-                ? "bg-teal-600 text-white shadow-sm"
+                ? "bg-teal-50 text-teal-700 shadow-sm ring-1 ring-teal-600/20 dark:bg-teal-900/30 dark:text-teal-300"
                 : "text-slate-500 hover:bg-slate-100 dark:hover:bg-slate-800"
             }`}
           >
@@ -115,12 +169,12 @@ export default function ParentJobsPage() {
               {jobs.map((j) => (
                 <div
                   key={j.id}
-                  className="flex items-center gap-4 rounded-2xl border border-slate-100 bg-white p-4 dark:border-slate-800 dark:bg-[#112240]"
+                  className="flex flex-col gap-3 rounded-2xl border border-slate-100 bg-white p-4 shadow-sm transition hover:shadow-md dark:border-slate-800 dark:bg-[#112240] sm:flex-row sm:items-center"
                 >
-                  <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-teal-50 text-xl dark:bg-teal-900/30">
+                  <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl bg-teal-50 text-xl dark:bg-teal-900/30">
                     📚
                   </div>
-                  <div className="flex-1">
+                  <div className="min-w-0 flex-1">
                     <div className="flex flex-wrap items-center gap-2">
                       <p className="text-sm font-bold text-slate-800 dark:text-white">
                         {j.subjects.join(", ")} · {j.student.gradeLevel}
@@ -130,25 +184,15 @@ export default function ParentJobsPage() {
                           🚀 Boosted
                         </span>
                       )}
-                      <span
-                        className={`rounded-full px-2 py-0.5 text-[10px] font-bold ${
-                          j.status === "OPEN"
-                            ? "bg-emerald-50 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-300"
-                            : j.status === "FILLED"
-                              ? "bg-blue-50 text-blue-700 dark:bg-blue-900/30 dark:text-blue-300"
-                              : "bg-slate-100 text-slate-600 dark:bg-slate-800 dark:text-slate-300"
-                        }`}
-                      >
-                        {j.status.toLowerCase()}
-                      </span>
+                      {statusPill(j.status)}
                     </div>
-                    <p className="text-xs text-slate-400">
+                    <p className="mt-1 text-xs text-slate-400">
                       👧 {j.student.studentName} · 💰 {Number(j.monthlyBudget).toLocaleString()} ETB/hr · 📋 {j.applications.length} applicants
                     </p>
                   </div>
                   <Link
                     href={`/parent/jobs/${j.id}`}
-                    className="rounded-xl border border-slate-200 px-3 py-1.5 text-xs font-bold text-slate-600 dark:border-slate-700 dark:text-slate-300"
+                    className="shrink-0 rounded-xl border border-slate-200 px-3 py-1.5 text-center text-xs font-bold text-slate-600 transition hover:border-teal-600 hover:text-teal-700 dark:border-slate-700 dark:text-slate-300 dark:hover:border-teal-500 dark:hover:text-teal-300"
                   >
                     View
                   </Link>
@@ -165,37 +209,39 @@ export default function ParentJobsPage() {
               {applications.map((a) => (
                 <div
                   key={a.id}
-                  className="rounded-2xl border border-slate-100 bg-white p-4 dark:border-slate-800 dark:bg-[#112240]"
+                  className="flex flex-col gap-3 rounded-2xl border border-slate-100 bg-white p-4 shadow-sm transition hover:shadow-md dark:border-slate-800 dark:bg-[#112240] sm:flex-row sm:items-center"
                 >
-                  <div className="flex items-start gap-3">
-                    <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-teal-600 text-sm font-bold text-white">
-                      {a.teacher.fullName.split(" ").map((n) => n[0]).slice(0, 2).join("")}
-                    </div>
-                    <div className="flex-1">
-                      <div className="flex flex-wrap items-center gap-2">
-                        <p className="text-sm font-bold text-slate-800 dark:text-white">{a.teacher.fullName}</p>
-                        <span className={`rounded-full px-2 py-0.5 text-[10px] font-bold ${
-                          a.status === "PENDING"
-                            ? "bg-amber-50 text-amber-700 dark:bg-amber-900/30"
-                            : a.status === "SHORTLISTED"
-                              ? "bg-blue-50 text-blue-700 dark:bg-blue-900/30"
-                              : "bg-slate-100 text-slate-600 dark:bg-slate-800 dark:text-slate-300"
-                        }`}>
-                          {a.status.toLowerCase()}
-                        </span>
-                      </div>
-                      <p className="text-xs text-slate-400">
-                        {a.proposedRate ? `${a.proposedRate} ETB/hr` : "Rate not specified"} · ⭐ {new Date(a.createdAt).toLocaleDateString()}
+                  <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl bg-teal-600 text-sm font-bold text-white">
+                    {a.teacher.fullName
+                      .split(" ")
+                      .map((n) => n[0])
+                      .slice(0, 2)
+                      .join("")}
+                  </div>
+                  <div className="min-w-0 flex-1">
+                    <div className="flex flex-wrap items-center gap-2">
+                      <p className="text-sm font-bold text-slate-800 dark:text-white">
+                        {a.teacher.fullName}
                       </p>
+                      {applicationStatusPill(a.status)}
                     </div>
-                    <div className="flex gap-2">
-                      <button className="rounded-xl bg-teal-600 px-3 py-1.5 text-xs font-bold text-white">
-                        Hire
-                      </button>
-                      <button className="rounded-xl border border-slate-200 px-3 py-1.5 text-xs font-bold text-slate-600 dark:border-slate-700">
-                        View
-                      </button>
-                    </div>
+                    <p className="text-xs text-slate-400">
+                      {a.proposedRate ? `${a.proposedRate} ETB/hr` : "Rate not specified"} · ⭐ {new Date(a.createdAt).toLocaleDateString()}
+                    </p>
+                  </div>
+                  <div className="flex shrink-0 gap-2">
+                    <button
+                      type="button"
+                      className="rounded-xl bg-teal-600 px-3 py-1.5 text-xs font-bold text-white"
+                    >
+                      Hire
+                    </button>
+                    <button
+                      type="button"
+                      className="rounded-xl border border-slate-200 px-3 py-1.5 text-xs font-bold text-slate-600 dark:border-slate-700 dark:text-slate-300"
+                    >
+                      View
+                    </button>
                   </div>
                 </div>
               ))}
@@ -210,13 +256,19 @@ export default function ParentJobsPage() {
               {hired.map((h) => (
                 <div
                   key={h.id}
-                  className="flex items-center gap-3 rounded-2xl border border-slate-100 bg-white p-4 dark:border-slate-800 dark:bg-[#112240]"
+                  className="flex flex-col gap-3 rounded-2xl border border-slate-100 bg-white p-4 shadow-sm transition hover:shadow-md dark:border-slate-800 dark:bg-[#112240] sm:flex-row sm:items-center"
                 >
-                  <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-teal-600 text-sm font-bold text-white">
-                    {h.teacherName.split(" ").map((n) => n[0]).slice(0, 2).join("")}
+                  <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl bg-teal-600 text-sm font-bold text-white">
+                    {h.teacherName
+                      .split(" ")
+                      .map((n) => n[0])
+                      .slice(0, 2)
+                      .join("")}
                   </div>
-                  <div className="flex-1">
-                    <p className="text-sm font-bold text-slate-800 dark:text-white">{h.teacherName}</p>
+                  <div className="min-w-0 flex-1">
+                    <p className="text-sm font-bold text-slate-800 dark:text-white">
+                      {h.teacherName}
+                    </p>
                     <p className="text-xs text-slate-400">
                       {h.subject} · {h.student}
                     </p>
@@ -224,7 +276,10 @@ export default function ParentJobsPage() {
                       ✓ Active Contract
                     </span>
                   </div>
-                  <Link href="/parent/contracts" className="rounded-xl bg-teal-600 px-3 py-1.5 text-xs font-bold text-white">
+                  <Link
+                    href="/parent/contracts"
+                    className="shrink-0 rounded-xl bg-teal-600 px-3 py-1.5 text-center text-xs font-bold text-white"
+                  >
                     View Contract
                   </Link>
                 </div>

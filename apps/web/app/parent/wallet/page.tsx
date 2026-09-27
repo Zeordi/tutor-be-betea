@@ -49,6 +49,7 @@ export default function ParentWalletPage() {
   const successTransactions = (wallet?.transactions || []).filter((t) => t.status === "SUCCESS");
   const availableBalance = successTransactions.reduce((sum, t) => sum + Number(t.amount), 0);
   const escrowHeld = wallet?.escrowHeld || 0;
+  const transactions = wallet?.transactions || [];
 
   function txIcon(status: string, provider: string) {
     if (status === "SUCCESS") return "✅";
@@ -63,6 +64,9 @@ export default function ParentWalletPage() {
     if (status === "FAILED") return "Failed";
     return "Payment";
   }
+
+  const linkedContracts = transactions.filter((t) => t.contractId);
+  const pendingEscrows = linkedContracts.filter((t) => t.status === "PENDING");
 
   if (loading) {
     return (
@@ -91,47 +95,50 @@ export default function ParentWalletPage() {
   return (
     <div className="space-y-5 p-6">
       <h2 className="text-xl font-extrabold text-slate-800 dark:text-white">Wallet & Payments</h2>
+
       <div className="grid gap-4 md:grid-cols-3">
         <div className="rounded-2xl bg-gradient-to-br from-teal-700 to-teal-900 p-6 text-white md:col-span-2">
-          <p className="mb-1 text-sm opacity-70">Available Balance</p>
-          <p className="mb-4 text-4xl font-extrabold">
+          <p className="mb-1 text-sm opacity-80">Available Balance</p>
+          <p className="mb-5 text-4xl font-extrabold">
             {availableBalance.toLocaleString()} <span className="text-xl opacity-70">ETB</span>
           </p>
           <div className="flex gap-3">
+            <button
+              type="button"
+              className="flex-1 rounded-xl bg-white/15 py-2.5 text-sm font-bold backdrop-blur transition hover:bg-white/25"
+              disabled
+            >
+              📤 Withdraw
+            </button>
             <Link
               href="/parent/checkout"
-              className="flex-1 rounded-xl bg-white/15 py-2.5 text-center text-sm font-bold backdrop-blur"
+              className="flex-1 rounded-xl bg-white/15 py-2.5 text-center text-sm font-bold backdrop-blur transition hover:bg-white/25"
             >
               ➕ Top Up
             </Link>
-            <button className="flex-1 rounded-xl bg-white/15 py-2.5 text-sm font-bold backdrop-blur" disabled>
-              📤 Withdraw
-            </button>
           </div>
         </div>
+
         <div className="rounded-2xl border border-slate-100 bg-white p-5 dark:border-slate-800 dark:bg-[#112240]">
           <p className="mb-3 text-sm font-bold text-slate-500">Escrow Held</p>
           <p className="mb-1 text-2xl font-extrabold text-amber-500">
             {escrowHeld.toLocaleString()} ETB
           </p>
           <p className="mb-4 text-xs text-slate-400">
-            {(wallet?.transactions || []).filter((t) => t.contractId).length} linked contracts
+            {linkedContracts.length} linked contract{linkedContracts.length === 1 ? "" : "s"}
           </p>
           <div className="space-y-2">
-            {(wallet?.transactions || [])
-              .filter((t) => t.contractId && t.status === "PENDING")
-              .slice(0, 3)
-              .map((t) => (
-                <div key={t.id} className="flex justify-between text-xs">
-                  <span className="text-slate-500 truncate">
-                    {t.provider} · {t.contractId?.slice(0, 8)}
-                  </span>
-                  <span className="font-semibold text-slate-700 dark:text-slate-300">
-                    {Number(t.amount).toLocaleString()} ETB
-                  </span>
-                </div>
-              ))}
-            {(!wallet?.transactions || wallet.transactions.filter((t) => t.contractId && t.status === "PENDING").length === 0) && (
+            {pendingEscrows.slice(0, 3).map((t) => (
+              <div key={t.id} className="flex justify-between text-xs">
+                <span className="truncate text-slate-500">
+                  {t.provider} · {t.contractId?.slice(0, 8)}
+                </span>
+                <span className="ml-2 shrink-0 font-semibold text-slate-700 dark:text-slate-300">
+                  {Number(t.amount).toLocaleString()} ETB
+                </span>
+              </div>
+            ))}
+            {pendingEscrows.length === 0 && (
               <p className="text-xs text-slate-400">No active escrow</p>
             )}
           </div>
@@ -141,16 +148,16 @@ export default function ParentWalletPage() {
       <div className="rounded-2xl border border-slate-100 bg-white p-5 dark:border-slate-800 dark:bg-[#112240]">
         <h3 className="mb-4 font-bold text-slate-800 dark:text-white">Transaction History</h3>
         <div className="space-y-2">
-          {(wallet?.transactions || []).length === 0 && (
+          {transactions.length === 0 && (
             <p className="text-sm text-slate-400">No transactions yet.</p>
           )}
-          {(wallet?.transactions || []).map((tx) => (
+          {transactions.map((tx) => (
             <div
               key={tx.id}
-              className="flex items-center gap-3 rounded-xl p-3 hover:bg-slate-50 dark:hover:bg-slate-800/50"
+              className="flex items-center gap-3 rounded-xl p-3 transition hover:bg-slate-50 dark:hover:bg-slate-800/50"
             >
               <div
-                className={`flex h-10 w-10 items-center justify-center rounded-xl text-lg ${
+                className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-xl text-lg ${
                   tx.status === "SUCCESS"
                     ? "bg-emerald-50 dark:bg-emerald-900/20"
                     : tx.status === "PENDING"
@@ -160,11 +167,11 @@ export default function ParentWalletPage() {
               >
                 {txIcon(tx.status, tx.provider)}
               </div>
-              <div className="flex-1">
+              <div className="min-w-0 flex-1">
                 <p className="text-sm font-semibold text-slate-700 dark:text-slate-200">
                   {txTypeLabel(tx.status, tx.provider)} · {tx.provider}
                 </p>
-                <p className="text-xs text-slate-400">
+                <p className="truncate text-xs text-slate-400">
                   {new Date(tx.createdAt).toLocaleDateString()} · {tx.externalRef ? `Ref: ${tx.externalRef.slice(0, 12)}` : "No ref"}
                 </p>
               </div>

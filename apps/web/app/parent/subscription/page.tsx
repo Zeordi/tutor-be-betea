@@ -24,16 +24,31 @@ type Subscription = {
   endsAt: string | null;
 };
 
-const PLAN_COLORS: Record<string, string> = {
-  Basic: "var(--primary)",
-  Premium: "#2DD4BF",
-  Elite: "#7C3AED",
-};
-
 const TIER_TO_PLAN: Record<string, string> = {
   BASIC: "basic",
   PREMIUM: "premium",
   ELITE: "elite",
+};
+
+const PLAN_STYLES: Record<string, { border: string; bg: string; text: string; badge: string }> = {
+  Basic: {
+    border: "border-teal-500",
+    bg: "bg-teal-50 dark:bg-teal-900/20",
+    text: "text-teal-700 dark:text-teal-300",
+    badge: "bg-teal-600",
+  },
+  Premium: {
+    border: "border-teal-500",
+    bg: "bg-teal-50 dark:bg-teal-900/20",
+    text: "text-teal-700 dark:text-teal-300",
+    badge: "bg-teal-600",
+  },
+  Elite: {
+    border: "border-purple-500",
+    bg: "bg-purple-50 dark:bg-purple-900/20",
+    text: "text-purple-700 dark:text-purple-300",
+    badge: "bg-purple-600",
+  },
 };
 
 export default function SubscriptionPage() {
@@ -98,7 +113,7 @@ export default function SubscriptionPage() {
 
   if (loading) {
     return (
-      <div className="max-w-4xl space-y-6">
+      <div className="mx-auto max-w-4xl space-y-6 p-6">
         <div className="h-6 w-48 animate-pulse rounded bg-slate-200 dark:bg-slate-800" />
         <div className="h-8 w-32 animate-pulse rounded bg-slate-200 dark:bg-slate-800" />
         <div className="grid grid-cols-3 gap-6">
@@ -147,17 +162,17 @@ export default function SubscriptionPage() {
     : "";
 
   return (
-    <div>
-      <div className="mb-10 text-center">
-        <h1 className="mb-2 text-2xl font-black text-[var(--foreground)]">Your plan</h1>
-        <p className="text-sm text-[var(--secondary)]">
+    <div className="mx-auto max-w-4xl space-y-6 p-6">
+      <div className="text-center">
+        <h1 className="mb-2 text-2xl font-black text-slate-800 dark:text-white">Your plan</h1>
+        <p className="text-sm text-slate-500 dark:text-slate-400">
           Currently on{" "}
-          <span className="font-extrabold text-teal-400">{currentPlanName || "None"}</span>
+          <span className="font-extrabold text-teal-600">{currentPlanName || "None"}</span>
           {sub && (
             <>
               {" "}
               ·{" "}
-              <span className="font-mono font-bold text-teal-400">
+              <span className="font-mono font-bold text-teal-600">
                 {sub.tier}
               </span>
               {" "}
@@ -167,7 +182,7 @@ export default function SubscriptionPage() {
         </p>
       </div>
 
-      <div className="mb-6 flex justify-center gap-2">
+      <div className="flex justify-center gap-2">
         {(["monthly", "yearly"] as const).map((c) => (
           <button
             key={c}
@@ -175,8 +190,8 @@ export default function SubscriptionPage() {
             onClick={() => setCycle(c)}
             className={`rounded-full border px-4 py-1.5 text-[13px] font-bold ${
               cycle === c
-                ? "border-[var(--primary)] bg-teal-50 text-[var(--primary)] dark:bg-teal-950/40"
-                : "border-[var(--border)] text-[var(--secondary)]"
+                ? "border-teal-600 bg-teal-50 text-teal-700 dark:bg-teal-900/30 dark:text-teal-300"
+                : "border-slate-200 text-slate-500 dark:border-slate-700 dark:text-slate-400"
             }`}
           >
             {c === "monthly" ? "Monthly" : "Yearly"}
@@ -184,36 +199,33 @@ export default function SubscriptionPage() {
         ))}
       </div>
 
-      <div className="mx-auto grid max-w-4xl gap-6 md:grid-cols-3">
+      <div className="grid gap-6 md:grid-cols-3">
         {displayedPlans.map((plan) => {
           const isCurrent = plan.id === currentPlanId;
-          const color = PLAN_COLORS[plan.name] || "var(--primary)";
+          const style = PLAN_STYLES[plan.name] || PLAN_STYLES.Basic;
           return (
             <div
               key={plan.id}
-              className="relative rounded-2xl border-2 bg-[var(--card)] p-7"
-              style={{
-                borderColor: isCurrent ? color : "var(--border)",
-                background: isCurrent ? `${color}12` : undefined,
-              }}
+              className={`relative rounded-2xl border-2 bg-white p-7 dark:bg-[#112240] ${
+                isCurrent ? style.border : "border-slate-200 dark:border-slate-800"
+              } ${isCurrent ? style.bg : ""}`}
             >
               {isCurrent && (
                 <span
-                  className="absolute -top-3 left-1/2 -translate-x-1/2 rounded-full px-3 py-0.5 text-[11px] font-extrabold text-white"
-                  style={{ background: color }}
+                  className={`absolute -top-3 left-1/2 -translate-x-1/2 rounded-full px-3 py-0.5 text-[11px] font-extrabold text-white ${style.badge}`}
                 >
-                  CURRENT
+                  CURRENT PLAN
                 </span>
               )}
-              <p className="text-xl font-black text-[var(--foreground)]">{plan.name}</p>
-              <p className="mt-1 font-mono text-2xl font-black" style={{ color }}>
+              <p className="text-xl font-black text-slate-800 dark:text-white">{plan.name}</p>
+              <p className={`mt-1 font-mono text-2xl font-black ${style.text}`}>
                 {priceLabel(plan)}
               </p>
-              <p className="mt-0.5 text-xs text-[var(--secondary)]">up to {plan.maxChildren} children</p>
-              <ul className="mt-5 space-y-2.5 border-t border-[var(--border)] pt-5">
+              <p className="mt-0.5 text-xs text-slate-400">up to {plan.maxChildren} children</p>
+              <ul className="mt-5 space-y-2.5 border-t border-slate-200 pt-5 dark:border-slate-800">
                 {(plan.features || []).map((f) => (
-                  <li key={f} className="flex items-start gap-2 text-[13px] text-[var(--secondary)]">
-                    <span style={{ color }}>✓</span> {f}
+                  <li key={f} className="flex items-start gap-2 text-[13px] text-slate-600 dark:text-slate-400">
+                    <span className={style.text}>✓</span> {f}
                   </li>
                 ))}
               </ul>
@@ -221,12 +233,11 @@ export default function SubscriptionPage() {
                 type="button"
                 onClick={() => upgrade(plan.id)}
                 disabled={upgrading === plan.id || isCurrent}
-                className="mt-6 w-full rounded-xl py-3 text-sm font-bold"
-                style={{
-                  background: isCurrent ? color : "var(--muted)",
-                  color: isCurrent ? "#fff" : "var(--secondary)",
-                  opacity: upgrading === plan.id ? 0.7 : 1,
-                }}
+                className={`mt-6 w-full rounded-xl py-3 text-sm font-bold ${
+                  isCurrent
+                    ? "bg-slate-100 text-slate-400 dark:bg-slate-800 dark:text-slate-500"
+                    : "bg-teal-600 text-white hover:bg-teal-700"
+                } ${upgrading === plan.id ? "opacity-70" : ""}`}
               >
                 {isCurrent ? "Current plan" : upgrading === plan.id ? "Processing…" : "Upgrade"}
               </button>
@@ -234,7 +245,7 @@ export default function SubscriptionPage() {
           );
         })}
         {displayedPlans.length === 0 && (
-          <div className="col-span-full text-center text-sm text-[var(--secondary)]">
+          <div className="col-span-full text-center text-sm text-slate-500 dark:text-slate-400">
             No plans available. Contact support for pricing.
           </div>
         )}

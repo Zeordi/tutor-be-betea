@@ -86,7 +86,7 @@ export default function NotificationsPage() {
 
   if (loading) {
     return (
-      <div className="max-w-3xl">
+      <div className="mx-auto max-w-3xl">
         <div className="mb-6 h-8 w-48 animate-pulse rounded bg-slate-200 dark:bg-slate-800" />
         <div className="mb-5 flex flex-wrap gap-2">
           {TAB_CATEGORIES.map((f) => (
@@ -104,7 +104,7 @@ export default function NotificationsPage() {
 
   if (error) {
     return (
-      <div className="p-6 max-w-3xl">
+      <div className="mx-auto max-w-3xl p-6">
         <p className="text-sm text-red-600">{error}</p>
         <button
           type="button"
@@ -118,11 +118,11 @@ export default function NotificationsPage() {
   }
 
   return (
-    <div className="max-w-3xl">
+    <div className="mx-auto max-w-3xl">
       <div className="mb-6 flex flex-wrap items-center justify-between gap-3">
         <div>
-          <h1 className="text-2xl font-black text-[var(--foreground)]">Notifications</h1>
-          <p className="text-sm text-[var(--secondary)]">
+          <h1 className="text-2xl font-black text-slate-800 dark:text-white">Notifications</h1>
+          <p className="text-sm text-slate-500 dark:text-slate-400">
             {unreadCount} unread
           </p>
         </div>
@@ -130,7 +130,7 @@ export default function NotificationsPage() {
           <button
             type="button"
             onClick={markAllRead}
-            className="text-xs font-bold text-[var(--primary)]"
+            className="text-xs font-bold text-teal-600"
           >
             Mark all read
           </button>
@@ -145,8 +145,8 @@ export default function NotificationsPage() {
             onClick={() => setFilter(f)}
             className={`rounded-full border px-4 py-1.5 text-[13px] font-bold ${
               filter === f
-                ? "border-[var(--primary)] bg-teal-50 text-[var(--primary)] dark:bg-teal-950/40"
-                : "border-[var(--border)] text-[var(--secondary)]"
+                ? "border-teal-600 bg-teal-50 text-teal-700 dark:bg-teal-900/30 dark:text-teal-300"
+                : "border-slate-200 text-slate-500 dark:border-slate-700 dark:text-slate-400"
             }`}
           >
             {f}
@@ -160,34 +160,34 @@ export default function NotificationsPage() {
             key={n.id}
             className={`flex gap-3.5 rounded-2xl border p-4 ${
               !n.read
-                ? "border-teal-200 bg-teal-50/80 dark:border-teal-900 dark:bg-teal-950/20"
-                : "border-[var(--border)] bg-[var(--card)]"
+                ? "border-teal-200 bg-teal-50/80 dark:border-teal-800 dark:bg-teal-900/20"
+                : "border-slate-200 bg-white dark:border-slate-800 dark:bg-[#112240]"
             }`}
           >
-            <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-[var(--muted)] text-xl">
+            <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-slate-100 text-xl dark:bg-slate-800">
               {catIcon(n.type)}
             </div>
             <div className="min-w-0 flex-1">
               <div className="mb-0.5 flex justify-between gap-2">
                 <p
-                  className={`text-sm text-[var(--foreground)] ${
+                  className={`text-sm text-slate-800 dark:text-white ${
                     !n.read ? "font-extrabold" : "font-semibold"
                   }`}
                 >
                   {n.title}
                 </p>
-                <span className="shrink-0 text-xs text-[var(--secondary)]">
+                <span className="shrink-0 text-xs text-slate-400">
                   {new Date(n.createdAt).toLocaleDateString()}
                 </span>
               </div>
-              {n.body && <p className="text-[13px] text-[var(--secondary)]">{n.body}</p>}
-              <span className="mt-1 inline-block text-[10px] font-bold uppercase tracking-wide text-[var(--secondary)]">
+              {n.body && <p className="text-[13px] text-slate-500 dark:text-slate-400">{n.body}</p>}
+              <span className="mt-1 inline-block text-[10px] font-bold uppercase tracking-wide text-slate-400">
                 {catLabel(n.type)}
               </span>
             </div>
             {!n.read && (
               <span
-                className="mt-2 h-2 w-2 shrink-0 cursor-pointer rounded-full bg-[var(--primary)]"
+                className="mt-2 h-2 w-2 shrink-0 cursor-pointer rounded-full bg-teal-600"
                 onClick={() => markRead(n.id)}
                 title="Mark as read"
               />
@@ -195,7 +195,7 @@ export default function NotificationsPage() {
           </div>
         ))}
         {list.length === 0 && (
-          <div className="rounded-2xl border border-dashed border-[var(--border)] p-10 text-center text-sm text-[var(--secondary)]">
+          <div className="rounded-2xl border border-dashed border-slate-300 p-10 text-center text-sm text-slate-500 dark:border-slate-700">
             No notifications in this category.
           </div>
         )}

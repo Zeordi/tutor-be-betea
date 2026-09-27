@@ -89,12 +89,12 @@ export default function SessionHistoryPage() {
     <div>
       <div className="mb-6 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
         <div>
-          <h1 className="text-2xl font-black text-[var(--foreground)]">Session History</h1>
-          <p className="text-sm text-[var(--secondary)]">Invoices & past sessions</p>
+          <h1 className="text-2xl font-black text-slate-800 dark:text-white">Session History</h1>
+          <p className="text-sm text-slate-500 dark:text-slate-400">Invoices & past sessions</p>
         </div>
         <button
           type="button"
-          className="rounded-xl border border-[var(--border)] px-4 py-2 text-sm font-bold text-[var(--foreground)]"
+          className="rounded-xl border border-slate-200 px-4 py-2 text-sm font-bold text-slate-700 dark:border-slate-700 dark:text-slate-300"
         >
           📥 Export invoices
         </button>
@@ -108,23 +108,23 @@ export default function SessionHistoryPage() {
         ].map(([v, l]) => (
           <div
             key={l}
-            className="rounded-2xl border border-[var(--border)] bg-[var(--card)] px-5 py-4"
+            className="rounded-2xl border border-slate-200 bg-white px-5 py-4 dark:border-slate-800 dark:bg-[#112240]"
           >
-            <p className="text-2xl font-black text-[var(--primary)]">{v}</p>
-            <p className="text-xs text-[var(--secondary)]">{l}</p>
+            <p className="text-2xl font-black text-teal-600">{v}</p>
+            <p className="text-xs text-slate-500 dark:text-slate-400">{l}</p>
           </div>
         ))}
       </div>
 
-      <div className="overflow-x-auto rounded-2xl border border-[var(--border)] bg-[var(--card)]">
+      <div className="overflow-x-auto rounded-2xl border border-slate-200 bg-white dark:border-slate-800 dark:bg-[#112240]">
         <table className="w-full min-w-[720px] border-collapse text-left">
           <thead>
-            <tr className="border-b border-[var(--border)] bg-[var(--muted)]">
+            <tr className="border-b border-slate-200 bg-slate-50 dark:border-slate-800 dark:bg-slate-800">
               {["Date", "Tutor", "Child", "Subject", "Duration", "Amount", "Status", ""].map(
                 (h) => (
                   <th
                     key={h}
-                    className="px-4 py-3 text-[11px] font-bold uppercase tracking-wide text-[var(--secondary)]"
+                    className="px-4 py-3 text-[11px] font-bold uppercase tracking-wide text-slate-500 dark:text-slate-400"
                   >
                     {h}
                   </th>
@@ -141,15 +141,15 @@ export default function SessionHistoryPage() {
               </tr>
             )}
             {rows.map((s, i) => (
-              <tr key={i} className="border-b border-[var(--border)]">
-                <td className="px-4 py-3.5 text-[13px] text-[var(--secondary)]">{s.date}</td>
-                <td className="px-4 py-3.5 text-[13px] font-bold text-[var(--foreground)]">
+              <tr key={i} className="border-b border-slate-100 dark:border-slate-800">
+                <td className="px-4 py-3.5 text-[13px] text-slate-500 dark:text-slate-400">{s.date}</td>
+                <td className="px-4 py-3.5 text-[13px] font-bold text-slate-800 dark:text-white">
                   {s.tutor}
                 </td>
-                <td className="px-4 py-3.5 text-[13px]">{s.child}</td>
-                <td className="px-4 py-3.5 text-[13px] text-[var(--secondary)]">{s.subject}</td>
-                <td className="px-4 py-3.5 text-[13px] text-[var(--secondary)]">{s.duration}</td>
-                <td className="px-4 py-3.5 font-mono text-sm font-extrabold text-[var(--primary)]">
+                <td className="px-4 py-3.5 text-[13px] text-slate-600 dark:text-slate-300">{s.child}</td>
+                <td className="px-4 py-3.5 text-[13px] text-slate-500 dark:text-slate-400">{s.subject}</td>
+                <td className="px-4 py-3.5 text-[13px] text-slate-500 dark:text-slate-400">{s.duration}</td>
+                <td className="px-4 py-3.5 font-mono text-sm font-extrabold text-teal-600">
                   {s.amount.toLocaleString()} ETB
                 </td>
                 <td className="px-4 py-3.5">
@@ -168,7 +168,7 @@ export default function SessionHistoryPage() {
                 <td className="px-4 py-3.5">
                   <Link
                     href={`/parent/contracts/${s.contractId}`}
-                    className="rounded-lg border border-[var(--border)] px-2.5 py-1 text-xs text-[var(--secondary)]"
+                    className="rounded-lg border border-slate-200 px-2.5 py-1 text-xs text-slate-600 dark:border-slate-700 dark:text-slate-300"
                   >
                     Invoice
                   </Link>
