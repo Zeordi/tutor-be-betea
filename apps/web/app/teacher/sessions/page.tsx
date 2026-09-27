@@ -170,31 +170,33 @@ export default function TeacherSessionsIndexPage() {
           <Link
             key={c.id}
             href={`/teacher/sessions/${c.id}`}
-            className="flex flex-col gap-3 rounded-2xl border border-[var(--border)] bg-[var(--card)] p-5 transition hover:border-[var(--primary)]/40 sm:flex-row sm:items-center sm:justify-between"
+            className="flex flex-col gap-3 rounded-2xl border border-slate-100 bg-white p-4 shadow-sm transition hover:border-teal-200 dark:border-slate-800 dark:bg-[#112240] sm:flex-row sm:items-center sm:justify-between"
           >
-            <div>
-              <div className="mb-1 flex flex-wrap items-center gap-2">
-                <p className="font-extrabold text-[var(--foreground)]">{c.subject}</p>
-                <span
-                  className={`rounded-full px-2.5 py-0.5 text-[11px] font-bold capitalize ${statusClass(c.status)}`}
-                >
-                  {c.status.toLowerCase()}
-                </span>
+            <div className="flex items-center gap-3">
+              <div className="h-12 w-2 flex-shrink-0 rounded-full bg-teal-500" />
+              <div>
+                <div className="flex flex-wrap items-center gap-2">
+                  <p className="text-sm font-extrabold text-slate-800 dark:text-white">{c.subject}</p>
+                  <span className={`rounded-full px-2 py-0.5 text-[10px] font-bold capitalize ${statusClass(c.status)}`}>
+                    {c.status.toLowerCase()}
+                  </span>
+                </div>
+                <p className="text-xs text-slate-500 dark:text-slate-400">
+                  {c.parentName} · {c.studentName}
+                </p>
+                <p className="text-[11px] text-slate-400">
+                  {formatWhen(c.schedule)} · {placeText(c)}
+                </p>
               </div>
-              <p className="text-sm text-[var(--secondary)]">
-                {c.parentName} · {c.studentName}
-              </p>
-              <p className="mt-1 text-xs text-[var(--secondary)]">
-                {formatWhen(c.schedule)} · {placeText(c)}
-              </p>
             </div>
-            <span className="text-sm font-bold text-[var(--primary)]">Open →</span>
+            <span className="text-xs font-bold text-teal-600 dark:text-teal-400">Open →</span>
           </Link>
         ))}
         {contracts.length === 0 && (
-          <p className="text-sm text-[var(--secondary)]">
-            No sessions found.
-          </p>
+          <div className="rounded-2xl border border-dashed border-slate-300 bg-white p-8 text-center dark:border-slate-700 dark:bg-[#112240]">
+            <p className="text-sm font-bold text-slate-600 dark:text-slate-300">No sessions yet</p>
+            <p className="mt-1 text-xs text-slate-400">Scheduled sessions will appear here.</p>
+          </div>
         )}
       </div>
     </div>
