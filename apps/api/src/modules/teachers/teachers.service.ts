@@ -86,12 +86,7 @@ export class TeachersService {
       onboardingStep: number;
     }>,
   ) {
-    const existing = await prisma.teacherProfile.findUnique({
-      where: { userId },
-    });
-    if (!existing) {
-      throw new NotFoundException("Teacher profile not found");
-    }
+    await this.ensureProfile(userId);
 
     return prisma.teacherProfile.update({
       where: { userId },
@@ -112,12 +107,7 @@ export class TeachersService {
   }
 
   async updateLocation(userId: string, latitude: number, longitude: number) {
-    const existing = await prisma.teacherProfile.findUnique({
-      where: { userId },
-    });
-    if (!existing) {
-      throw new NotFoundException("Teacher profile not found");
-    }
+    await this.ensureProfile(userId);
 
     await prisma.$executeRaw`
       UPDATE teacher_profiles
@@ -221,29 +211,53 @@ export class TeachersService {
     };
   }
 
-  async getMyProfile(userId: string) {
-    const profile = await prisma.teacherProfile.findUnique({
+  async ensureProfile(userId: string) {
+    const existing = await prisma.teacherProfile.findUnique({
       where: { userId },
       include: {
         user: {
-          select: {
-            id: true,
-            fullName: true,
-            avatarUrl: true,
-            phoneNumber: true,
-            email: true,
-            status: true,
-            subCity: true,
-          },
+          select: { id: true, fullName: true, avatarUrl: true, phoneNumber: true, email: true, status: true, subCity: true },
         },
         packages: true,
         availability: true,
       },
     });
+    if (existing) return existing;
 
-    if (!profile) {
+    const user = await prisma.user.findUnique({ where: { id: userId } });
+    if (!user || user.role !== "TEACHER") {
       throw new NotFoundException("Teacher profile not found");
     }
+
+    return prisma.teacherProfile.create({
+      data: {
+        userId,
+        bio: null,
+        bioAm: null,
+        hourlyRate: 0,
+        monthlyRate: 0,
+        weekendRate: null,
+        subjects: [],
+        grades: [],
+        maxTravelKm: 5,
+        teachingStyles: [],
+        isAvailable: false,
+        payoutMethod: null,
+        payoutAccount: null,
+        onboardingStep: 0,
+      },
+      include: {
+        user: {
+          select: { id: true, fullName: true, avatarUrl: true, phoneNumber: true, email: true, status: true, subCity: true },
+        },
+        packages: true,
+        availability: true,
+      },
+    });
+  }
+
+  async getMyProfile(userId: string) {
+    const profile = await this.ensureProfile(userId);
 
     const badges = await prisma.trustBadge.findMany({
       where: { teacherId: userId },
