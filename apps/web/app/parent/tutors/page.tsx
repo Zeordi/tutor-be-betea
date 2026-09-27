@@ -21,20 +21,31 @@ type Teacher = {
   subCity: string | null;
 };
 
+type FavoriteItem = { teacherId: string };
+
 export default function ParentFindTutorsPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [tutors, setTutors] = useState<Teacher[]>([]);
+  const [favIds, setFavIds] = useState<Set<string>>(new Set());
+  const [favLoading, setFavLoading] = useState<string | null>(null);
   const [search, setSearch] = useState("");
+  const [showFilters, setShowFilters] = useState(false);
 
   useEffect(() => {
     let cancelled = false;
     setLoading(true);
     setError("");
 
-    apiFetch<Teacher[]>(paths.teachers)
-      .then((data) => {
-        if (!cancelled) setTutors(data || []);
+    Promise.all([
+      apiFetch<Teacher[]>(paths.teachers),
+      apiFetch<FavoriteItem[]>(paths.favorites),
+    ])
+      .then(([data, favorites]) => {
+        if (!cancelled) {
+          setTutors(data || []);
+          setFavIds(new Set((favorites || []).map((f) => f.teacherId)));
+        }
       })
       .catch((err) => {
         if (!cancelled) setError(err.message || "Failed to load tutors");
@@ -52,22 +63,46 @@ export default function ParentFindTutorsPage() {
     const term = search.toLowerCase();
     return (
       t.fullName.toLowerCase().includes(term) ||
-      t.subjects.some((s) => s.toLowerCase().includes(term))
+      t.subjects.some((s) => s.toLowerCase().includes(term)) ||
+      (t.subCity || "").toLowerCase().includes(term)
     );
   });
+
+  const toggleFavorite = async (teacherId: string) => {
+    setFavLoading(teacherId);
+    try {
+      if (favIds.has(teacherId)) {
+        await apiFetch(paths.favorite(teacherId), { method: "DELETE" });
+        setFavIds((prev) => {
+          const next = new Set(prev);
+          next.delete(teacherId);
+          return next;
+        });
+      } else {
+        await apiFetch(paths.favorite(teacherId), { method: "POST" });
+        setFavIds((prev) => new Set(prev).add(teacherId));
+      }
+    } catch {
+      // silent fail to avoid breaking list UX
+    } finally {
+      setFavLoading(null);
+    }
+  };
 
   return (
     <div className="space-y-5 p-6">
       <div className="flex items-center justify-between">
-        <h2 className="text-xl font-extrabold text-slate-800 dark:text-white">Find Tutors</h2>
+        <h2 className="text-xl font-extrabold text-slate-800 dark:text-white">
+          Find Tutors
+        </h2>
         <span className="rounded-full bg-slate-100 px-3 py-1 text-xs font-semibold text-slate-600 dark:bg-slate-800 dark:text-slate-300">
           {filtered.length} available
         </span>
       </div>
 
-      <div className="flex flex-wrap gap-3">
-        <div className="flex min-w-[240px] flex-1 items-center gap-2 rounded-xl border border-slate-200 bg-white px-4 py-2.5 dark:border-slate-700 dark:bg-[#112240]">
-          <span>🔍</span>
+      <div className="flex flex-col gap-3 md:flex-row md:flex-wrap">
+        <div className="flex min-w-0 flex-1 items-center gap-2 rounded-xl border border-slate-200 bg-white px-4 py-2.5 dark:border-slate-700 dark:bg-[#112240] md:max-w-xs">
+          <span className="text-slate-400">🔍</span>
           <input
             value={search}
             onChange={(e) => setSearch(e.target.value)}
@@ -75,20 +110,37 @@ export default function ParentFindTutorsPage() {
             className="flex-1 bg-transparent text-sm outline-none text-slate-700 placeholder:text-slate-400 dark:text-slate-300"
           />
         </div>
-        <select className="rounded-xl border border-slate-200 bg-white px-3 text-sm text-slate-600 outline-none dark:border-slate-700 dark:bg-[#112240] dark:text-slate-300">
-          <option>All Subjects</option>
-          <option>Mathematics</option>
-          <option>Physics</option>
-          <option>English</option>
-          <option>Chemistry</option>
-        </select>
-        <select className="rounded-xl border border-slate-200 bg-white px-3 text-sm text-slate-600 outline-none dark:border-slate-700 dark:bg-[#112240] dark:text-slate-300">
-          <option>Any Grade</option>
-          {Array.from({ length: 12 }).map((_, i) => (
-            <option key={i}>Grade {i + 1}</option>
-          ))}
-        </select>
-        <button className="rounded-xl bg-teal-600 px-4 py-2 text-sm font-bold text-white">🎚 Filters</button>
+
+        <div className={`flex flex-col gap-3 md:flex-row ${showFilters ? "flex" : "hidden md:flex"}`}>
+          <select className="rounded-xl border border-slate-200 bg-white px-3 text-sm text-slate-600 outline-none dark:border-slate-700 dark:bg-[#112240] dark:text-slate-300">
+            <option>All Subjects</option>
+            <option>Mathematics</option>
+            <option>Physics</option>
+            <option>English</option>
+            <option>Chemistry</option>
+          </select>
+          <select className="rounded-xl border border-slate-200 bg-white px-3 text-sm text-slate-600 outline-none dark:border-slate-700 dark:bg-[#112240] dark:text-slate-300">
+            <option>Any Grade</option>
+            {Array.from({ length: 12 }).map((_, i) => (
+              <option key={i}>Grade {i + 1}</option>
+            ))}
+          </select>
+          <button
+            type="button"
+            onClick={() => setShowFilters((v) => !v)}
+            className="rounded-xl border border-slate-200 px-4 py-2 text-sm font-bold text-slate-600 transition hover:border-teal-600 hover:text-teal-700 dark:border-slate-700 dark:text-slate-300 dark:hover:border-teal-500 dark:hover:text-teal-300"
+          >
+            🎚 Filters
+          </button>
+        </div>
+
+        <button
+          type="button"
+          onClick={() => setShowFilters((v) => !v)}
+          className="md:hidden rounded-xl border border-slate-200 px-4 py-2 text-sm font-bold text-slate-600 dark:border-slate-700 dark:text-slate-300"
+        >
+          {showFilters ? "Hide filters" : "Show filters"}
+        </button>
       </div>
 
       {loading && (
@@ -106,73 +158,106 @@ export default function ParentFindTutorsPage() {
 
       {!loading && !error && (
         <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
-          {filtered.map((t) => (
-            <div
-              key={t.id}
-              className="rounded-2xl border border-slate-100 bg-white p-4 shadow-sm dark:border-slate-800 dark:bg-[#112240]"
-            >
-              <div className="mb-3 flex items-start gap-3">
-                <div className="relative">
-                  <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-teal-600 text-sm font-bold text-white">
-                    {t.fullName.split(" ").map((n) => n[0]).slice(0, 2).join("")}
+          {filtered.map((t) => {
+            const isFav = favIds.has(t.id);
+            const initials = t.fullName
+              .split(" ")
+              .map((n) => n[0])
+              .slice(0, 2)
+              .join("")
+              .toUpperCase();
+            return (
+              <div
+                key={t.id}
+                className="rounded-2xl border border-slate-100 bg-white p-5 shadow-sm transition hover:shadow-md dark:border-slate-800 dark:bg-[#112240]"
+              >
+                <div className="mb-3 flex items-start gap-3">
+                  <div className="relative shrink-0">
+                    <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-teal-600 text-sm font-bold text-white">
+                      {initials}
+                    </div>
+                    {t.isIdVerified && (
+                      <span className="absolute -right-1 -top-1 flex h-4 w-4 items-center justify-center rounded-full bg-emerald-500 text-[8px] font-bold text-white">
+                        ✓
+                      </span>
+                    )}
+                  </div>
+                  <div className="min-w-0 flex-1">
+                    <p className="text-sm font-bold text-slate-800 dark:text-white">
+                      {t.fullName}
+                    </p>
+                    <p className="text-xs text-slate-500">
+                      {t.subjects.slice(0, 3).join(", ")}
+                      {t.subjects.length > 3 ? "…" : ""}
+                    </p>
+                    <p className="mt-0.5 text-[10px] text-amber-500">
+                      {"★".repeat(Math.round(t.rating))}{" "}
+                      <span className="text-slate-400">
+                        {t.rating.toFixed(1)} ({t.totalReviews})
+                      </span>
+                    </p>
+                  </div>
+                  <div className="text-right">
+                    <p className="text-sm font-extrabold text-teal-600">
+                      {t.hourlyRate.toLocaleString()}
+                    </p>
+                    <p className="text-[10px] text-slate-400">ETB/hr</p>
                   </div>
                 </div>
-                <div className="min-w-0 flex-1">
-                  <p className="text-sm font-bold text-slate-800 dark:text-white">{t.fullName}</p>
-                  <p className="text-xs text-slate-500">{t.subjects.join(", ")}</p>
-                  <p className="mt-0.5 text-[10px] text-amber-500">
-                    {"★".repeat(Math.round(t.rating))}{" "}
-                    <span className="text-slate-400">{t.rating.toFixed(1)}</span>
-                  </p>
-                </div>
-                <div className="text-right">
-                  <p className="text-sm font-extrabold text-teal-600">{t.hourlyRate}</p>
-                  <p className="text-[10px] text-slate-400">ETB/hr</p>
-                </div>
-              </div>
 
-              <div className="mb-3 flex flex-wrap gap-1.5">
-                {t.isIdVerified && (
-                  <span className="rounded-full bg-emerald-50 px-2 py-0.5 text-[10px] font-bold text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-300">
-                    🛡️ ID
-                  </span>
-                )}
-                {t.isEduVerified && (
-                  <span className="rounded-full bg-blue-50 px-2 py-0.5 text-[10px] font-bold text-blue-700 dark:bg-blue-900/30 dark:text-blue-300">
-                    🎓 Degree
-                  </span>
-                )}
-                {t.badgeTier && (
-                  <span className="rounded-full bg-amber-50 px-2 py-0.5 text-[10px] font-bold text-amber-700 dark:bg-amber-900/30 dark:text-amber-300">
-                    🥇 {t.badgeTier}
-                  </span>
-                )}
-                {t.subCity && (
-                  <span className="rounded-full bg-slate-100 px-2 py-0.5 text-[10px] font-semibold text-slate-500 dark:bg-slate-800">
-                    📍 {t.subCity}
-                  </span>
-                )}
-              </div>
+                <div className="mb-3 flex flex-wrap gap-1.5">
+                  {t.isIdVerified && (
+                    <span className="rounded-full bg-emerald-50 px-2 py-0.5 text-[10px] font-bold text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-300">
+                      🛡️ ID
+                    </span>
+                  )}
+                  {t.isEduVerified && (
+                    <span className="rounded-full bg-sky-50 px-2 py-0.5 text-[10px] font-bold text-sky-700 dark:bg-sky-900/30 dark:text-sky-300">
+                      🎓 Degree
+                    </span>
+                  )}
+                  {t.badgeTier && (
+                    <span className="rounded-full bg-amber-50 px-2 py-0.5 text-[10px] font-bold text-amber-700 dark:bg-amber-900/30 dark:text-amber-300">
+                      🥇 {t.badgeTier}
+                    </span>
+                  )}
+                  {t.subCity && (
+                    <span className="rounded-full bg-slate-100 px-2 py-0.5 text-[10px] font-semibold text-slate-500 dark:bg-slate-800">
+                      📍 {t.subCity}
+                    </span>
+                  )}
+                </div>
 
-              <div className="flex gap-2">
-                <Link
-                  href={`/parent/tutors/${t.id}`}
-                  className="flex-1 rounded-xl bg-teal-600 py-2 text-center text-xs font-bold text-white"
-                >
-                  Book
-                </Link>
-                <Link
-                  href={`/parent/tutors/${t.id}`}
-                  className="flex-1 rounded-xl border border-teal-600 py-2 text-center text-xs font-bold text-teal-600"
-                >
-                  Profile
-                </Link>
-                <button className="flex h-9 w-9 items-center justify-center rounded-xl border border-slate-200 text-slate-400 hover:text-red-500 dark:border-slate-700">
-                  ❤
-                </button>
+                <div className="flex items-center gap-2">
+                  <Link
+                    href={`/parent/tutors/${t.id}`}
+                    className="flex-1 rounded-xl bg-teal-600 py-2 text-center text-xs font-bold text-white"
+                  >
+                    Book
+                  </Link>
+                  <Link
+                    href={`/parent/tutors/${t.id}`}
+                    className="flex-1 rounded-xl border border-teal-600 py-2 text-center text-xs font-bold text-teal-600"
+                  >
+                    Profile
+                  </Link>
+                  <button
+                    type="button"
+                    onClick={() => toggleFavorite(t.id)}
+                    disabled={favLoading === t.id}
+                    className={`flex h-9 w-9 items-center justify-center rounded-xl border text-sm transition ${
+                      isFav
+                        ? "border-red-200 bg-red-50 text-red-500 dark:border-red-900/60 dark:bg-red-900/20 dark:text-red-400"
+                        : "border-slate-200 text-slate-400 hover:text-red-500 dark:border-slate-700"
+                    }`}
+                    aria-label={isFav ? "Remove from saved" : "Save tutor"}
+                  >
+                    {isFav ? "❤️" : "🤍"}
+                  </button>
+                </div>
               </div>
-            </div>
-          ))}
+            );
+          })}
 
           {filtered.length === 0 && (
             <div className="col-span-full rounded-2xl border border-dashed border-slate-300 p-10 text-center text-sm text-slate-500 dark:border-slate-700">
