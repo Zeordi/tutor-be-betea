@@ -51,13 +51,13 @@ export default function ChildrenPage() {
   if (loading) {
     return (
       <div className="grid gap-6 lg:grid-cols-[280px_1fr]">
-        <div className="rounded-2xl border border-[var(--border)] bg-[var(--card)] p-5">
-          <div className="h-5 w-24 animate-pulse rounded bg-slate-200 dark:bg-slate-800 mb-3" />
+        <div className="rounded-2xl border border-slate-100 bg-white p-5 dark:border-slate-800 dark:bg-[#112240]">
+          <div className="mb-3 h-5 w-24 animate-pulse rounded bg-slate-200 dark:bg-slate-800" />
           {[1, 2, 3].map((i) => (
             <div key={i} className="mb-2 h-16 animate-pulse rounded-xl bg-slate-100 dark:bg-slate-800" />
           ))}
         </div>
-        <div className="rounded-2xl border border-[var(--border)] bg-[var(--card)] p-7">
+        <div className="rounded-2xl border border-slate-100 bg-white p-7 dark:border-slate-800 dark:bg-[#112240]">
           <div className="h-64 animate-pulse rounded bg-slate-100 dark:bg-slate-800" />
         </div>
       </div>
@@ -81,8 +81,8 @@ export default function ChildrenPage() {
 
   return (
     <div className="grid gap-6 lg:grid-cols-[280px_1fr]">
-      <div className="rounded-2xl border border-[var(--border)] bg-[var(--card)] p-5">
-        <p className="mb-3 text-xs font-bold uppercase tracking-wide text-[var(--secondary)]">
+      <div className="rounded-2xl border border-slate-100 bg-white p-5 dark:border-slate-800 dark:bg-[#112240]">
+        <p className="mb-3 text-xs font-bold uppercase tracking-wide text-slate-500 dark:text-slate-400">
           My children
         </p>
         {children.map((ch, i) => (
@@ -90,20 +90,18 @@ export default function ChildrenPage() {
             key={ch.id}
             type="button"
             onClick={() => setSelectedIdx(i)}
-            className={`mb-2 flex w-full items-center gap-3 rounded-xl px-3 py-3 text-left ${
+            className={`mb-2 flex w-full items-center gap-3 rounded-xl px-3 py-3 text-left transition ${
               selectedIdx === i
-                ? "border border-teal-300 bg-teal-50 dark:border-teal-800 dark:bg-teal-950/30"
+                ? "border border-teal-300 bg-teal-50 dark:border-teal-800 dark:bg-teal-900/30"
                 : "border border-transparent"
             }`}
           >
-            <span className="flex h-11 w-11 items-center justify-center rounded-full bg-gradient-to-br from-[var(--primary)] to-teal-300 text-xl">
+            <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-gradient-to-br from-teal-600 to-teal-300 text-xl text-white">
               {ch.studentName[0]}
             </span>
             <span>
-              <span className="block text-sm font-bold text-[var(--foreground)]">
-                {ch.studentName}
-              </span>
-              <span className="text-xs text-[var(--secondary)]">
+              <span className="block text-sm font-bold text-slate-800 dark:text-white">{ch.studentName}</span>
+              <span className="text-xs text-slate-500 dark:text-slate-400">
                 {ch.gradeLevel} · {ch.curriculum?.replace(/_/g, " ").split(" ").map((w) => w.charAt(0) + w.slice(1).toLowerCase()).join(" ")}
               </span>
             </span>
@@ -111,7 +109,7 @@ export default function ChildrenPage() {
         ))}
         <Link
           href="/parent/children/add"
-          className="mt-2 block rounded-xl border border-dashed border-[var(--border)] py-3 text-center text-sm font-bold text-[var(--primary)]"
+          className="mt-2 block rounded-xl border border-dashed border-slate-200 py-3 text-center text-sm font-bold text-teal-600 transition hover:border-teal-400 dark:border-slate-700 dark:hover:border-teal-600"
         >
           + Add child profile
         </Link>
@@ -119,14 +117,14 @@ export default function ChildrenPage() {
 
       <div className="space-y-5">
         {children.length === 0 && (
-          <div className="rounded-2xl border border-[var(--border)] bg-[var(--card)] p-12 text-center">
-            <p className="font-bold text-[var(--foreground)]">No children added yet</p>
-            <p className="mt-1 text-sm text-[var(--secondary)]">
+          <div className="rounded-2xl border border-slate-100 bg-white p-12 text-center dark:border-slate-800 dark:bg-[#112240]">
+            <p className="font-bold text-slate-800 dark:text-white">No children added yet</p>
+            <p className="mt-1 text-sm text-slate-500 dark:text-slate-400">
               Children profiles help track sessions and progress.
             </p>
             <Link
               href="/parent/children/add"
-              className="mt-4 inline-block font-bold text-[var(--primary)]"
+              className="mt-4 inline-block font-bold text-teal-600"
             >
               Add a child →
             </Link>
@@ -135,20 +133,20 @@ export default function ChildrenPage() {
 
         {children.length > 0 && c && (
           <>
-            <div className="rounded-2xl border border-[var(--border)] bg-[var(--card)] p-7">
+            <div className="rounded-2xl border border-slate-100 bg-white p-7 dark:border-slate-800 dark:bg-[#112240]">
               <div className="mb-6 flex flex-wrap items-center gap-4">
-                <span className="flex h-16 w-16 items-center justify-center rounded-full bg-gradient-to-br from-[var(--primary)] to-teal-300 text-3xl">
+                <span className="flex h-16 w-16 shrink-0 items-center justify-center rounded-full bg-gradient-to-br from-teal-600 to-teal-300 text-3xl text-white">
                   {c.studentName[0]}
                 </span>
                 <div className="min-w-0 flex-1">
-                  <h1 className="text-2xl font-black text-[var(--foreground)]">{c.studentName}</h1>
-                  <p className="text-sm text-[var(--secondary)]">
+                  <h1 className="text-2xl font-black text-slate-800 dark:text-white">{c.studentName}</h1>
+                  <p className="text-sm text-slate-500 dark:text-slate-400">
                     {c.gradeLevel} · {c.curriculum?.replace(/_/g, " ").split(" ").map((w) => w.charAt(0) + w.slice(1).toLowerCase()).join(" ")}
                   </p>
                 </div>
                 <button
                   type="button"
-                  className="rounded-xl border border-[var(--border)] px-4 py-2 text-sm font-bold"
+                  className="rounded-xl border border-slate-200 px-4 py-2 text-sm font-bold text-slate-600 transition hover:border-teal-600 hover:text-teal-700 dark:border-slate-700 dark:text-slate-300 dark:hover:border-teal-500"
                 >
                   ✏️ Edit
                 </button>
@@ -161,10 +159,10 @@ export default function ChildrenPage() {
                   ["Added", new Date(c.createdAt || new Date()).toLocaleDateString()],
                 ].map(([label, val]) => (
                   <div key={label}>
-                    <p className="mb-1.5 text-[11px] font-bold uppercase tracking-wide text-[var(--secondary)]">
+                    <p className="mb-1.5 text-[11px] font-bold uppercase tracking-wide text-slate-500 dark:text-slate-400">
                       {label}
                     </p>
-                    <div className="rounded-[10px] border border-[var(--border)] bg-[var(--muted)] px-3.5 py-2.5 text-sm font-semibold">
+                    <div className="rounded-[10px] border border-slate-100 bg-slate-50 px-3.5 py-2.5 text-sm font-semibold text-slate-700 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-200">
                       {val}
                     </div>
                   </div>
@@ -173,13 +171,13 @@ export default function ChildrenPage() {
             </div>
 
             {c.subjects && (
-              <div className="rounded-2xl border border-[var(--border)] bg-[var(--card)] p-5">
-                <p className="mb-3 font-extrabold text-[var(--foreground)]">Subjects enrolled</p>
+              <div className="rounded-2xl border border-slate-100 bg-white p-5 dark:border-slate-800 dark:bg-[#112240]">
+                <p className="mb-3 font-extrabold text-slate-800 dark:text-white">Subjects enrolled</p>
                 <div className="flex flex-wrap gap-2">
                   {c.subjects.map((s) => (
                     <span
                       key={s}
-                      className="rounded-full bg-teal-50 px-3 py-1 text-sm font-semibold text-[var(--primary)] dark:bg-teal-950/40"
+                      className="rounded-full bg-teal-50 px-3 py-1 text-sm font-semibold text-teal-700 dark:bg-teal-900/30 dark:text-teal-300"
                     >
                       {s}
                     </span>
@@ -189,9 +187,9 @@ export default function ChildrenPage() {
             )}
 
             {c.specialLearningNotes && (
-              <div className="rounded-2xl border border-[var(--border)] bg-[var(--card)] p-5">
-                <p className="mb-3 font-extrabold text-[var(--foreground)]">Special Notes</p>
-                <p className="text-sm text-[var(--secondary)]">{c.specialLearningNotes}</p>
+              <div className="rounded-2xl border border-slate-100 bg-white p-5 dark:border-slate-800 dark:bg-[#112240]">
+                <p className="mb-3 font-extrabold text-slate-800 dark:text-white">Special Notes</p>
+                <p className="text-sm text-slate-500 dark:text-slate-400">{c.specialLearningNotes}</p>
               </div>
             )}
           </>
