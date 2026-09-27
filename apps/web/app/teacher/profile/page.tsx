@@ -5,12 +5,12 @@ import { apiFetch, paths } from "@/lib/api";
 
 type TeacherMe = {
   id: string;
-  fullName: string;
-  email: string;
+  fullName: string | null;
+  email: string | null;
   phoneNumber: string | null;
   subCity: string | null;
   avatarUrl: string | null;
-  status: string;
+  status: string | null;
   bio: string | null;
   bioAm: string | null;
   hourlyRate: number;
@@ -63,7 +63,7 @@ function Field({ label, defaultValue, multiline }: FieldProps) {
 export default function TeacherProfilePage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
-  const [me, setMe] = useState<TeacherMe | null>(null);
+  const [rawMe, setRawMe] = useState<TeacherMe | null>(null);
   const [activeStyles, setActiveStyles] = useState<string[]>([]);
   const [saved, setSaved] = useState(false);
 
@@ -76,6 +76,76 @@ export default function TeacherProfilePage() {
     "Bilingual EN/አማ",
   ];
 
+  const me = useMemo(() => {
+    if (!rawMe) return null;
+    return {
+      ...rawMe,
+      fullName: rawMe.fullName || "Teacher",
+      email: rawMe.email || "",
+      phoneNumber: rawMe.phoneNumber || "",
+      subCity: rawMe.subCity || "",
+      avatarUrl: rawMe.avatarUrl || null,
+      status: rawMe.status || "",
+      bio: rawMe.bio || "",
+      bioAm: rawMe.bioAm || "",
+      hourlyRate: Number(rawMe.hourlyRate || 0),
+      monthlyRate: Number(rawMe.monthlyRate || 0),
+      weekendRate: rawMe.weekendRate != null ? Number(rawMe.weekendRate) : null,
+      subjects: Array.isArray(rawMe.subjects) ? rawMe.subjects : [],
+      grades: Array.isArray(rawMe.grades) ? rawMe.grades : [],
+      teachingStyles: Array.isArray(rawMe.teachingStyles) ? rawMe.teachingStyles : [],
+      tagline: rawMe.tagline || "",
+      introVideoUrl: rawMe.introVideoUrl || null,
+      rating: Number(rawMe.rating || 0),
+      totalReviews: Number(rawMe.totalReviews || 0),
+      totalHoursTaught: Number(rawMe.totalHoursTaught || 0),
+      badgeTier: rawMe.badgeTier || null,
+      isIdVerified: Boolean(rawMe.isIdVerified),
+      isEduVerified: Boolean(rawMe.isEduVerified),
+      isAvailable: Boolean(rawMe.isAvailable),
+      maxTravelKm: Number(rawMe.maxTravelKm || 0),
+      packages: Array.isArray(rawMe.packages) ? rawMe.packages : [],
+      availability: Array.isArray(rawMe.availability) ? rawMe.availability : [],
+      trustBadges: Array.isArray(rawMe.trustBadges) ? rawMe.trustBadges : [],
+    };
+  }, [rawMe]);
+
+  const profileStrength = useMemo(() => {
+    if (!me) return 0;
+    let score = 0;
+    if (me.bio && me.bio.trim().length > 0) score += 25;
+    if (me.subjects.length > 0) score += 25;
+    if (me.grades.length > 0) score += 15;
+    if (me.rating > 0) score += 15;
+    if (me.isIdVerified || me.isEduVerified) score += 20;
+    return Math.min(score, 100);
+  }, [me]);
+
+  const previewChecklist = useMemo(() => {
+    if (!me) return [];
+    return [
+      { label: "Profile photo", done: !!me.avatarUrl || !!me.fullName },
+      { label: "Bio", done: !!me.bio && me.bio.trim().length > 0 },
+      { label: "Subjects", done: me.subjects.length > 0 },
+      { label: "Grades", done: me.grades.length > 0 },
+      { label: "ID Verified", done: me.isIdVerified },
+      { label: "Education Verified", done: me.isEduVerified },
+      { label: "Reviews", done: me.totalReviews > 0 },
+    ];
+  }, [me]);
+
+  const doneCount = previewChecklist.filter((c) => c.done).length;
+
+  const initials = useMemo(() => {
+    if (!me?.fullName) return "T";
+    return me.fullName
+      .split(" ")
+      .map((n) => n[0])
+      .slice(0, 2)
+      .join("")
+      .toUpperCase();
+  }, [me?.fullName]);
+
   useEffect(() => {
     let cancelled = false;
     setLoading(true);
@@ -84,7 +154,7 @@ export default function TeacherProfilePage() {
     apiFetch<TeacherMe>(paths.teachersMeProfile)
       .then((data) => {
         if (!cancelled) {
-          setMe(data);
+          setRawMe(data);
           if (data?.teachingStyles) {
             setActiveStyles(data.teachingStyles);
           }
@@ -162,35 +232,6 @@ export default function TeacherProfilePage() {
       </div>
     );
   }
-
-  const initials = me.fullName
-    .split(" ")
-    .map((n) => n[0])
-    .slice(0, 2)
-    .join("")
-    .toUpperCase();
-
-  const profileStrength = useMemo(() => {
-    let score = 0;
-    if (me.bio && me.bio.trim().length > 0) score += 25;
-    if ((me.subjects || []).length > 0) score += 25;
-    if ((me.grades || []).length > 0) score += 15;
-    if (me.rating > 0) score += 15;
-    if (me.isIdVerified || me.isEduVerified) score += 20;
-    return Math.min(score, 100);
-  }, [me]);
-
-  const previewChecklist = [
-    { label: "Profile photo", done: !!me.avatarUrl || !!me.fullName },
-    { label: "Bio", done: !!me.bio && me.bio.trim().length > 0 },
-    { label: "Subjects", done: (me.subjects || []).length > 0 },
-    { label: "Grades", done: (me.grades || []).length > 0 },
-    { label: "ID Verified", done: me.isIdVerified },
-    { label: "Education Verified", done: me.isEduVerified },
-    { label: "Reviews", done: me.totalReviews > 0 },
-  ];
-
-  const doneCount = previewChecklist.filter((c) => c.done).length;
 
   return (
     <div className="mx-auto max-w-5xl space-y-5 p-4 md:p-8">

@@ -264,7 +264,39 @@ export class TeachersService {
       orderBy: { issuedAt: "desc" },
     });
 
-    return { ...profile, trustBadges: badges };
+    const user = profile.user;
+    return {
+      id: profile.userId,
+      fullName: user?.fullName ?? null,
+      email: user?.email ?? null,
+      phoneNumber: user?.phoneNumber ?? null,
+      subCity: user?.subCity ?? null,
+      avatarUrl: user?.avatarUrl ?? null,
+      status: user?.status ?? null,
+      bio: profile.bio,
+      bioAm: profile.bioAm,
+      hourlyRate: Number(profile.hourlyRate),
+      monthlyRate: Number(profile.monthlyRate),
+      weekendRate: profile.weekendRate != null ? Number(profile.weekendRate) : null,
+      subjects: profile.subjects,
+      grades: profile.grades,
+      teachingStyles: profile.teachingStyles,
+      introVideoUrl: profile.videoIntroUrl ?? null,
+      rating: Number(profile.rating),
+      totalReviews: profile.totalReviews,
+      totalHoursTaught: Number(profile.totalHoursTaught),
+      badgeTier: profile.badgeTier,
+      isIdVerified: profile.isIdVerified,
+      isEduVerified: profile.isEduVerified,
+      isAvailable: profile.isAvailable,
+      maxTravelKm: Number(profile.maxTravelKm),
+      packages: profile.packages,
+      availability: profile.availability,
+      trustBadges: badges.map((b: { badgeType: string; issuedAt: Date }) => ({
+        type: b.badgeType,
+        issuedAt: b.issuedAt,
+      })),
+    };
   }
 
   async listTeachers(params?: {
