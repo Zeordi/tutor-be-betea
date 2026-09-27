@@ -92,7 +92,16 @@ function statusBadgeClass(status: string) {
 }
 
 function formatTime(iso: string) {
-  return new Date(iso).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
+  const d = new Date(iso);
+  if (isNaN(d.getTime())) return "—";
+  return d.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
+}
+
+function safeArray<T>(value: unknown, fallback: T[] = []): T[] {
+  if (Array.isArray(value)) return value;
+  if (value && typeof value === "object" && "items" in (value as any)) return (value as any).items || fallback;
+  if (value && typeof value === "object" && "data" in (value as any)) return (value as any).data || fallback;
+  return fallback;
 }
 
 export default function TeacherHomePage() {
@@ -128,10 +137,10 @@ export default function TeacherHomePage() {
         return;
       }
       if (meResult.status === "fulfilled") setMe(meResult.value);
-      if (contractsResult.status === "fulfilled") setContracts(contractsResult.value || []);
+      if (contractsResult.status === "fulfilled") setContracts(safeArray<ApiContract>(contractsResult.value));
       if (earningsResult.status === "fulfilled") setEarnings(earningsResult.value || null);
       if (verificationResult.status === "fulfilled") setVerification(verificationResult.value || null);
-      if (jobsResult.status === "fulfilled") setJobs(jobsResult.value || []);
+      if (jobsResult.status === "fulfilled") setJobs(safeArray<Job>(jobsResult.value));
     }).catch((err) => {
       if (!cancelled) setError(err.message || "Failed to load dashboard");
     }).finally(() => {
@@ -172,8 +181,10 @@ export default function TeacherHomePage() {
   }, [contracts, today]);
 
   const todayCount = todaySessions.length;
-  const totalEarnings = earnings?.totalEarned ?? 0;
-  const rating = tp?.rating ?? 0;
+  const totalEarnings = Number(earnings?.totalEarned);
+  const safeTotalEarnings = Number.isFinite(totalEarnings) ? totalEarnings : 0;
+  const rating = Number(tp?.rating);
+  const safeRating = Number.isFinite(rating) ? rating : 0;
   const reviewCount = tp?.reviewCount ?? 0;
   const connectsBalance = tp?.connectsBalance ?? 0;
 
@@ -235,14 +246,14 @@ export default function TeacherHomePage() {
       <div className="grid gap-4 md:grid-cols-4">
         <div className="rounded-2xl border border-slate-100 bg-white p-5 shadow-sm dark:border-slate-800 dark:bg-[#112240]">
           <p className="text-xl font-extrabold text-teal-600">
-            {totalEarnings.toLocaleString()} ETB
+            {safeTotalEarnings.toLocaleString()} ETB
           </p>
           <p className="mt-1 text-xs font-bold text-slate-700 dark:text-slate-300">Earnings</p>
           <p className="text-[10px] text-slate-400">Total earned</p>
         </div>
         <div className="rounded-2xl border border-slate-100 bg-white p-5 shadow-sm dark:border-slate-800 dark:bg-[#112240]">
           <p className="text-xl font-extrabold text-teal-600">
-            {rating > 0 ? `${rating.toFixed(1)} ⭐` : "—"}
+            {safeRating > 0 ? `${safeRating.toFixed(1)} ⭐` : "—"}
           </p>
           <p className="mt-1 text-xs font-bold text-slate-700 dark:text-slate-300">Rating</p>
           <p className="text-[10px] text-slate-400">{reviewCount} reviews</p>

@@ -290,6 +290,7 @@ export class TeachersService {
       isEduVerified: profile.isEduVerified,
       isAvailable: profile.isAvailable,
       maxTravelKm: Number(profile.maxTravelKm),
+      connectsBalance: Number(profile.connectsBalance),
       packages: profile.packages,
       availability: profile.availability,
       trustBadges: badges.map((b: { badgeType: string; issuedAt: Date }) => ({

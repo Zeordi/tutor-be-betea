@@ -2,7 +2,6 @@
 
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
-import Link from "next/link";
 import { apiFetch, paths, logout } from "@/lib/api";
 
 type TeacherMe = {
@@ -197,12 +196,20 @@ export default function TeacherSettingsPage() {
             <p className="text-[10px] font-semibold text-slate-500 dark:text-slate-400">Available connects</p>
           </div>
           {paths.connectsTopUp ? (
-            <Link
-              href={paths.connectsTopUp}
+            <button
+              type="button"
+              onClick={async () => {
+                try {
+                  await apiFetch(paths.connectsTopUp, { method: "POST" });
+                  alert("Top-up requested");
+                } catch (err: any) {
+                  alert(err.message || "Top-up failed");
+                }
+              }}
               className="rounded-xl bg-teal-600 px-4 py-2 text-sm font-bold text-white transition hover:bg-teal-700"
             >
               Top-up Connects
-            </Link>
+            </button>
           ) : (
             <span className="text-xs text-slate-400">Top-up coming soon</span>
           )}
