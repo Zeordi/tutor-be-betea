@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import Link from "next/link";
 import { apiFetch, paths } from "@/lib/api";
 
 type User = {
@@ -21,6 +22,42 @@ type Subscription = {
   startsAt: string;
   endsAt: string | null;
 };
+
+const PLAN_STYLES: Record<string, { bg: string; text: string; darkBg: string; darkText: string }> = {
+  ELITE: {
+    bg: "bg-purple-100",
+    text: "text-purple-700",
+    darkBg: "dark:bg-purple-900/30",
+    darkText: "dark:text-purple-300",
+  },
+  PREMIUM: {
+    bg: "bg-purple-100",
+    text: "text-purple-700",
+    darkBg: "dark:bg-purple-900/30",
+    darkText: "dark:text-purple-300",
+  },
+  BASIC: {
+    bg: "bg-teal-50",
+    text: "text-teal-700",
+    darkBg: "dark:bg-teal-900/30",
+    darkText: "dark:text-teal-300",
+  },
+  FREE: {
+    bg: "bg-slate-100",
+    text: "text-slate-600",
+    darkBg: "dark:bg-slate-800",
+    darkText: "dark:text-slate-300",
+  },
+};
+
+const SETTINGS_LINKS = [
+  { href: "/parent/notifications", icon: "🔔", title: "Notifications", desc: "Session reminders, report alerts" },
+  { href: "/parent/safety", icon: "🛡️", title: "Privacy & Safety", desc: "Location sharing, emergency contacts" },
+  { href: "/parent/help", icon: "❓", title: "Help & Support", desc: "FAQ, live chat, tickets" },
+  { href: "/parent/referral", icon: "🎁", title: "Referral Program", desc: "Invite & earn 500 ETB" },
+  { href: null, icon: "💳", title: "Payment Methods", desc: "Telebirr, CBE Birr linked" },
+  { href: null, icon: "🌐", title: "Language", desc: "Amharic / English" },
+];
 
 export default function ParentSettingsPage() {
   const [loading, setLoading] = useState(true);
@@ -108,22 +145,32 @@ export default function ParentSettingsPage() {
     );
   }
 
-  const tierLabel = subscription?.tier || "FREE";
+  const tier = subscription?.tier || "FREE";
+  const planStyle = PLAN_STYLES[tier] || PLAN_STYLES.FREE;
+  const initials = user.fullName
+    .split(" ")
+    .map((n) => n[0])
+    .slice(0, 2)
+    .join("")
+    .toUpperCase();
 
   return (
     <div className="space-y-5 p-6">
       <h2 className="text-xl font-extrabold text-slate-800 dark:text-white">Profile & Settings</h2>
+
       <div className="grid gap-4 md:grid-cols-2">
         <div className="rounded-2xl border border-slate-100 bg-white p-5 dark:border-slate-800 dark:bg-[#112240]">
           <div className="mb-5 flex items-center gap-4">
-            <div className="flex h-16 w-16 items-center justify-center rounded-2xl bg-teal-600 text-lg font-bold text-white">
-              {user.fullName.split(" ").map((n) => n[0]).slice(0, 2).join("")}
+            <div className="flex h-16 w-16 shrink-0 items-center justify-center rounded-2xl bg-teal-600 text-lg font-bold text-white">
+              {initials}
             </div>
-            <div>
+            <div className="min-w-0">
               <p className="font-extrabold text-slate-800 dark:text-white">{user.fullName}</p>
               <p className="text-sm text-slate-400">{user.phoneNumber}</p>
-              <span className="mt-1 inline-block rounded-full bg-teal-50 px-2 py-0.5 text-[10px] font-bold text-teal-700 dark:bg-teal-900/30">
-                {tierLabel} Plan
+              <span
+                className={`mt-1 inline-block rounded-full px-2 py-0.5 text-[10px] font-bold ${planStyle.bg} ${planStyle.text} ${planStyle.darkBg} ${planStyle.darkText}`}
+              >
+                {tier} Plan
               </span>
             </div>
           </div>
@@ -135,7 +182,7 @@ export default function ParentSettingsPage() {
                 <input
                   value={form.fullName}
                   onChange={(e) => setForm({ ...form, fullName: e.target.value })}
-                  className="w-full rounded-xl border border-[var(--border)] px-4 py-2.5 bg-[var(--surface)] outline-none"
+                  className="w-full rounded-xl border border-slate-200 bg-white px-4 py-2.5 text-sm outline-none focus:border-teal-500 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-300"
                 />
               </div>
               <div>
@@ -143,7 +190,7 @@ export default function ParentSettingsPage() {
                 <input
                   value={form.email}
                   onChange={(e) => setForm({ ...form, email: e.target.value })}
-                  className="w-full rounded-xl border border-[var(--border)] px-4 py-2.5 bg-[var(--surface)] outline-none"
+                  className="w-full rounded-xl border border-slate-200 bg-white px-4 py-2.5 text-sm outline-none focus:border-teal-500 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-300"
                 />
               </div>
               <div>
@@ -151,7 +198,7 @@ export default function ParentSettingsPage() {
                 <input
                   value={form.emergencyContact}
                   onChange={(e) => setForm({ ...form, emergencyContact: e.target.value })}
-                  className="w-full rounded-xl border border-[var(--border)] px-4 py-2.5 bg-[var(--surface)] outline-none"
+                  className="w-full rounded-xl border border-slate-200 bg-white px-4 py-2.5 text-sm outline-none focus:border-teal-500 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-300"
                 />
               </div>
               <div>
@@ -159,7 +206,7 @@ export default function ParentSettingsPage() {
                 <input
                   value={form.addressLine}
                   onChange={(e) => setForm({ ...form, addressLine: e.target.value })}
-                  className="w-full rounded-xl border border-[var(--border)] px-4 py-2.5 bg-[var(--surface)] outline-none"
+                  className="w-full rounded-xl border border-slate-200 bg-white px-4 py-2.5 text-sm outline-none focus:border-teal-500 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-300"
                 />
               </div>
               <div>
@@ -167,7 +214,7 @@ export default function ParentSettingsPage() {
                 <input
                   value={form.subCity}
                   onChange={(e) => setForm({ ...form, subCity: e.target.value })}
-                  className="w-full rounded-xl border border-[var(--border)] px-4 py-2.5 bg-[var(--surface)] outline-none"
+                  className="w-full rounded-xl border border-slate-200 bg-white px-4 py-2.5 text-sm outline-none focus:border-teal-500 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-300"
                 />
               </div>
               {error && <p className="text-sm text-red-600">{error}</p>}
@@ -201,7 +248,7 @@ export default function ParentSettingsPage() {
                 ].map(([label, val]) => (
                   <div
                     key={label}
-                    className="flex items-center justify-between border-b border-slate-100 py-2 dark:border-slate-800"
+                    className="flex flex-col gap-0.5 border-b border-slate-100 py-2 dark:border-slate-800 md:flex-row md:justify-between"
                   >
                     <span className="text-sm text-slate-500">{label}</span>
                     <span className="text-sm font-semibold text-slate-800 dark:text-slate-200">{val}</span>
@@ -211,34 +258,41 @@ export default function ParentSettingsPage() {
               <button
                 type="button"
                 onClick={() => setEditing(true)}
-                className="mt-4 w-full rounded-xl border border-slate-200 py-2 text-sm font-semibold text-slate-600 dark:border-slate-700 dark:text-slate-300"
+                className="mt-4 w-full rounded-xl border border-teal-600 py-2 text-sm font-semibold text-teal-600 transition hover:bg-teal-50 dark:hover:bg-teal-900/30"
               >
                 Edit Profile
               </button>
             </>
           )}
         </div>
+
         <div className="space-y-3">
-          {[
-            { title: "Notifications", desc: "Session reminders, report alerts", icon: "🔔" },
-            { title: "Privacy & Safety", desc: "Location sharing, emergency contacts", icon: "🛡️" },
-            { title: "Payment Methods", desc: "Telebirr, CBE Birr linked", icon: "💳" },
-            { title: "Language", desc: "Amharic / English", icon: "🌐" },
-            { title: "Help & Support", desc: "FAQ, live chat, tickets", icon: "❓" },
-            { title: "Referral Program", desc: "Invite & earn 500 ETB", icon: "🎁" },
-          ].map((item) => (
-            <button
-              key={item.title}
-              className="flex w-full items-center gap-3 rounded-2xl border border-slate-100 bg-white p-4 text-left transition-all hover:border-teal-300 dark:border-slate-800 dark:bg-[#112240] dark:hover:border-teal-700"
-            >
-              <span className="text-xl">{item.icon}</span>
-              <div className="flex-1">
-                <p className="text-sm font-bold text-slate-800 dark:text-white">{item.title}</p>
-                <p className="text-xs text-slate-400">{item.desc}</p>
+          {SETTINGS_LINKS.map((item) => {
+            const content = (
+              <div className="flex w-full items-center gap-3 rounded-2xl border border-slate-100 bg-white p-4 text-left transition hover:border-teal-300 dark:border-slate-800 dark:bg-[#112240] dark:hover:border-teal-700">
+                <span className="text-xl">{item.icon}</span>
+                <div className="flex-1">
+                  <p className="text-sm font-bold text-slate-800 dark:text-white">{item.title}</p>
+                  <p className="text-xs text-slate-400">{item.desc}</p>
+                </div>
+                <span className="text-slate-400">›</span>
               </div>
-              <span className="text-slate-400">›</span>
-            </button>
-          ))}
+            );
+
+            if (item.href) {
+              return (
+                <Link key={item.title} href={item.href}>
+                  {content}
+                </Link>
+              );
+            }
+
+            return (
+              <button key={item.title} type="button" disabled>
+                {content}
+              </button>
+            );
+          })}
         </div>
       </div>
     </div>
