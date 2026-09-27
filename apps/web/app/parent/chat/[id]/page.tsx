@@ -5,6 +5,15 @@ import { useMemo, useEffect, useState } from "react";
 import Link from "next/link";
 import { apiFetch, paths } from "@/lib/api";
 
+type Conversation = {
+  id: string;
+  otherUser: {
+    id: string;
+    fullName: string;
+    avatarUrl: string | null;
+  };
+};
+
 type Msg = {
   id: string;
   from: "me" | "them";
@@ -13,20 +22,13 @@ type Msg = {
   originalBlocked?: boolean;
 };
 
-
-
 export default function ParentChatThreadPage() {
   const params = useParams();
   const router = useRouter();
   const id = (params?.id as string) || "1";
   const [messages, setMessages] = useState<Msg[]>([]);
+  const [title, setTitle] = useState<string>("Conversation");
   const [draft, setDraft] = useState("");
-
-  const title = useMemo(() => {
-    if (id === "2") return "Selamawit Bekele";
-    if (id === "3") return "Dawit Haile";
-    return "Berhane Alemu";
-  }, [id]);
 
   useEffect(() => {
     if (!id) return;
@@ -49,6 +51,20 @@ export default function ParentChatThreadPage() {
       .catch(() => {
         if (!cancelled) setMessages([]);
       });
+    return () => { cancelled = true; };
+  }, [id]);
+
+  useEffect(() => {
+    if (!id) return;
+    let cancelled = false;
+    apiFetch<Conversation[]>(paths.chatConversations)
+      .then((data) => {
+        if (!cancelled) {
+          const conv = (data || []).find((c) => c.id === id);
+          if (conv) setTitle(conv.otherUser.fullName);
+        }
+      })
+      .catch(() => {});
     return () => { cancelled = true; };
   }, [id]);
 
@@ -100,16 +116,16 @@ export default function ParentChatThreadPage() {
           <button
             type="button"
             onClick={() => router.push("/parent/chat")}
-            className="mb-1 text-sm font-semibold text-[var(--secondary)] hover:text-[var(--primary)]"
+            className="mb-1 text-sm font-semibold text-slate-500 hover:text-teal-600 dark:text-slate-400"
           >
             ← All messages
           </button>
-          <h1 className="text-xl font-black text-[var(--foreground)]">{title}</h1>
-          <p className="text-xs text-[var(--secondary)]">Encrypted · on-platform only</p>
+          <h1 className="text-xl font-black text-slate-800 dark:text-white">{title}</h1>
+          <p className="text-xs text-slate-500 dark:text-slate-400">Encrypted · on-platform only</p>
         </div>
         <Link
           href={`/parent/tutors/${id}`}
-          className="rounded-xl border border-[var(--border)] px-3 py-2 text-xs font-bold text-[var(--foreground)]"
+          className="rounded-xl border border-slate-200 px-3 py-2 text-xs font-bold text-slate-700 dark:border-slate-700 dark:text-slate-300"
         >
           View profile
         </Link>
@@ -120,7 +136,7 @@ export default function ParentChatThreadPage() {
         [RESTRICTED CONTACT INFO]. Keep coordination here to stay covered by escrow.
       </div>
 
-      <div className="flex min-h-0 flex-1 flex-col overflow-hidden rounded-2xl border border-[var(--border)] bg-[var(--card)]">
+      <div className="flex min-h-0 flex-1 flex-col overflow-hidden rounded-2xl border border-slate-200 bg-white dark:border-slate-800 dark:bg-[#112240]">
         <div className="flex-1 space-y-3 overflow-y-auto p-4">
           {messages.map((m) => (
             <div
@@ -130,29 +146,29 @@ export default function ParentChatThreadPage() {
               <div
                 className={`max-w-[85%] rounded-2xl px-3.5 py-2.5 text-sm ${
                   m.from === "me"
-                    ? "bg-[var(--primary)] text-white"
-                    : "bg-[var(--muted)] text-[var(--foreground)]"
+                    ? "bg-teal-600 text-white"
+                    : "bg-slate-100 text-slate-800 dark:bg-slate-800 dark:text-slate-200"
                 }`}
               >
                 <p className="leading-relaxed">{m.text}</p>
                  <div
-                   className={`mt-1 flex items-center gap-2 text-[10px] ${
-                     m.from === "me" ? "text-white/70" : "text-[var(--secondary)]"
-                   }`}
-                 >
-                   <span>{m.time}</span>
-                   {m.originalBlocked && (
-                     <span className="rounded bg-black/10 px-1.5 py-0.5 font-bold">
-                       Contact info blocked
-                     </span>
-                   )}
-                 </div>
+                  className={`mt-1 flex items-center gap-2 text-[10px] ${
+                    m.from === "me" ? "text-white/70" : "text-slate-400"
+                  }`}
+                >
+                  <span>{m.time}</span>
+                  {m.originalBlocked && (
+                    <span className="rounded bg-black/10 px-1.5 py-0.5 font-bold">
+                      Contact info blocked
+                    </span>
+                  )}
+                </div>
               </div>
             </div>
           ))}
         </div>
 
-        <div className="border-t border-[var(--border)] p-3">
+        <div className="border-t border-slate-200 p-3 dark:border-slate-800">
           <div className="flex gap-2">
             <input
               value={draft}
@@ -164,12 +180,12 @@ export default function ParentChatThreadPage() {
                 }
               }}
               placeholder="Type a message…"
-              className="flex-1 rounded-xl border border-[var(--border)] bg-[var(--muted)] px-3.5 py-2.5 text-sm text-[var(--foreground)] outline-none focus:border-[var(--primary)]"
+              className="flex-1 rounded-xl border border-slate-200 bg-slate-50 px-3.5 py-2.5 text-sm text-slate-800 outline-none focus:border-teal-500 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-200"
             />
             <button
               type="button"
               onClick={send}
-              className="rounded-xl bg-[var(--primary)] px-5 py-2.5 text-sm font-bold text-white"
+              className="rounded-xl bg-teal-600 px-5 py-2.5 text-sm font-bold text-white"
             >
               Send
             </button>

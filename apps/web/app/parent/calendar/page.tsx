@@ -105,7 +105,7 @@ export default function CalendarPage() {
     return (
       <div className="space-y-6">
         <div className="h-6 w-40 animate-pulse rounded bg-slate-200 dark:bg-slate-800" />
-        <div className="rounded-2xl border border-[var(--border)] p-4">
+        <div className="rounded-2xl border border-slate-200 bg-white p-4 dark:border-slate-800 dark:bg-[#112240]">
           <div className="h-60 animate-pulse rounded bg-slate-100 dark:bg-slate-800" />
         </div>
       </div>
@@ -133,30 +133,30 @@ export default function CalendarPage() {
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
-        <h1 className="text-2xl font-extrabold text-[var(--foreground)]">Calendar</h1>
+        <h1 className="text-2xl font-extrabold text-slate-800 dark:text-white">Calendar</h1>
         <div className="flex items-center gap-2">
           <button
             type="button"
             onClick={() => toggleMonth(-1)}
-            className="rounded-xl border border-[var(--border)] px-3 py-1 text-sm font-bold"
+            className="rounded-xl border border-slate-200 px-3 py-1 text-sm font-bold text-slate-700 dark:border-slate-700 dark:text-slate-300"
           >
             ‹
           </button>
-          <span className="text-sm font-bold text-[var(--foreground)]">
+          <span className="text-sm font-bold text-slate-800 dark:text-white">
             {currentMonth.toLocaleString("default", { month: "long", year: "numeric" })}
           </span>
           <button
             type="button"
             onClick={() => toggleMonth(1)}
-            className="rounded-xl border border-[var(--border)] px-3 py-1 text-sm font-bold"
+            className="rounded-xl border border-slate-200 px-3 py-1 text-sm font-bold text-slate-700 dark:border-slate-700 dark:text-slate-300"
           >
             ›
           </button>
         </div>
       </div>
 
-      <div className="rounded-2xl border border-[var(--border)] p-4">
-        <div className="mb-4 grid grid-cols-7 gap-2 text-center text-[11px] font-bold text-[var(--secondary)]">
+      <div className="rounded-2xl border border-slate-200 bg-white p-4 dark:border-slate-800 dark:bg-[#112240]">
+        <div className="mb-4 grid grid-cols-7 gap-2 text-center text-[11px] font-bold text-slate-500 dark:text-slate-400">
           {["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"].map((d) => (
             <div key={d}>{d}</div>
           ))}
@@ -179,15 +179,15 @@ export default function CalendarPage() {
                 onClick={() => setSelectedDate(date)}
                 className={`relative rounded-xl py-2 ${
                   isSelected
-                    ? "bg-[var(--primary)] text-white"
+                    ? "bg-teal-600 text-white"
                     : daySessions.length
                       ? "bg-teal-50/80 dark:bg-teal-950/30"
-                      : "hover:bg-[var(--muted)]"
+                      : "hover:bg-slate-50 dark:hover:bg-slate-800"
                 }`}
               >
                 <span
                   className={`absolute top-0.5 left-1/2 -translate-x-1/2 text-[10px] ${
-                    isToday && !isSelected ? "font-black text-[var(--primary)]" : ""
+                    isToday && !isSelected ? "font-black text-teal-600" : ""
                   }`}
                 >
                   {i + 1}
@@ -195,7 +195,7 @@ export default function CalendarPage() {
                 {daySessions.length > 0 && !isSelected && (
                   <span className="absolute bottom-0.5 left-1/2 -translate-x-1/2 flex gap-0.5">
                     {daySessions.slice(0, 3).map((_, di) => (
-                      <span key={di} className="h-1 w-1 rounded-full bg-[var(--primary)]" />
+                      <span key={di} className="h-1 w-1 rounded-full bg-teal-500" />
                     ))}
                   </span>
                 )}
@@ -206,13 +206,13 @@ export default function CalendarPage() {
       </div>
 
       <div className="space-y-3">
-        <h3 className="text-sm font-bold uppercase text-[var(--secondary)]">
+        <h3 className="text-sm font-bold uppercase tracking-wide text-slate-500 dark:text-slate-400">
           {selectedDate
             ? `Sessions — ${selectedDate.toLocaleDateString()}`
             : "Upcoming sessions"}
         </h3>
         {(selectedDate ? daySessions : monthSessions).length === 0 ? (
-          <p className="rounded-2xl border border-dashed border-[var(--border)] p-6 text-center text-sm text-[var(--secondary)]">
+          <p className="rounded-2xl border border-dashed border-slate-300 p-6 text-center text-sm text-slate-500 dark:border-slate-700">
             No sessions {selectedDate ? "for this day" : "this month"}.
           </p>
         ) : (
@@ -220,27 +220,27 @@ export default function CalendarPage() {
             {(selectedDate ? daySessions : monthSessions).map((c) => (
               <div
                 key={c.id}
-                className="rounded-2xl border border-[var(--border)] bg-[var(--card)] p-4"
+                className="rounded-2xl border border-slate-200 bg-white p-4 dark:border-slate-800 dark:bg-[#112240]"
               >
                 <div className="mb-2 flex justify-between">
-                  <p className="font-bold text-[var(--foreground)]">{c.tutorName}</p>
+                  <p className="font-bold text-slate-800 dark:text-white">{c.tutorName}</p>
                   <span
                     className={`rounded-full px-2 py-0.5 text-[10px] font-black ${STATUS_COLORS[c.status]}`}
                   >
                     {c.status}
                   </span>
                 </div>
-                <p className="text-sm text-[var(--secondary)]">
+                <p className="text-sm text-slate-500 dark:text-slate-400">
                   {c.studentName} · {c.subject} · Grade {c.grade}
                 </p>
-                <p className="mt-1 text-xs text-[var(--secondary)]">
+                <p className="mt-1 text-xs text-slate-400">
                   Starts {new Date(c.startDate).toLocaleString()}
                 </p>
                 <div className="mt-3 flex gap-2">
                   <button
                     type="button"
                     onClick={() => window.open(paths.sessionDetail(c.id), "_blank")}
-                    className="flex-1 rounded-xl bg-[var(--primary)] py-2 text-xs font-bold text-white"
+                    className="flex-1 rounded-xl bg-teal-600 py-2 text-xs font-bold text-white"
                   >
                     Open session
                   </button>
