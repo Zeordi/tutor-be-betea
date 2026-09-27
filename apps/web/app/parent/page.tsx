@@ -58,22 +58,32 @@ export default function ParentHomePage() {
     setLoading(true);
     setError("");
 
-    Promise.all([
+    Promise.allSettled([
       apiFetch<CurrentUser>(paths.usersMe),
       apiFetch<Contract[]>(paths.contractsParent),
       apiFetch<Child[]>(paths.children),
       apiFetch<Wallet>(paths.wallet),
       apiFetch<ProgressReport[]>(paths.progressMine),
-    ])
-      .then(([meRes, contractsRes, childrenRes, walletRes, progressRes]) => {
-        if (!cancelled) {
-          setMe(meRes);
-          setContracts(contractsRes || []);
-          setChildren(childrenRes || []);
-          setWallet(walletRes);
-          setProgress(progressRes || []);
+    ]).then((results) => {
+      if (!cancelled) {
+        const meResult = results[0];
+        const contractsResult = results[1];
+        const childrenResult = results[2];
+        const walletResult = results[3];
+        const progressResult = results[4];
+
+        if (meResult.status === "rejected") {
+          setError(meResult.reason?.message || "Failed to load profile");
+          return;
         }
-      })
+
+        setMe(meResult.value);
+        setContracts(contractsResult.status === "fulfilled" ? (contractsResult.value || []) : []);
+        setChildren(childrenResult.status === "fulfilled" ? (childrenResult.value || []) : []);
+        setWallet(walletResult.status === "fulfilled" ? walletResult.value : null);
+        setProgress(progressResult.status === "fulfilled" ? (progressResult.value || []) : []);
+      }
+    })
       .catch((err) => {
         if (!cancelled) setError(err.message || "Failed to load dashboard");
       })
