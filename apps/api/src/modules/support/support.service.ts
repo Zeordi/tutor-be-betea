@@ -31,10 +31,15 @@ export class SupportService {
   }
 
   async listMine(userId: string) {
-    return prisma.supportTicket.findMany({
-      where: { submittedBy: userId },
-      orderBy: { createdAt: "desc" },
-    });
+    try {
+      return await prisma.supportTicket.findMany({
+        where: { submittedBy: userId },
+        orderBy: { createdAt: "desc" },
+      });
+    } catch (err) {
+      console.error("listMine failed", err);
+      return [];
+    }
   }
 
   async listAll(status?: string) {
