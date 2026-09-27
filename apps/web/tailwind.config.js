@@ -132,7 +132,7 @@ module.exports = {
         "2xl": "24px",
       },
       fontFamily: {
-        sans: ["Plus Jakarta Sans", "Inter", "system-ui", "sans-serif"],
+        sans: ["Plus Jakarta Sans", "system-ui", "sans-serif"],
       },
       boxShadow: {
         sm: "var(--shadow-sm)",

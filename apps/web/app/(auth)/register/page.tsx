@@ -35,7 +35,7 @@ export default function RegisterPage() {
   const [showPassword, setShowPassword] = useState(false);
   const [location, setLocation] = useState("");
   const [subject, setSubject] = useState("");
-  const [otp, setOtp] = useState("");
+  const [otpDigits, setOtpDigits] = useState(["", "", "", "", "", ""]);
   const [loading, setLoading] = useState(false);
   const [message, setMessage] = useState("");
   const [countdown, setCountdown] = useState(0);
@@ -65,6 +65,12 @@ export default function RegisterPage() {
     }
   };
 
+  const setDigit = (i: number, v: string) => {
+    const next = [...otpDigits];
+    next[i] = v.replace(/\D/g, "").slice(-1);
+    setOtpDigits(next);
+  };
+
   const handleDetailsContinue = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
@@ -82,7 +88,7 @@ export default function RegisterPage() {
       await sendOtp();
       setStep(3);
       setCountdown(60);
-      setOtp("");
+      setOtpDigits(["", "", "", "", "", ""]);
       setMessage("");
     } catch (err: any) {
       setMessage(err.message || "Could not send OTP");
@@ -96,14 +102,15 @@ export default function RegisterPage() {
     setLoading(true);
     setMessage("");
     try {
-      if (otp.trim().length !== 6) throw new Error("Enter the 6-digit code.");
+      const code = otpDigits.join("");
+      if (code.length !== 6) throw new Error("Enter the 6-digit code.");
 
       const verifyRes = await fetch(getApiUrl() + paths.authOtpVerify, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           phoneNumber: phoneNumber.trim(),
-          code: otp.trim(),
+          code,
         }),
       });
       const verifyData = await verifyRes.json().catch(() => ({}));
@@ -152,18 +159,34 @@ export default function RegisterPage() {
 
       <div className="mb-5 hidden md:flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-bold text-slate-900 dark:text-white">
+          <h1 className="text-2xl font-extrabold text-[var(--foreground)]">
             Create account
           </h1>
-          <p className="text-xs text-slate-500 dark:text-slate-400">
+          <p className="text-xs text-[var(--muted-foreground)]">
             Join 12,000+ families · Step {step} of 3
           </p>
         </div>
         <div className="flex items-center gap-2">
+          <div className="flex overflow-hidden rounded-lg border border-[var(--border)] bg-[var(--muted)]">
+            {LANGS.map((l) => (
+              <button
+                key={l}
+                type="button"
+                onClick={() => setLang(l)}
+                className={`px-2 py-1 text-[11px] font-bold transition ${
+                  lang === l
+                    ? "bg-[var(--primary)] text-white"
+                    : "text-[var(--secondary)]"
+                }`}
+              >
+                {l}
+              </button>
+            ))}
+          </div>
           <button
             type="button"
             onClick={toggleTheme}
-            className="flex h-8 w-8 items-center justify-center rounded-md border border-[var(--border)] bg-[var(--muted)] text-sm"
+            className="flex h-8 w-8 items-center justify-center rounded-lg border border-[var(--border)] bg-[var(--muted)] text-sm"
             aria-label="Toggle theme"
           >
             {mode === "dark" ? "☀️" : "🌙"}
@@ -176,7 +199,7 @@ export default function RegisterPage() {
           <div
             key={s}
             className={`h-1.5 flex-1 rounded-full ${
-              s <= step ? "bg-[#008779]" : "bg-slate-200 dark:bg-slate-700"
+              s <= step ? "bg-[var(--primary)]" : "bg-[var(--border)]"
             }`}
           />
         ))}
@@ -185,8 +208,8 @@ export default function RegisterPage() {
       {step === 1 && (
         <div className="space-y-4">
           <div className="text-center">
-            <p className="text-base font-bold text-slate-900 dark:text-white">Welcome to Tutor Be Betea</p>
-            <p className="text-sm text-slate-500 dark:text-slate-400">How would you like to join?</p>
+            <p className="text-base font-bold text-[var(--foreground)]">Welcome to Tutor Be Betea</p>
+            <p className="text-sm text-[var(--muted-foreground)]">How would you like to join?</p>
           </div>
           <div className="grid grid-cols-2 gap-3">
             <button
@@ -194,22 +217,22 @@ export default function RegisterPage() {
               onClick={() => setRole("PARENT")}
               className={`rounded-2xl border px-3 py-4 text-left transition ${
                 role === "PARENT"
-                  ? "border-[#008779] bg-teal-50 dark:bg-teal-900/20"
-                  : "border-slate-200 dark:border-slate-700"
+                  ? "border-[var(--primary)] bg-[var(--primary-light)]"
+                  : "border-[var(--border)]"
               }`}
             >
               <div className="text-2xl mb-2">👨‍👩‍👧</div>
               <div className="flex items-center justify-between">
                 <div>
-                  <p className="text-sm font-bold text-slate-800 dark:text-white">
+                  <p className="text-sm font-bold text-[var(--foreground)]">
                     Parent / Guardian
                   </p>
-                  <p className="text-[11px] text-slate-500 dark:text-slate-400">
+                  <p className="text-[11px] text-[var(--muted-foreground)]">
                     Find tutors for my child
                   </p>
                 </div>
                 {role === "PARENT" && (
-                  <span className="text-[#008779] text-lg">✓</span>
+                  <span className="text-[var(--primary)] text-lg">✓</span>
                 )}
               </div>
             </button>
@@ -218,22 +241,22 @@ export default function RegisterPage() {
               onClick={() => setRole("TEACHER")}
               className={`rounded-2xl border px-3 py-4 text-left transition ${
                 role === "TEACHER"
-                  ? "border-[#008779] bg-teal-50 dark:bg-teal-900/20"
-                  : "border-slate-200 dark:border-slate-700"
+                  ? "border-[var(--primary)] bg-[var(--primary-light)]"
+                  : "border-[var(--border)]"
               }`}
             >
               <div className="text-2xl mb-2">🧑‍🏫</div>
               <div className="flex items-center justify-between">
                 <div>
-                  <p className="text-sm font-bold text-slate-800 dark:text-white">
+                  <p className="text-sm font-bold text-[var(--foreground)]">
                     Tutor / Teacher
                   </p>
-                  <p className="text-[11px] text-slate-500 dark:text-slate-400">
+                  <p className="text-[11px] text-[var(--muted-foreground)]">
                     Offer tutoring services
                   </p>
                 </div>
                 {role === "TEACHER" && (
-                  <span className="text-[#008779] text-lg">✓</span>
+                  <span className="text-[var(--primary)] text-lg">✓</span>
                 )}
               </div>
             </button>
@@ -241,7 +264,7 @@ export default function RegisterPage() {
           <button
             type="button"
             onClick={() => setStep(2)}
-            className="w-full rounded-2xl bg-[#008779] py-3 text-sm font-bold text-white hover:bg-[#006b5f]"
+            className="w-full rounded-2xl bg-[var(--primary)] py-3 text-sm font-bold text-white hover:bg-[var(--primary-dark)]"
           >
             Continue as {role === "PARENT" ? "Parent" : "Tutor"} →
           </button>
@@ -252,32 +275,32 @@ export default function RegisterPage() {
         <form onSubmit={handleDetailsContinue} className="space-y-3">
           <div className="grid grid-cols-2 gap-3">
             <div>
-              <label className="block text-xs font-medium text-slate-600 dark:text-slate-300">
+              <label className="block text-xs font-medium text-[var(--muted-foreground)]">
                 First Name *
               </label>
               <input
                 value={firstName}
                 onChange={(e) => setFirstName(e.target.value)}
-                className="mt-1 w-full rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm dark:border-slate-700 dark:bg-slate-800 dark:text-white"
+                className="mt-1 w-full rounded-2xl border border-[var(--border)] bg-[var(--muted)] dark:bg-[var(--card)] px-4 py-3 text-sm text-[var(--foreground)]"
               />
             </div>
             <div>
-              <label className="block text-xs font-medium text-slate-600 dark:text-slate-300">
+              <label className="block text-xs font-medium text-[var(--muted-foreground)]">
                 Last Name *
               </label>
               <input
                 value={lastName}
                 onChange={(e) => setLastName(e.target.value)}
-                className="mt-1 w-full rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm dark:border-slate-700 dark:bg-slate-800 dark:text-white"
+                className="mt-1 w-full rounded-2xl border border-[var(--border)] bg-[var(--muted)] dark:bg-[var(--card)] px-4 py-3 text-sm text-[var(--foreground)]"
               />
             </div>
           </div>
 
-          <label className="block text-xs font-medium text-slate-600 dark:text-slate-300">
+          <label className="block text-xs font-medium text-[var(--muted-foreground)]">
             Phone *
           </label>
-          <div className="flex rounded-2xl border border-slate-200 bg-slate-50 overflow-hidden dark:border-slate-700 dark:bg-slate-800">
-            <span className="px-3 py-3 text-sm text-slate-500 border-r border-slate-200 dark:border-slate-700 dark:text-slate-300">
+          <div className="flex rounded-2xl border border-[var(--border)] bg-[var(--muted)] dark:bg-[var(--card)] overflow-hidden">
+            <span className="px-3 py-3 text-sm text-[var(--muted-foreground)] border-r border-[var(--border)]">
               +251
             </span>
             <input
@@ -287,11 +310,11 @@ export default function RegisterPage() {
                 setPhoneNumber(d ? `+251${d.replace(/^0/, "")}` : "");
               }}
               placeholder="7xxxxxxxx"
-              className="flex-1 bg-transparent px-3 py-3 text-sm outline-none dark:text-white"
+              className="flex-1 bg-transparent px-3 py-3 text-sm outline-none text-[var(--foreground)]"
             />
           </div>
 
-          <label className="block text-xs font-medium text-slate-600 dark:text-slate-300">
+          <label className="block text-xs font-medium text-[var(--muted-foreground)]">
             Email (optional)
           </label>
           <input
@@ -299,10 +322,10 @@ export default function RegisterPage() {
             value={email}
             onChange={(e) => setEmail(e.target.value)}
             placeholder="you@gmail.com"
-            className="w-full rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm dark:border-slate-700 dark:bg-slate-800 dark:text-white"
+            className="w-full rounded-2xl border border-[var(--border)] bg-[var(--muted)] dark:bg-[var(--card)] px-4 py-3 text-sm text-[var(--foreground)]"
           />
 
-          <label className="block text-xs font-medium text-slate-600 dark:text-slate-300">
+          <label className="block text-xs font-medium text-[var(--muted-foreground)]">
             Password *
           </label>
           <div className="relative">
@@ -311,12 +334,12 @@ export default function RegisterPage() {
               value={password}
               onChange={(e) => setPassword(e.target.value)}
               placeholder="Password"
-              className="w-full rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm dark:border-slate-700 dark:bg-slate-800 dark:text-white"
+              className="w-full rounded-2xl border border-[var(--border)] bg-[var(--muted)] dark:bg-[var(--card)] px-4 py-3 text-sm text-[var(--foreground)]"
             />
             <button
               type="button"
               onClick={() => setShowPassword((v) => !v)}
-              className="absolute right-3 top-1/2 -translate-y-1/2 text-xs text-slate-400"
+              className="absolute right-3 top-1/2 -translate-y-1/2 text-xs text-[var(--muted-foreground)]"
             >
               {showPassword ? "Hide" : "Show"}
             </button>
@@ -327,29 +350,29 @@ export default function RegisterPage() {
                 <div
                   key={i}
                   className={`h-1 flex-1 rounded-full ${
-                    i < strength.score ? strength.color : "bg-slate-200 dark:bg-slate-700"
+                    i < strength.score ? strength.color : "bg-[var(--border)]"
                   }`}
                 />
               ))}
             </div>
-            <span className="text-xs text-slate-500 dark:text-slate-400">
+            <span className="text-xs text-[var(--muted-foreground)]">
               {password ? strength.label : ""}
             </span>
           </div>
 
-          <label className="block text-xs font-medium text-slate-600 dark:text-slate-300">
-            Location <span className="text-slate-400">(optional)</span>
+          <label className="block text-xs font-medium text-[var(--muted-foreground)]">
+            Location <span className="text-[var(--muted-foreground)]">(optional)</span>
           </label>
-          <div className="flex rounded-2xl border border-slate-200 bg-slate-50 overflow-hidden dark:border-slate-700 dark:bg-slate-800">
+          <div className="flex rounded-2xl border border-[var(--border)] bg-[var(--muted)] dark:bg-[var(--card)] overflow-hidden">
             <input
               value={location}
               onChange={(e) => setLocation(e.target.value)}
               placeholder="Bole, Addis Ababa"
-              className="flex-1 bg-transparent px-3 py-3 text-sm outline-none dark:text-white"
+              className="flex-1 bg-transparent px-3 py-3 text-sm outline-none text-[var(--foreground)]"
             />
             <button
               type="button"
-              className="px-3 py-3 text-xs font-semibold text-[#008779]"
+              className="px-3 py-3 text-xs font-semibold text-[var(--primary)]"
             >
               Auto-detect
             </button>
@@ -357,48 +380,48 @@ export default function RegisterPage() {
 
           {role === "TEACHER" && (
             <>
-              <label className="block text-xs font-medium text-slate-600 dark:text-slate-300">
-                Primary Subject <span className="text-slate-400">(optional)</span>
+              <label className="block text-xs font-medium text-[var(--muted-foreground)]">
+                Primary Subject <span className="text-[var(--muted-foreground)]">(optional)</span>
               </label>
               <input
                 value={subject}
                 onChange={(e) => setSubject(e.target.value)}
                 placeholder="Mathematics, Physics, ..."
-                className="w-full rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm dark:border-slate-700 dark:bg-slate-800 dark:text-white"
+                className="w-full rounded-2xl border border-[var(--border)] bg-[var(--muted)] dark:bg-[var(--card)] px-4 py-3 text-sm text-[var(--foreground)]"
               />
             </>
           )}
 
-          <label className="flex items-start gap-2 text-[11px] text-slate-500 dark:text-slate-400">
+          <label className="flex items-start gap-2 text-[11px] text-[var(--muted-foreground)]">
             <input
               type="checkbox"
               checked={agreedToTerms}
               onChange={(e) => setAgreedToTerms(e.target.checked)}
-              className="mt-0.5 h-4 w-4 rounded border-slate-300"
+              className="mt-0.5 h-4 w-4 rounded border-[var(--border)]"
             />
             <span>
               I agree to the{" "}
-              <Link href="/terms" className="font-semibold text-[#008779]">
+              <Link href="/terms" className="font-semibold text-[var(--primary)]">
                 Terms of Service
               </Link>{" "}
               and{" "}
-              <Link href="/privacy" className="font-semibold text-[#008779]">
+              <Link href="/privacy" className="font-semibold text-[var(--primary)]">
                 Privacy Policy
               </Link>
               .
             </span>
           </label>
 
-          <label className="flex items-start gap-2 text-[11px] text-slate-500 dark:text-slate-400">
+          <label className="flex items-start gap-2 text-[11px] text-[var(--muted-foreground)]">
             <input
               type="checkbox"
               checked={agreedToEscrow}
               onChange={(e) => setAgreedToEscrow(e.target.checked)}
-              className="mt-0.5 h-4 w-4 rounded border-slate-300"
+              className="mt-0.5 h-4 w-4 rounded border-[var(--border)]"
             />
             <span>
               I agree to the{" "}
-              <Link href="/privacy" className="font-semibold text-[#008779]">
+              <Link href="/privacy" className="font-semibold text-[var(--primary)]">
                 Escrow Agreement
               </Link>{" "}
               and payment protection terms.
@@ -409,14 +432,14 @@ export default function RegisterPage() {
             <button
               type="button"
               onClick={() => setStep(1)}
-              className="rounded-2xl border border-slate-200 px-4 py-3 text-sm dark:border-slate-700"
+              className="rounded-2xl border border-[var(--border)] px-4 py-3 text-sm"
             >
               Back
             </button>
             <button
               type="submit"
               disabled={loading}
-              className="flex-1 rounded-2xl bg-[#008779] py-3 text-sm font-bold text-white hover:bg-[#006b5f] disabled:opacity-60"
+              className="flex-1 rounded-2xl bg-[var(--primary)] py-3 text-sm font-bold text-white hover:bg-[var(--primary-dark)] disabled:opacity-60"
             >
               {loading ? "Sending…" : "Create Account — Verify Phone →"}
             </button>
@@ -426,34 +449,50 @@ export default function RegisterPage() {
 
       {step === 3 && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4">
-          <div className="w-full max-w-md rounded-2xl border border-slate-100 bg-white p-6 shadow-2xl dark:border-slate-700 dark:bg-[#112240]">
+          <div className="w-full max-w-md rounded-2xl border border-[var(--border)] bg-[var(--card)] p-6 shadow-2xl">
             <form onSubmit={handleVerifyAndRegister} className="space-y-4">
               <div>
-                <h2 className="text-lg font-bold text-slate-900 dark:text-white">
+                <h2 className="text-lg font-bold text-[var(--foreground)]">
                   Verify Your Phone
                 </h2>
-                <p className="text-sm text-slate-500 dark:text-slate-400">
+                <p className="text-sm text-[var(--muted-foreground)]">
                   Enter the 6-digit code sent to{" "}
                   <span className="font-semibold">{phoneNumber.replace(/^\+?251/, "***")}</span>
                 </p>
-                <p className="text-xs text-slate-400">
+                <p className="text-xs text-[var(--muted-foreground)]">
                   Telebirr OTP may apply depending on your carrier.
                 </p>
               </div>
 
-              <input
-                value={otp}
-                onChange={(e) =>
-                  setOtp(e.target.value.replace(/\D/g, "").slice(0, 6))
-                }
-                placeholder="000000"
-                inputMode="numeric"
-                pattern="[0-9]*"
-                maxLength={6}
-                className="w-full rounded-2xl border border-slate-200 bg-slate-50 px-4 py-4 text-center tracking-[0.3em] text-2xl font-extrabold dark:border-slate-700 dark:bg-slate-800 dark:text-white"
-              />
+              <div className="flex items-center justify-center gap-2">
+                {otpDigits.map((d, i) => (
+                  <input
+                    key={i}
+                    data-otp-index={i}
+                    value={d}
+                    onChange={(e) => setDigit(i, e.target.value)}
+                    onKeyDown={(e) => {
+                      if (e.key === "Backspace" && !d && i > 0) {
+                        const prev = document.querySelector<HTMLInputElement>(`input[data-otp-index="${i - 1}"]`);
+                        prev?.focus();
+                      }
+                    }}
+                    onInput={(e) => {
+                      const input = e.target as HTMLInputElement;
+                      if (input.value && i < otpDigits.length - 1) {
+                        const next = document.querySelector<HTMLInputElement>(`input[data-otp-index="${i + 1}"]`);
+                        next?.focus();
+                      }
+                    }}
+                    maxLength={1}
+                    inputMode="numeric"
+                    pattern="[0-9]*"
+                    className="w-10 h-12 md:w-12 md:h-14 shrink-0 rounded-xl border-2 border-[var(--border)] bg-[var(--muted)] dark:bg-[var(--card)] text-center text-base md:text-lg font-extrabold outline-none transition focus:border-[var(--primary)]"
+                  />
+                ))}
+              </div>
 
-              <div className="flex items-center justify-between text-xs text-slate-500 dark:text-slate-400">
+              <div className="flex items-center justify-between text-xs text-[var(--muted-foreground)]">
                 <span>
                   Expires in{" "}
                   <span className="font-semibold">{countdown > 0 ? `${countdown}s` : "expired"}</span>
@@ -466,6 +505,7 @@ export default function RegisterPage() {
                       setLoading(true);
                       await sendOtp();
                       setCountdown(60);
+                      setOtpDigits(["", "", "", "", "", ""]);
                       setMessage("New code sent — use only the latest SMS.");
                     } catch (err: any) {
                       setMessage(err.message);
@@ -473,7 +513,7 @@ export default function RegisterPage() {
                       setLoading(false);
                     }
                   }}
-                  className="font-semibold text-[#008779]"
+                  className="font-semibold text-[var(--primary)]"
                 >
                   Resend SMS
                 </button>
@@ -482,7 +522,7 @@ export default function RegisterPage() {
               <button
                 type="submit"
                 disabled={loading}
-                className="w-full rounded-2xl bg-[#008779] py-3 text-sm font-bold text-white hover:bg-[#006b5f] disabled:opacity-60"
+                className="w-full rounded-2xl bg-[var(--primary)] py-3 text-sm font-bold text-white hover:bg-[var(--primary-dark)] disabled:opacity-60"
               >
                 {loading ? "Creating…" : "Verify & Create account"}
               </button>
@@ -490,7 +530,7 @@ export default function RegisterPage() {
               <button
                 type="button"
                 onClick={() => setStep(2)}
-                className="w-full text-xs text-slate-500 dark:text-slate-400"
+                className="w-full text-xs text-[var(--muted-foreground)]"
               >
                 ← Change phone number
               </button>
@@ -503,9 +543,9 @@ export default function RegisterPage() {
         <p className="mt-4 text-center text-sm text-amber-600">{message}</p>
       )}
 
-      <p className="mt-6 text-center text-xs text-slate-500 dark:text-slate-400">
+      <p className="mt-6 text-center text-xs text-[var(--muted-foreground)]">
         Already a member?{" "}
-        <Link href="/login" className="font-semibold text-[#008779]">
+        <Link href="/login" className="font-semibold text-[var(--primary)]">
           Sign in
         </Link>
       </p>

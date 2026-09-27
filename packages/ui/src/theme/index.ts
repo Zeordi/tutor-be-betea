@@ -1,7 +1,7 @@
 export const colors = {
   light: {
     background: "#F0F9F8",
-    foreground: "#0F172A",
+    foreground: "#0D2B2A",
     surface: "#FFFFFF",
     surface2: "#F1F5F9",
     card: "#FFFFFF",
@@ -13,7 +13,7 @@ export const colors = {
     secondaryForeground: "#FFFFFF",
     muted: "#F1F5F9",
     mutedForeground: "#64748B",
-    border: "#CBD5E1",
+    border: "#E2E8F0",
     success: "#059669",
     successLight: "#D1FAE5",
     warning: "#D97706",
@@ -85,7 +85,7 @@ export const radius = {
 
 export const typography = {
   fontFamily: {
-    sans: "'Plus Jakarta Sans', Inter, system-ui, sans-serif",
+    sans: "'Plus Jakarta Sans', system-ui, sans-serif",
     mono: "'JetBrains Mono', monospace",
   },
   roles: {

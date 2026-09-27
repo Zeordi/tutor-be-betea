@@ -212,7 +212,7 @@ export default function FindTutorsPage() {
                 onClick={() => setCity(c)}
                 className={`shrink-0 rounded-[10px] border px-3.5 py-2 text-[13px] font-semibold transition ${
                   city === c
-                    ? "border-[var(--primary)] bg-teal-50 text-[var(--primary)] dark:bg-teal-950/40"
+                     ? "border-[var(--primary)] bg-[var(--primary-light)] text-[var(--primary)] dark:bg-[var(--primary-light)]/40"
                     : "border-[var(--border)] text-[var(--secondary)]"
                 }`}
               >

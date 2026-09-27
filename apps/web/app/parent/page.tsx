@@ -4,24 +4,40 @@ import { useEffect, useState } from "react";
 import Link from "next/link";
 import { apiFetch, paths } from "@/lib/api";
 
+type CurrentUser = {
+  fullName: string;
+  phoneNumber: string;
+  email: string | null;
+  role: string;
+};
+
 type Contract = {
   id: string;
   status: string;
   startDate: string;
   endDate: string;
   teacher: { fullName: string; avatarUrl: string | null };
-  student: { studentName: string };
+  student: { studentName: string; gradeLevel: string; subjects?: string[] };
 };
 
 type Child = {
   id: string;
   studentName: string;
   gradeLevel: string;
+  contracts?: { id: string; status: string; teacherId: string }[];
 };
 
 type ProgressReport = {
   contractId: string;
   quizScore: number | null;
+  weekNumber?: number;
+  contract: {
+    id: string;
+    student: {
+      studentName: string;
+      gradeLevel: string;
+    };
+  };
 };
 
 type Wallet = {
@@ -31,6 +47,7 @@ type Wallet = {
 export default function ParentHomePage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
+  const [me, setMe] = useState<CurrentUser | null>(null);
   const [contracts, setContracts] = useState<Contract[]>([]);
   const [children, setChildren] = useState<Child[]>([]);
   const [wallet, setWallet] = useState<Wallet | null>(null);
@@ -42,13 +59,15 @@ export default function ParentHomePage() {
     setError("");
 
     Promise.all([
+      apiFetch<CurrentUser>(paths.usersMe),
       apiFetch<Contract[]>(paths.contractsParent),
       apiFetch<Child[]>(paths.children),
       apiFetch<Wallet>(paths.wallet),
       apiFetch<ProgressReport[]>(paths.progressMine),
     ])
-      .then(([contractsRes, childrenRes, walletRes, progressRes]) => {
+      .then(([meRes, contractsRes, childrenRes, walletRes, progressRes]) => {
         if (!cancelled) {
+          setMe(meRes);
           setContracts(contractsRes || []);
           setChildren(childrenRes || []);
           setWallet(walletRes);
@@ -69,23 +88,44 @@ export default function ParentHomePage() {
 
   const activeCount = contracts.filter((c) => c.status === "ACTIVE").length;
   const upcomingCount = contracts.filter((c) => c.status === "PENDING_ESCROW").length;
+  const scores = progress
+    .map((p) => p.quizScore)
+    .filter((s): s is number => s != null);
   const avgProgress =
-    progress.length > 0
-      ? Math.round(
-          progress.reduce((sum, p) => sum + (p.quizScore || 0), 0) / progress.length,
-        )
+    scores.length > 0
+      ? Math.round(scores.reduce((sum, s) => sum + s, 0) / scores.length)
       : 0;
 
   const upcomingSessions = contracts
     .filter((c) => c.status === "PENDING_ESCROW" || c.status === "ACTIVE")
     .slice(0, 3);
 
+  const contractToChild = new Map<string, Child>();
+  children.forEach((child) => {
+    child.contracts?.forEach((c) => {
+      contractToChild.set(c.id, child);
+    });
+  });
+
+  const childLatestProgress = new Map<string, number | null>();
+  progress.forEach((p) => {
+    const child = contractToChild.get(p.contractId);
+    if (child && !childLatestProgress.has(child.id)) {
+      childLatestProgress.set(child.id, p.quizScore);
+    }
+  });
+
+  const firstName = me?.fullName?.split(" ")[0] || "there";
+  const hour = new Date().getHours();
+  const timeGreeting =
+    hour < 12 ? "Good morning" : hour < 17 ? "Good afternoon" : "Good evening";
+
   if (loading) {
     return (
       <div className="space-y-6 p-6">
         <div>
           <h2 className="mb-1 text-xl font-extrabold text-slate-800 dark:text-white">
-            Good morning 👋
+            {timeGreeting} 👋
           </h2>
           <p className="text-sm text-slate-500">Loading your dashboard…</p>
         </div>
@@ -120,18 +160,23 @@ export default function ParentHomePage() {
     <div className="space-y-6 p-6">
       <div>
         <h2 className="mb-1 text-xl font-extrabold text-slate-800 dark:text-white">
-          Good morning 👋
+          {timeGreeting}, {firstName} 👋
         </h2>
-        <p className="text-sm text-slate-500">
+        <p className="text-sm text-slate-500 dark:text-slate-400">
           Here&apos;s your family dashboard overview
         </p>
       </div>
 
       <div className="grid gap-4 md:grid-cols-4">
         {[
-          ["Active Sessions", String(activeCount), "+1 today", "📚"],
+          ["Active Sessions", String(activeCount), `${activeCount} active`, "📚"],
           ["Avg. Progress", `${avgProgress}%`, avgProgress > 0 ? "↑ Live" : "—", "📊"],
-          ["Escrow Held", `${(wallet?.escrowHeld || 0).toLocaleString()} ETB`, `${contracts.filter((c) => c.status === "ACTIVE").length} contracts`, "🔒"],
+          [
+            "Escrow Held",
+            `${(wallet?.escrowHeld || 0).toLocaleString()} ETB`,
+            `${activeCount} contracts`,
+            "🔒",
+          ],
           ["Upcoming", String(upcomingCount), "This week", "📅"],
         ].map(([label, value, sub, icon]) => (
           <div
@@ -159,34 +204,41 @@ export default function ParentHomePage() {
             {upcomingSessions.length === 0 && (
               <p className="text-sm text-slate-400">No upcoming sessions.</p>
             )}
-            {upcomingSessions.map((s) => (
-              <div
-                key={s.id}
-                className="flex items-center gap-3 rounded-xl bg-slate-50 p-3 dark:bg-slate-800/50"
-              >
-                <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-teal-100 text-lg dark:bg-teal-900/30">
-                  📚
-                </div>
-                <div className="flex-1">
-                  <p className="text-sm font-semibold text-slate-700 dark:text-slate-200">
-                    {s.student.studentName} · {s.teacher.fullName}
-                  </p>
-                  <p className="text-xs text-slate-400">
-                    {new Date(s.startDate).toLocaleDateString()} ·{" "}
-                    {s.status === "ACTIVE" ? "In progress" : "Awaiting escrow"}
-                  </p>
-                </div>
-                <span
-                  className={`rounded-full px-2 py-0.5 text-[10px] font-bold ${
-                    s.status === "ACTIVE"
-                      ? "bg-emerald-50 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-300"
-                      : "bg-amber-50 text-amber-700 dark:bg-amber-900/30 dark:text-amber-300"
-                  }`}
+            {upcomingSessions.map((s) => {
+              const subject = s.student.subjects?.[0] || s.student.gradeLevel;
+              const dateStr = new Date(s.startDate).toLocaleDateString();
+              const timeStr = new Date(s.startDate).toLocaleTimeString([], {
+                hour: "2-digit",
+                minute: "2-digit",
+              });
+              return (
+                <div
+                  key={s.id}
+                  className="flex items-center gap-3 rounded-xl bg-slate-50 p-3 dark:bg-slate-800/50"
                 >
-                  {s.status === "ACTIVE" ? "Active" : "Pending"}
-                </span>
-              </div>
-            ))}
+                  <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-teal-100 text-lg dark:bg-teal-900/30">
+                    📚
+                  </div>
+                  <div className="flex-1">
+                    <p className="text-sm font-semibold text-slate-700 dark:text-slate-200">
+                      {s.student.studentName} · {subject} · {s.teacher.fullName}
+                    </p>
+                    <p className="text-xs text-slate-400">
+                      {dateStr} · {timeStr}
+                    </p>
+                  </div>
+                  <span
+                    className={`rounded-full px-2 py-0.5 text-[10px] font-bold ${
+                      s.status === "ACTIVE"
+                        ? "bg-emerald-50 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-300"
+                        : "bg-amber-50 text-amber-700 dark:bg-amber-900/30 dark:text-amber-300"
+                    }`}
+                  >
+                    {s.status === "ACTIVE" ? "Confirmed" : "Pending"}
+                  </span>
+                </div>
+              );
+            })}
           </div>
         </div>
 
@@ -199,12 +251,8 @@ export default function ParentHomePage() {
               <p className="text-sm text-slate-400">No children added yet.</p>
             )}
             {children.map((child) => {
-              const childProgress = progress.find((p) =>
-                contracts.some(
-                  (c) => c.student.studentName === child.studentName && c.id === p.contractId,
-                ),
-              );
-              const prog = childProgress?.quizScore ? `${childProgress.quizScore}%` : "—";
+              const prog = childLatestProgress.get(child.id);
+              const progText = prog != null ? `${prog}%` : "—";
               return (
                 <Link
                   key={child.id}
@@ -226,10 +274,14 @@ export default function ParentHomePage() {
                     <div className="h-1.5 flex-1 rounded-full bg-slate-200 dark:bg-slate-700">
                       <div
                         className="h-full rounded-full bg-teal-500"
-                        style={{ width: prog === "—" ? "0%" : prog }}
+                        style={{
+                          width: progText === "—" ? "0%" : progText,
+                        }}
                       />
                     </div>
-                    <span className="text-xs font-bold text-teal-600">{prog}</span>
+                    <span className="text-xs font-bold text-teal-600">
+                      {progText}
+                    </span>
                   </div>
                 </Link>
               );

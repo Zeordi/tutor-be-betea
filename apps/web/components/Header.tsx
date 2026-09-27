@@ -27,7 +27,7 @@ export default function Header() {
   };
 
   return (
-    <header className="sticky top-0 z-50 border-b border-[var(--border)] bg-white/95 backdrop-blur supports-[backdrop-filter]:bg-white/80 dark:border-slate-700 dark:bg-[#0A1628]/95 dark:supports-[backdrop-filter]:bg-[#0A1628]/80">
+    <header className="sticky top-0 z-50 border-b border-[var(--border)] bg-white/95 backdrop-blur supports-[backdrop-filter]:bg-white/80 dark:bg-[#0A1628]/95 dark:supports-[backdrop-filter]:bg-[#0A1628]/80">
       <div className="mx-auto flex h-16 max-w-6xl items-center gap-3 px-4 md:gap-4 md:px-6">
         {/* Logo */}
         <Link href="/" className="flex shrink-0 items-center gap-2.5">

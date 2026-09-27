@@ -6,7 +6,7 @@
 
 :root {
   --background: #f0f9f8;
-  --foreground: #0f172a;
+  --foreground: #0d2b2a;
   --primary: #0d9488;
   --primary-dark: #0f766e;
   --primary-light: #ccfbf1;
@@ -18,7 +18,7 @@
   --surface-2: #f1f5f9;
   --muted: #f1f5f9;
   --muted-foreground: #64748b;
-  --border: #cbd5e1;
+  --border: #e2e8f0;
   --success: #059669;
   --success-light: #d1fae5;
   --warning: #d97706;
@@ -35,7 +35,7 @@
   --shadow-lg: 0 10px 32px 0 rgba(13, 148, 136, 0.12), 0 4px 8px 0 rgba(0, 0, 0, 0.08);
   --shadow-xl: 0 20px 48px 0 rgba(13, 148, 136, 0.18), 0 8px 16px 0 rgba(0, 0, 0, 0.12);
   --shadow-teal-glow: 0 0 24px 0 rgba(20, 184, 166, 0.25), 0 8px 32px 0 rgba(13, 148, 136, 0.15);
-  --font-sans: "Plus Jakarta Sans", Inter, system-ui, sans-serif;
+  --font-sans: "Plus Jakarta Sans", system-ui, sans-serif;
   --grid-mobile: 4;
   --grid-desktop: 12;
   --sidebar: #0a1628;

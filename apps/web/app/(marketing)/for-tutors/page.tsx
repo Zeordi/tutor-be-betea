@@ -143,7 +143,7 @@ export default function ForTutorsPage() {
             />
 
             <div className="grid grid-cols-2 gap-3">
-              <div className="rounded-xl bg-teal-50 p-4 dark:bg-teal-950/30">
+              <div className="rounded-xl bg-[var(--primary-light)] p-4 dark:bg-[var(--primary-light)]/30">
                 <p className="text-[11px] font-semibold text-[var(--secondary)]">Gross / month</p>
                 <p className="font-mono text-2xl font-black text-[var(--primary)]">
                   {monthly.toLocaleString()}
@@ -185,11 +185,11 @@ export default function ForTutorsPage() {
               <div key={step.n} className="flex flex-1 items-start lg:items-center">
                 <div className="flex-1 px-2 text-center">
                   <div
-                    className={`mx-auto mb-3 flex h-14 w-14 items-center justify-center rounded-full border-2 text-2xl ${
-                      i === 4
-                        ? "border-teal-400 bg-teal-100 dark:bg-teal-900/40"
-                        : "border-teal-200 bg-teal-50 dark:border-teal-800 dark:bg-teal-950/30"
-                    }`}
+                     className={`mx-auto mb-3 flex h-14 w-14 items-center justify-center rounded-full border-2 text-2xl ${
+                       i === 4
+                         ? "border-[var(--primary)] bg-[var(--primary-light)] dark:bg-[var(--primary-light)]/40"
+                         : "border-[var(--border)] bg-[var(--primary-light)] dark:border-[var(--border)] dark:bg-[var(--primary-light)]/30"
+                     }`}
                   >
                     {step.icon}
                   </div>
@@ -199,7 +199,7 @@ export default function ForTutorsPage() {
                   <p className="text-[11px] leading-relaxed text-[var(--secondary)]">{step.desc}</p>
                 </div>
                 {i < PIPELINE.length - 1 && (
-                  <div className="hidden h-0.5 w-8 shrink-0 bg-teal-200 dark:bg-teal-800 lg:block" />
+                  <div className="hidden h-0.5 w-8 shrink-0 bg-[var(--border)] dark:bg-[var(--border)] lg:block" />
                 )}
               </div>
             ))}
@@ -231,7 +231,7 @@ export default function ForTutorsPage() {
       </section>
 
       {/* CTA */}
-      <section className="border-t border-[var(--border)] bg-gradient-to-br from-[#008779] to-[#006D61] px-4 py-14 text-center text-white dark:from-[#0D2A40] dark:to-[#0A1628] md:px-6">
+      <section className="border-t border-[var(--border)] bg-gradient-to-br from-[var(--primary)] to-[var(--primary-dark)] px-4 py-14 text-center text-white dark:from-[var(--primary-dark)] dark:to-[var(--background)] md:px-6">
         <div className="mx-auto max-w-2xl">
           <div className="mb-4 text-5xl">🔄</div>
           <h2 className="mb-3 text-2xl font-black md:text-3xl">Ready to start teaching?</h2>
@@ -241,7 +241,7 @@ export default function ForTutorsPage() {
           </p>
           <Link
             href="/register"
-            className="inline-flex rounded-xl bg-white px-8 py-3.5 text-sm font-bold text-[#008779]"
+            className="inline-flex rounded-xl bg-white px-8 py-3.5 text-sm font-bold text-[var(--primary)]"
           >
             Apply as Tutor →
           </Link>
