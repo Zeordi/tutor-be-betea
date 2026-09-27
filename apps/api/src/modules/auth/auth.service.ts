@@ -11,6 +11,7 @@ import { randomInt, randomBytes } from "crypto";
 import * as bcrypt from "bcryptjs";
 import { UsersService } from "../users/users.service";
 import { SmsService } from "../sms/sms.service";
+import { TeachersService } from "../teachers/teachers.service";
 import { LoginDto } from "./dto/login.dto";
 import { RegisterDto } from "./dto/register.dto";
 import { GoogleAuthDto } from "./dto/google-auth.dto";
@@ -30,6 +31,7 @@ export class AuthService {
     private readonly usersService: UsersService,
     private readonly jwtService: JwtService,
     private readonly smsService: SmsService,
+    private readonly teachersService: TeachersService,
   ) {}
 
   private isProd() {
@@ -295,6 +297,17 @@ export class AuthService {
       emailVerified: false,
     });
 
+    if (user.role === "TEACHER") {
+      await this.teachersService.createProfile(user.id, {
+        hourlyRate: 0,
+        monthlyRate: 0,
+        subjects: [],
+        grades: [],
+        isAvailable: false,
+        onboardingStep: 0,
+      });
+    }
+
     this.logger.log("User registered", { userId: user.id });
     return this.authResponse(user);
   }
@@ -355,6 +368,16 @@ export class AuthService {
           googleId: googleUser.sub,
           emailVerified: true,
         } as any);
+        if ((dto.role as string) === "TEACHER") {
+          await this.teachersService.createProfile(user.id, {
+            hourlyRate: 0,
+            monthlyRate: 0,
+            subjects: [],
+            grades: [],
+            isAvailable: false,
+            onboardingStep: 0,
+          });
+        }
       }
     }
     return this.authResponse(user);
