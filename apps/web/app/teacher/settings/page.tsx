@@ -2,17 +2,19 @@
 
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
+import Link from "next/link";
 import { apiFetch, paths, logout } from "@/lib/api";
 
 type TeacherMe = {
   id: string;
-  fullName: string;
-  email: string;
+  fullName: string | null;
+  email: string | null;
   phoneNumber: string | null;
   subCity: string | null;
   language: string;
   notificationPrefs: Record<string, boolean>;
   preferredPayoutProvider: string | null;
+  connectsBalance: number;
 };
 
 const NOTIFS: { label: string; desc: string; key: string; defaultOn: boolean }[] = [
@@ -181,6 +183,29 @@ export default function TeacherSettingsPage() {
               />
             </label>
           ))}
+        </div>
+      </section>
+
+      <section className="rounded-2xl border border-slate-100 bg-white p-5 shadow-sm dark:border-slate-800 dark:bg-[#112240]">
+        <h2 className="mb-2 text-base font-extrabold text-slate-800 dark:text-white">Connects</h2>
+        <p className="mb-4 text-sm text-slate-500 dark:text-slate-400">
+          Connects are used when applying to jobs
+        </p>
+        <div className="flex flex-wrap items-center gap-3">
+          <div className="rounded-xl border border-slate-100 bg-slate-50 px-4 py-3 dark:border-slate-800 dark:bg-slate-900/60">
+            <p className="text-2xl font-black text-teal-600">{me?.connectsBalance ?? 0}</p>
+            <p className="text-[10px] font-semibold text-slate-500 dark:text-slate-400">Available connects</p>
+          </div>
+          {paths.connectsTopUp ? (
+            <Link
+              href={paths.connectsTopUp}
+              className="rounded-xl bg-teal-600 px-4 py-2 text-sm font-bold text-white transition hover:bg-teal-700"
+            >
+              Top-up Connects
+            </Link>
+          ) : (
+            <span className="text-xs text-slate-400">Top-up coming soon</span>
+          )}
         </div>
       </section>
 
