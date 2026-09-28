@@ -52,22 +52,22 @@ export default function AttendanceGeoPage() {
       <div className="grid gap-4 sm:grid-cols-3">
         <div className="rounded-2xl border border-slate-200 bg-white p-5 dark:border-slate-800 dark:bg-[#112240]">
           <p className="text-2xl font-extrabold text-teal-600">{logs.length}</p>
-          <p className="mt-2 text-xs text-slate-500">Recent sessions</p>
+          <p className="mt-2 text-xs text-slate-500 dark:text-slate-400">Recent sessions</p>
         </div>
         <div className="rounded-2xl border border-slate-200 bg-white p-5 dark:border-slate-800 dark:bg-[#112240]">
           <p className="text-2xl font-extrabold text-red-600">{outsideGeofence}</p>
-          <p className="mt-2 text-xs text-slate-500">Outside geofence</p>
+          <p className="mt-2 text-xs text-slate-500 dark:text-slate-400">Outside geofence</p>
         </div>
         <div className="rounded-2xl border border-slate-200 bg-white p-5 dark:border-slate-800 dark:bg-[#112240]">
           <p className="text-2xl font-extrabold text-amber-600">{pendingConfirm}</p>
-          <p className="mt-2 text-xs text-slate-500">Pending parent confirm</p>
+          <p className="mt-2 text-xs text-slate-500 dark:text-slate-400">Pending parent confirm</p>
         </div>
       </div>
 
       <div className="rounded-2xl border border-dashed border-slate-300 bg-white p-8 text-center dark:border-slate-700 dark:bg-[#112240]">
         <p className="text-3xl">📍</p>
         <p className="mt-2 font-bold text-slate-800 dark:text-white">Live geo map panel</p>
-        <p className="text-sm text-slate-500">
+        <p className="text-sm text-slate-500 dark:text-slate-400">
           Wire PostGIS session points here in a later iteration.
         </p>
       </div>
@@ -92,12 +92,12 @@ export default function AttendanceGeoPage() {
               key={log.id}
               className="grid grid-cols-12 items-center gap-2 border-b border-slate-50 px-4 py-3 text-sm last:border-0 dark:border-slate-800/60"
             >
-              <div className="col-span-2 font-mono text-xs text-slate-500">{log.id.slice(0, 8)}</div>
+              <div className="col-span-2 font-mono text-xs text-slate-500 dark:text-slate-400">{log.id.slice(0, 8)}</div>
               <div className="col-span-2 text-slate-600 dark:text-slate-300">{log.teacherId.slice(0, 8)}</div>
-              <div className="col-span-2 text-xs text-slate-500">
+              <div className="col-span-2 text-xs text-slate-500 dark:text-slate-400">
                 {log.checkInTime ? new Date(log.checkInTime).toLocaleString() : "—"}
               </div>
-              <div className="col-span-2 text-xs text-slate-500">
+              <div className="col-span-2 text-xs text-slate-500 dark:text-slate-400">
                 {log.checkOutTime ? new Date(log.checkOutTime).toLocaleString() : "—"}
               </div>
               <div className="col-span-2">
@@ -107,10 +107,10 @@ export default function AttendanceGeoPage() {
                   {log.isVerifiedGeofence ? "Verified" : "Outside"}
                 </span>
               </div>
-              <div className="col-span-1 text-xs text-slate-500">
+              <div className="col-span-1 text-xs text-slate-500 dark:text-slate-400">
                 {Number(log.distanceMeters).toFixed(0)}m
               </div>
-              <div className="col-span-1 text-xs text-slate-500">
+              <div className="col-span-1 text-xs text-slate-500 dark:text-slate-400">
                 {log.parentConfirmed ? "✓" : "—"}
               </div>
             </div>

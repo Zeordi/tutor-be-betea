@@ -26,11 +26,11 @@ function severityClass(severity: string) {
     case "MEDIUM":
       return "bg-amber-50 text-amber-700 dark:bg-amber-950/40 dark:text-amber-300";
     case "LOW":
-      return "bg-slate-100 text-slate-600 dark:bg-slate-800";
+      return "bg-slate-100 text-slate-600 dark:bg-slate-800 dark:text-slate-300";
     case "CRITICAL":
       return "bg-red-100 text-red-800 dark:bg-red-900/40 dark:text-red-200";
     default:
-      return "bg-slate-100 text-slate-600 dark:bg-slate-800";
+      return "bg-slate-100 text-slate-600 dark:bg-slate-800 dark:text-slate-300";
   }
 }
 

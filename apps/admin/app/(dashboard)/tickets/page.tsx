@@ -114,7 +114,7 @@ export default function TicketsPage() {
                   {t.status.replace(/_/g, " ")}
                 </span>
               </div>
-              <p className="mt-1 text-xs text-slate-500">
+              <p className="mt-1 text-xs text-slate-500 dark:text-slate-400">
                 Submitted {t.createdAt ? new Date(t.createdAt).toLocaleString() : "—"}
               </p>
             </div>

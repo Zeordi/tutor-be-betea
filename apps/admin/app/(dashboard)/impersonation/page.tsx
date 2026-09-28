@@ -117,7 +117,7 @@ export default function ImpersonationPage() {
                 }`}
               >
                 <p className="font-bold text-slate-900 dark:text-white">{user.fullName}</p>
-                <p className="text-xs text-slate-500">
+                <p className="text-xs text-slate-500 dark:text-slate-400">
                   {user.role} · {user.email || user.phoneNumber || "—"}
                 </p>
               </button>
@@ -180,7 +180,7 @@ export default function ImpersonationPage() {
                       {userLookup.get(a.targetUserId || "") || a.targetUserId || "—"}
                     </span>
                     : {a.actionType.replace(/_/g, " ")}
-                    <span className="ml-2 text-slate-500">
+                    <span className="ml-2 text-slate-500 dark:text-slate-400">
                       {a.createdAt ? new Date(a.createdAt).toLocaleString() : ""}
                     </span>
                   </div>

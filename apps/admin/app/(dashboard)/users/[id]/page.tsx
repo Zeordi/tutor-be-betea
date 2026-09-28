@@ -112,7 +112,7 @@ export default function UserDetailPage() {
             <div className="space-y-3">
               <div className="flex items-center justify-between">
                 <span className="text-sm text-[var(--secondary)]">User ID</span>
-                <span className="font-mono text-xs text-slate-500">{user.id}</span>
+                <span className="font-mono text-xs text-slate-500 dark:text-slate-400">{user.id}</span>
               </div>
               <div className="flex items-center justify-between">
                 <span className="text-sm text-[var(--secondary)]">Role</span>
@@ -123,13 +123,13 @@ export default function UserDetailPage() {
               <div className="flex items-center justify-between">
                 <span className="text-sm text-[var(--secondary)]">Status</span>
                 <span
-                  className={`rounded-full px-2 py-0.5 text-xs font-bold ${
-                    user.status === "ACTIVE"
-                      ? "bg-emerald-50 text-emerald-700 dark:bg-emerald-900/30"
-                      : user.status === "SUSPENDED" || user.status === "BANNED"
-                        ? "bg-red-50 text-red-700 dark:bg-red-900/30"
-                        : "bg-amber-50 text-amber-700 dark:bg-amber-900/30"
-                  }`}
+                   className={`rounded-full px-2 py-0.5 text-xs font-bold ${
+                     user.status === "ACTIVE"
+                       ? "bg-emerald-50 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-300"
+                       : user.status === "SUSPENDED" || user.status === "BANNED"
+                         ? "bg-red-50 text-red-700 dark:bg-red-900/30 dark:text-red-300"
+                         : "bg-amber-50 text-amber-700 dark:bg-amber-900/30 dark:text-amber-300"
+                   }`}
                 >
                   {user.status || "PENDING_VERIFICATION"}
                 </span>

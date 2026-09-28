@@ -104,7 +104,7 @@ export default function DisputesPage() {
                     {t.reasonType.replace(/_/g, " ")} · {t.id.slice(0, 8)}
                   </p>
                   {t.contractId && (
-                    <p className="text-xs text-slate-400">Contract {t.contractId.slice(0, 8)}</p>
+                    <p className="text-xs text-slate-400 dark:text-slate-500">Contract {t.contractId.slice(0, 8)}</p>
                   )}
                 </div>
                 <span
@@ -113,7 +113,7 @@ export default function DisputesPage() {
                   {t.status.replace(/_/g, " ")}
                 </span>
               </div>
-              <p className="mt-1 text-xs text-slate-500">
+              <p className="mt-1 text-xs text-slate-500 dark:text-slate-400">
                 Submitted {t.createdAt ? new Date(t.createdAt).toLocaleString() : "—"}
               </p>
               <div className="mt-3 flex flex-wrap gap-2">

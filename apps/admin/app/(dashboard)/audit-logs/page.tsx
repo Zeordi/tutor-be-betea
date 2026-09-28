@@ -26,7 +26,7 @@ function severityRowClass(severity: Severity) {
       return "border-amber-200 bg-amber-50 dark:border-amber-900 dark:bg-amber-900/20";
     case "info":
     default:
-      return "border-slate-200 bg-slate-50 dark:border-slate-800 dark:bg-slate-800/50";
+      return "border-slate-200 bg-slate-50 dark:border-slate-800 dark:bg-slate-800/50 dark:text-slate-300";
   }
 }
 

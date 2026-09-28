@@ -161,7 +161,7 @@ export default function UsersPage() {
                 </div>
                 <div className="min-w-0 flex-1">
                   <p className="text-sm font-bold text-slate-900 dark:text-white">{u.fullName}</p>
-                  <p className="text-xs text-slate-500">{u.phoneNumber || u.email || "—"}</p>
+                  <p className="text-xs text-slate-500 dark:text-slate-400">{u.phoneNumber || u.email || "—"}</p>
                 </div>
                 <div className="flex flex-wrap items-center gap-2">
                   <span className={`rounded-full px-2.5 py-1 text-[10px] font-bold ${roleClass(u.role)}`}>
@@ -173,7 +173,7 @@ export default function UsersPage() {
                     </span>
                   )}
                 </div>
-                <div className="text-xs text-slate-500">
+                <div className="text-xs text-slate-500 dark:text-slate-400">
                   {u.createdAt ? new Date(u.createdAt).toLocaleDateString() : "—"}
                 </div>
                 <Link
