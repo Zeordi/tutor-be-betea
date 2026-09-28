@@ -167,7 +167,7 @@ export default function VaultPage() {
               key={log.id || i}
               className="flex flex-wrap gap-2 rounded-lg bg-slate-50 px-3 py-2 dark:bg-slate-800/50"
             >
-              <span className="text-slate-400">{log.id?.slice(0, 8) || "—"}</span>
+              <span className="text-slate-500 dark:text-slate-400">{log.id?.slice(0, 8) || "—"}</span>
               <span className="text-teal-600 dark:text-teal-400">
                 [{log.createdAt ? new Date(log.createdAt).toLocaleTimeString() : "—"}]
               </span>

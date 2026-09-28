@@ -206,7 +206,7 @@ export default function RbacPage() {
             {submitting ? "Creating…" : "+ Invite staff"}
           </button>
         </div>
-        <p className="mt-2 text-[10px] text-slate-500">
+        <p className="mt-2 text-[10px] text-slate-500 dark:text-slate-400">
           If temporary password is omitted, a random one is generated and shown for copying.
         </p>
       </form>
@@ -228,7 +228,7 @@ export default function RbacPage() {
                 </div>
                 <div className="min-w-0 flex-1">
                   <p className="text-sm font-bold text-slate-900 dark:text-white">{s.fullName}</p>
-                  <p className="text-xs text-slate-500">{s.email || s.phoneNumber || s.id.slice(0, 8)}</p>
+                  <p className="text-xs text-slate-500 dark:text-slate-400">{s.email || s.phoneNumber || s.id.slice(0, 8)}</p>
                 </div>
                 <div className="flex flex-wrap items-center gap-2">
                   <span className={`rounded-full px-2.5 py-1 text-[10px] font-bold ${roleBadge(s.role)}`}>

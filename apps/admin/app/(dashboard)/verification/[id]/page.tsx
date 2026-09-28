@@ -130,7 +130,7 @@ export default function VerificationDetailPage() {
             </div>
             <div>
               <p className="font-bold text-slate-900 dark:text-white">{user.fullName}</p>
-              <p className="text-xs text-slate-500">
+              <p className="text-xs text-slate-500 dark:text-slate-400">
                 {user.phoneNumber || "—"} · {user.role} · {user.status || "PENDING_VERIFICATION"}
               </p>
             </div>
@@ -171,7 +171,7 @@ export default function VerificationDetailPage() {
                   {doc.status.replace(/_/g, " ")}
                 </p>
                 {doc.adminNote && (
-                  <p className="mt-1 text-[10px] text-slate-500">Note: {doc.adminNote}</p>
+                  <p className="mt-1 text-[10px] text-slate-500 dark:text-slate-400">Note: {doc.adminNote}</p>
                 )}
               </div>
             ))

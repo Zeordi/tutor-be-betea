@@ -59,19 +59,19 @@ export default function AdminAnalyticsPage() {
         <div className="rounded-2xl border border-slate-200 bg-white p-5 dark:border-slate-800 dark:bg-[#112240]">
           <p className="text-sm font-bold text-slate-900 dark:text-white">Parents</p>
           <p className="mt-1 text-2xl font-extrabold text-teal-600">{data ? String(data.parents) : "—"}</p>
-          <p className="mt-1 text-xs text-slate-500">Registered parents</p>
+          <p className="mt-1 text-xs text-slate-500 dark:text-slate-400">Registered parents</p>
         </div>
         <div className="rounded-2xl border border-slate-200 bg-white p-5 dark:border-slate-800 dark:bg-[#112240]">
           <p className="text-sm font-bold text-slate-900 dark:text-white">Chat redactions</p>
           <p className="mt-1 text-2xl font-extrabold text-red-600">{data ? String(data.chatRedactions) : "—"}</p>
-          <p className="mt-1 text-xs text-slate-500">PII redactions applied</p>
+          <p className="mt-1 text-xs text-slate-500 dark:text-slate-400">PII redactions applied</p>
         </div>
       </div>
 
       <div className="rounded-2xl border border-dashed border-slate-300 bg-white p-10 text-center dark:border-slate-700 dark:bg-[#112240]">
         <p className="text-3xl">📊</p>
         <p className="mt-2 font-bold text-slate-800 dark:text-white">Charts panel</p>
-        <p className="text-sm text-slate-500">Hook PostHog / custom series here later.</p>
+        <p className="text-sm text-slate-500 dark:text-slate-400">Hook PostHog / custom series here later.</p>
       </div>
     </div>
   );

@@ -26,9 +26,9 @@ function statusStyle(status: string) {
     case "DISPUTED":
       return "bg-red-50 text-red-700 dark:bg-red-900/30 dark:text-red-300";
     case "REFUNDED":
-      return "bg-slate-100 text-slate-600 dark:bg-slate-800";
+      return "bg-slate-100 text-slate-600 dark:bg-slate-800 dark:text-slate-300";
     default:
-      return "bg-slate-100 text-slate-600 dark:bg-slate-800";
+      return "bg-slate-100 text-slate-600 dark:bg-slate-800 dark:text-slate-300";
   }
 }
 
