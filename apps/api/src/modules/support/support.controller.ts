@@ -41,7 +41,8 @@ export class SupportController {
   @UseGuards(JwtAuthGuard, RolesGuard)
   @Roles("SUPER_ADMIN", "SUPPORT_AGENT", "VERIFICATION_OFFICER")
   async listAll(@Query("status") status?: string) {
-    return this.supportService.listAll(status as any);
+    const normalized = status ? status.trim().toUpperCase() : undefined;
+    return this.supportService.listAll(normalized);
   }
 
   @Get("ticket/:id")

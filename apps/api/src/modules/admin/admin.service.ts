@@ -450,18 +450,19 @@ export class AdminService {
 
   async forceLogoutStaff(adminId: string) {
     const now = new Date().toISOString();
+    const current = await prisma.systemConfig.findUnique({
+      where: { id: "default" },
+    });
+    const currentPayload = (current?.payload && typeof current.payload === "object" ? current.payload : {}) as SettingsPayload;
     const saved = await prisma.systemConfig.upsert({
       where: { id: "default" },
       create: {
         id: "default",
-        payload: { ...DEFAULT_SETTINGS, staffSessionsRevokedAfter: now },
+        payload: { ...currentPayload, staffSessionsRevokedAfter: now },
         updatedBy: adminId,
       },
       update: {
-        payload: {
-          ...DEFAULT_SETTINGS,
-          staffSessionsRevokedAfter: now,
-        },
+        payload: { ...currentPayload, staffSessionsRevokedAfter: now },
         updatedBy: adminId,
       },
     });

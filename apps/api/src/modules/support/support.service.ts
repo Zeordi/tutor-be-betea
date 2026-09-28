@@ -43,13 +43,22 @@ export class SupportService {
   }
 
   async listAll(status?: string) {
+    const enumValues = ["OPEN", "UNDER_REVIEW", "APPROVED", "REJECTED"] as const;
+    const normalized = status ? status.trim().toUpperCase() : undefined;
     const where: any = {};
-    if (status) where.status = status;
-    return prisma.supportTicket.findMany({
-      where,
-      orderBy: { createdAt: "desc" },
-      take: 200,
-    });
+    if (normalized && (enumValues as readonly string[]).includes(normalized)) {
+      where.status = normalized;
+    }
+    try {
+      return await prisma.supportTicket.findMany({
+        where,
+        orderBy: { createdAt: "desc" },
+        take: 200,
+      });
+    } catch (err) {
+      console.error("listAll failed", err);
+      return [];
+    }
   }
 
   async getById(id: string, userId?: string) {
