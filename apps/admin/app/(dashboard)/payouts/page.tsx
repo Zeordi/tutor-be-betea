@@ -85,6 +85,7 @@ export default function PayoutsPage() {
     .reduce((s, p) => s + Number(p.amount), 0);
   const pendingCount = payouts.filter((p) => p.status === "PENDING").length;
   const paidCount = payouts.filter((p) => p.status === "PAID").length;
+  const failedCount = payouts.filter((p) => p.status === "FAILED").length;
 
   return (
     <div className="space-y-6">
@@ -96,8 +97,11 @@ export default function PayoutsPage() {
             <span className="rounded-full bg-slate-100 px-3 py-1 text-slate-600 dark:bg-slate-800 dark:text-slate-300">
               {payouts.length} total
             </span>
-            <span className="rounded-full bg-emerald-50 px-3 py-1 text-emerald-700 dark:bg-emerald-900/30">
+            <span className="rounded-full bg-emerald-50 px-3 py-1 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-300">
               {paidCount} paid
+            </span>
+            <span className="rounded-full bg-red-50 px-3 py-1 text-red-700 dark:bg-red-900/30 dark:text-red-300">
+              {failedCount} failed
             </span>
           </div>
         }
@@ -110,56 +114,48 @@ export default function PayoutsPage() {
       )}
 
       <div className="grid gap-3 sm:grid-cols-3">
-        <div className="rounded-2xl border border-[var(--border)] bg-[var(--card)] p-4">
-          <p className="text-xl font-black text-[var(--primary)]">
-            {readyTotal.toLocaleString()} ETB
+        <div className="rounded-2xl border border-slate-200 bg-white p-5 dark:border-slate-800 dark:bg-[#112240]">
+          <p className="text-xl font-black text-teal-600">
+            {readyTotal.toLocaleString()} <span className="text-sm font-semibold text-slate-500">ETB</span>
           </p>
-          <p className="text-xs text-[var(--secondary)]">Ready to pay</p>
+          <p className="mt-2 text-xs text-slate-500">Ready to pay</p>
         </div>
-        <div className="rounded-2xl border border-[var(--border)] bg-[var(--card)] p-4">
-          <p className="text-xl font-black text-[var(--primary)]">{pendingCount}</p>
-          <p className="text-xs text-[var(--secondary)]">Pending</p>
+        <div className="rounded-2xl border border-slate-200 bg-white p-5 dark:border-slate-800 dark:bg-[#112240]">
+          <p className="text-xl font-black text-amber-600">{pendingCount}</p>
+          <p className="mt-2 text-xs text-slate-500">Pending</p>
         </div>
-        <div className="rounded-2xl border border-[var(--border)] bg-[var(--card)] p-4">
-          <p className="text-xl font-black text-[var(--primary)]">{paidCount}</p>
-          <p className="text-xs text-[var(--secondary)]">Paid today</p>
+        <div className="rounded-2xl border border-slate-200 bg-white p-5 dark:border-slate-800 dark:bg-[#112240]">
+          <p className="text-xl font-black text-emerald-600">{paidCount}</p>
+          <p className="mt-2 text-xs text-slate-500">Paid</p>
         </div>
       </div>
 
-      <div className="overflow-x-auto rounded-2xl border border-[var(--border)] bg-[var(--card)]">
-        <table className="w-full min-w-[640px] text-left text-sm">
-          <thead>
-            <tr className="border-b border-[var(--border)] bg-[var(--muted)]">
-              {["Tutor", "Method", "Amount", "Status", ""].map((h) => (
-                <th
-                  key={h}
-                  className="px-4 py-3 text-[11px] font-bold uppercase text-[var(--secondary)]"
-                >
-                  {h}
-                </th>
-              ))}
-            </tr>
-          </thead>
-          <tbody>
-            {loading ? (
-              <tr>
-                <td colSpan={5} className="px-4 py-8 text-center text-sm text-slate-500">
-                  Loading…
-                </td>
+      {loading ? (
+        <div className="rounded-2xl border border-slate-200 bg-white p-8 text-center text-sm text-slate-500 dark:border-slate-800 dark:bg-[#112240] dark:text-slate-400">Loading…</div>
+      ) : payouts.length === 0 ? (
+        <div className="rounded-2xl border border-slate-200 bg-white p-8 text-center text-sm text-slate-500 dark:border-slate-800 dark:bg-[#112240] dark:text-slate-400">No payouts found.</div>
+      ) : (
+        <div className="overflow-x-auto rounded-2xl border border-slate-200 bg-white dark:border-slate-800 dark:bg-[#112240]">
+          <table className="w-full min-w-[640px] text-left text-sm">
+            <thead>
+              <tr className="border-b border-slate-100 bg-slate-50 dark:border-slate-800 dark:bg-slate-800/50">
+                {["Tutor", "Method", "Amount", "Status", ""].map((h) => (
+                  <th
+                    key={h}
+                    className="px-4 py-3 text-[11px] font-bold uppercase tracking-wide text-slate-500"
+                  >
+                    {h}
+                  </th>
+                ))}
               </tr>
-            ) : payouts.length === 0 ? (
-              <tr>
-                <td colSpan={5} className="px-4 py-8 text-center text-sm text-slate-500">
-                  No payouts found.
-                </td>
-              </tr>
-            ) : (
-              payouts.map((p) => {
+            </thead>
+            <tbody>
+              {payouts.map((p) => {
                 const label = statusLabel(p.status);
                 const color = PROVIDER_COLOR[p.provider || "MANUAL"] || "#6B7280";
                 return (
-                  <tr key={p.id} className="border-b border-[var(--border)]">
-                    <td className="px-4 py-3 font-bold text-[var(--foreground)]">
+                  <tr key={p.id} className="border-b border-slate-50 last:border-0 dark:border-slate-800/60">
+                    <td className="px-4 py-3 font-bold text-slate-900 dark:text-white">
                       {p.teacher?.fullName || "—"}
                     </td>
                     <td className="px-4 py-3">
@@ -170,7 +166,7 @@ export default function PayoutsPage() {
                         {p.provider || "MANUAL"}
                       </span>
                     </td>
-                    <td className="px-4 py-3 font-mono font-bold text-[var(--primary)]">
+                    <td className="px-4 py-3 font-mono font-bold text-teal-600 dark:text-teal-400">
                       {Number(p.amount).toLocaleString()} ETB
                     </td>
                     <td className="px-4 py-3">
@@ -186,7 +182,7 @@ export default function PayoutsPage() {
                           type="button"
                           onClick={() => markPaid(p.id)}
                           disabled={updating === p.id}
-                          className="rounded-lg bg-[var(--primary)] px-3 py-1 text-xs font-bold text-white disabled:opacity-50"
+                          className="rounded-lg bg-teal-600 px-3 py-1 text-xs font-bold text-white hover:bg-teal-700 disabled:opacity-50"
                         >
                           {updating === p.id ? "…" : "Pay"}
                         </button>
@@ -194,11 +190,11 @@ export default function PayoutsPage() {
                     </td>
                   </tr>
                 );
-              })
-            )}
-          </tbody>
-        </table>
-      </div>
+              })}
+            </tbody>
+          </table>
+        </div>
+      )}
     </div>
   );
 }

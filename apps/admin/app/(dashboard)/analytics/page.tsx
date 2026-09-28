@@ -49,10 +49,23 @@ export default function AdminAnalyticsPage() {
       )}
 
       <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
-        <StatCard label="MAU" value={data ? String(data.mau) : "—"} delta="+9%" icon="📈" tone="teal" />
-        <StatCard label="Tutors" value={data ? String(data.tutors) : "—"} delta="" icon="🎓" tone="blue" />
-        <StatCard label="Contracts" value={data ? String(data.contracts) : "—"} delta="" icon="📅" tone="purple" />
-        <StatCard label="Open tickets" value={data ? String(data.tickets) : "—"} delta="" icon="🎫" tone="amber" />
+        <StatCard label="MAU" value={data ? String(data.mau) : "—"} icon="📈" tone="teal" />
+        <StatCard label="Tutors" value={data ? String(data.tutors) : "—"} icon="🎓" tone="blue" />
+        <StatCard label="Contracts" value={data ? String(data.contracts) : "—"} icon="📅" tone="purple" />
+        <StatCard label="Open tickets" value={data ? String(data.tickets) : "—"} icon="🎫" tone="amber" />
+      </div>
+
+      <div className="grid gap-4 sm:grid-cols-2">
+        <div className="rounded-2xl border border-slate-200 bg-white p-5 dark:border-slate-800 dark:bg-[#112240]">
+          <p className="text-sm font-bold text-slate-900 dark:text-white">Parents</p>
+          <p className="mt-1 text-2xl font-extrabold text-teal-600">{data ? String(data.parents) : "—"}</p>
+          <p className="mt-1 text-xs text-slate-500">Registered parents</p>
+        </div>
+        <div className="rounded-2xl border border-slate-200 bg-white p-5 dark:border-slate-800 dark:bg-[#112240]">
+          <p className="text-sm font-bold text-slate-900 dark:text-white">Chat redactions</p>
+          <p className="mt-1 text-2xl font-extrabold text-red-600">{data ? String(data.chatRedactions) : "—"}</p>
+          <p className="mt-1 text-xs text-slate-500">PII redactions applied</p>
+        </div>
       </div>
 
       <div className="rounded-2xl border border-dashed border-slate-300 bg-white p-10 text-center dark:border-slate-700 dark:bg-[#112240]">

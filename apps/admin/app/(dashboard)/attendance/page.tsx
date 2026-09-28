@@ -49,7 +49,7 @@ export default function AttendanceGeoPage() {
         </div>
       )}
 
-      <div className="grid gap-4 md:grid-cols-3">
+      <div className="grid gap-4 sm:grid-cols-3">
         <div className="rounded-2xl border border-slate-200 bg-white p-5 dark:border-slate-800 dark:bg-[#112240]">
           <p className="text-2xl font-extrabold text-teal-600">{logs.length}</p>
           <p className="mt-2 text-xs text-slate-500">Recent sessions</p>
