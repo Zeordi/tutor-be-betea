@@ -4,6 +4,7 @@ import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import { getToken, apiFetch, logout } from "@/lib/api";
+import { useTheme } from "@tutor/ui";
 
 type AdminRole = "super" | "verification" | "support" | "finance";
 
@@ -38,6 +39,22 @@ const ROLE_META: Record<AdminRole, { label: string; color: string }> = {
   support: { label: "Support", color: "#F59E0B" },
   finance: { label: "Finance", color: "#10B981" },
 };
+
+function ThemeToggle({ compact = false }: { compact?: boolean }) {
+  const { mode, toggleTheme } = useTheme();
+  const isDark = mode === "dark";
+  return (
+    <button
+      type="button"
+      onClick={toggleTheme}
+      aria-label={isDark ? "Switch to light mode" : "Switch to dark mode"}
+      title={isDark ? "Light mode" : "Dark mode"}
+      className={`flex items-center justify-center rounded-lg border border-slate-200 bg-white text-slate-700 transition hover:border-teal-300 hover:text-teal-700 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-200 dark:hover:border-teal-700 dark:hover:text-teal-300 ${compact ? "h-8 w-8" : "h-9 w-9"}`}
+    >
+      {isDark ? "☀️" : "🌙"}
+    </button>
+  );
+}
 
 export default function AdminDashboardLayout({
   children,
@@ -264,6 +281,10 @@ export default function AdminDashboardLayout({
             onClick={() => setSidebarOpen(false)}
           />
           <aside className="relative h-full w-64 bg-slate-900 shadow-xl dark:bg-[#0A1628]">
+            <div className="flex items-center justify-between border-b border-slate-800 p-3">
+              <span className="text-xs font-bold text-slate-300">Menu</span>
+              <ThemeToggle compact />
+            </div>
             {sidebarContent}
           </aside>
         </div>
@@ -289,6 +310,7 @@ export default function AdminDashboardLayout({
               <span className="h-1.5 w-1.5 rounded-full bg-emerald-500" />
               Systems operational
             </span>
+            <ThemeToggle compact />
           </div>
         </header>
 
