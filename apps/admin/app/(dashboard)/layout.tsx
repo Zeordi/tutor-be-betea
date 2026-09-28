@@ -176,102 +176,104 @@ export default function AdminDashboardLayout({
     .join("")
     .toUpperCase();
 
-  const navContent = (
-    <nav className="flex-1 space-y-0.5 overflow-y-auto px-3 py-4">
-      {SIDEBAR.map((item) => {
-        const allowed = item.roles.includes(role);
-        const active =
-          item.href === "/"
-            ? pathname === "/"
-            : pathname === item.href || pathname.startsWith(`${item.href}/`);
-        if (!allowed) {
-          return (
-            <div
-              key={item.id}
-              title="Locked for current role"
-              className="flex w-full cursor-not-allowed items-center gap-2.5 rounded-xl px-3 py-2.5 text-left text-sm text-slate-600 opacity-40 dark:text-slate-500"
-            >
-              <span className="text-base leading-none">{item.icon}</span>
-              <span>{item.label}</span>
-              <span className="ml-auto text-[10px]">🔒</span>
-            </div>
-          );
-        }
-        return (
-          <Link
-            key={item.id}
-            href={item.href}
-            onClick={() => setSidebarOpen(false)}
-            className={`flex items-center gap-2.5 rounded-xl px-3 py-2.5 text-left text-sm transition-all ${
-              active
-                ? "bg-teal-600 font-semibold text-white"
-                : "text-slate-400 hover:bg-slate-800 hover:text-white dark:text-slate-400 dark:hover:bg-slate-800 dark:hover:text-slate-200"
-            }`}
-          >
-            <span className="text-base leading-none">{item.icon}</span>
-            <span>{item.label}</span>
-          </Link>
-        );
-      })}
-    </nav>
+  const brandBlock = (
+    <div className="border-b border-white/10 p-4">
+      <div className="mb-3 flex items-center gap-2">
+        <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-teal-600 text-sm text-white">
+          🛡️
+        </div>
+        <div>
+          <p className="text-[10px] font-bold tracking-wide text-teal-400">
+            TUTOR BE BETEA
+          </p>
+          <p className="text-xs font-bold text-white">
+            {role === "super" ? "Super Admin" : ROLE_META[role].label}
+          </p>
+        </div>
+      </div>
+    </div>
   );
 
-  const sidebarContent = (
-    <div className="flex h-full flex-col">
-      <div className="border-b border-slate-800 p-4">
-        <div className="mb-3 flex items-center gap-2">
-          <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-teal-600 text-sm text-white">
-            🛡️
-          </div>
-          <div>
-            <p className="text-[10px] font-bold tracking-wide text-teal-400">
-              TUTOR BE BETEA
-            </p>
-            <p className="text-xs font-bold text-white">
-              {role === "super" ? "Super Admin" : ROLE_META[role].label}
-            </p>
-          </div>
-        </div>
-      </div>
-
-      {navContent}
-
-      <div className="border-t border-slate-800 p-3">
-        <div className="mb-3 flex items-center gap-2.5 px-1">
-          <div className="flex h-8 w-8 items-center justify-center rounded-full bg-slate-800 text-xs font-bold text-slate-300">
-            {initials}
-          </div>
-          <div className="min-w-0 flex-1">
-            <p className="truncate text-xs font-bold text-slate-200">{displayName}</p>
-            <p className="truncate text-[10px] text-slate-400">
-              {user?.email || "Admin Console"}
-            </p>
-          </div>
-          <span
-            className="rounded-full px-2 py-0.5 text-[10px] font-bold"
-            style={{ backgroundColor: ROLE_META[role].color + "33", color: ROLE_META[role].color }}
-          >
-            {ROLE_META[role].label}
-          </span>
-        </div>
-        <button
-          type="button"
-          onClick={async () => {
-            await logout();
-            router.push("/login");
-          }}
-          className="w-full rounded-xl border border-slate-700 py-2 text-xs font-semibold text-slate-400 hover:text-white"
+  const navItems = SIDEBAR.map((item) => {
+    const allowed = item.roles.includes(role);
+    const active =
+      item.href === "/"
+        ? pathname === "/"
+        : pathname === item.href || pathname.startsWith(`${item.href}/`);
+    if (!allowed) {
+      return (
+        <div
+          key={item.id}
+          title="Locked for current role"
+          className="flex w-full cursor-not-allowed items-center gap-2.5 rounded-xl px-3 py-2.5 text-left text-sm text-slate-600 opacity-40 dark:text-slate-500"
         >
-          Sign Out
-        </button>
+          <span className="text-base leading-none">{item.icon}</span>
+          <span>{item.label}</span>
+          <span className="ml-auto text-[10px]">🔒</span>
+        </div>
+      );
+    }
+    return (
+      <Link
+        key={item.id}
+        href={item.href}
+        onClick={() => setSidebarOpen(false)}
+        className={`flex items-center gap-2.5 rounded-xl px-3 py-2.5 text-left text-sm transition-all ${
+          active
+            ? "bg-teal-600 font-semibold text-white"
+            : "text-slate-400 hover:bg-slate-800 hover:text-white dark:text-slate-400 dark:hover:bg-slate-800 dark:hover:text-slate-200"
+        }`}
+      >
+        <span className="text-base leading-none">{item.icon}</span>
+        <span>{item.label}</span>
+      </Link>
+    );
+  });
+
+  const userBlock = (
+    <div className="p-3">
+      <div className="mb-3 flex items-center gap-2.5 px-1">
+        <div className="flex h-8 w-8 items-center justify-center rounded-full bg-slate-800 text-xs font-bold text-slate-300">
+          {initials}
+        </div>
+        <div className="min-w-0 flex-1">
+          <p className="truncate text-xs font-bold text-slate-200">{displayName}</p>
+          <p className="truncate text-[10px] text-slate-400">
+            {user?.email || "Admin Console"}
+          </p>
+        </div>
+        <span
+          className="rounded-full px-2 py-0.5 text-[10px] font-bold"
+          style={{ backgroundColor: ROLE_META[role].color + "33", color: ROLE_META[role].color }}
+        >
+          {ROLE_META[role].label}
+        </span>
       </div>
+      <button
+        type="button"
+        onClick={async () => {
+          await logout();
+          router.push("/login");
+        }}
+        className="w-full rounded-xl border border-white/15 py-2 text-xs font-semibold text-slate-300 hover:border-white/30 hover:text-white"
+      >
+        Sign Out
+      </button>
     </div>
   );
 
   return (
     <div className="flex h-screen overflow-hidden bg-slate-100 dark:bg-[#060E1A]">
       <aside className="hidden md:flex md:w-60 md:shrink-0 md:flex-col bg-slate-900 dark:bg-[#0A1628]">
-        {sidebarContent}
+        <div className="flex h-full flex-col">
+          {brandBlock}
+          <nav className="flex-1 space-y-0.5 overflow-y-auto px-3 py-4">
+            {navItems}
+          </nav>
+          <div className="border-t border-white/10">
+            {userBlock}
+          </div>
+        </div>
       </aside>
 
       {sidebarOpen && (
@@ -280,18 +282,26 @@ export default function AdminDashboardLayout({
             className="absolute inset-0 bg-black/40"
             onClick={() => setSidebarOpen(false)}
           />
-          <aside className="relative h-full w-64 bg-slate-900 shadow-xl dark:bg-[#0A1628]">
-            <div className="flex items-center justify-between border-b border-slate-800 p-3">
+          <aside className="relative flex h-full w-64 flex-col bg-slate-900 shadow-xl dark:bg-[#0A1628]">
+            <div className="flex items-center justify-between border-b border-white/10 p-3">
               <span className="text-xs font-bold text-slate-300">Menu</span>
               <ThemeToggle compact />
             </div>
-            {sidebarContent}
+            <div className="flex-1 overflow-y-auto">
+              {brandBlock}
+              <nav className="space-y-0.5 px-3 py-4">
+                {navItems}
+              </nav>
+            </div>
+            <div className="shrink-0 border-t border-white/10">
+              {userBlock}
+            </div>
           </aside>
         </div>
       )}
 
       <div className="flex min-w-0 flex-1 flex-col">
-        <header className="flex h-11 shrink-0 items-center justify-between border-b border-slate-200 bg-white px-4 dark:border-slate-800 dark:bg-[#0A1628] md:px-6">
+        <header className="flex h-11 shrink-0 items-center justify-between border-b border-slate-200 bg-white px-4 dark:border-white/10 dark:bg-[#0A1628] md:px-6">
           <div className="flex items-center gap-3">
             <button
               type="button"
