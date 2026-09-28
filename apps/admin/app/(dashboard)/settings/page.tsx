@@ -116,6 +116,49 @@ const SECTIONS: Section[] = [
   },
 ];
 
+const CLIENT_DEFAULTS: AdminSettings = {
+  platformFeePercent: 5,
+  connectPriceEtb: 100,
+  boostPriceEtb: 50,
+  subscriptionBasicEtb: 500,
+  subscriptionPremiumEtb: 1800,
+  subscriptionEliteEtb: 4200,
+  escrowAutoReleaseHours: 24,
+  disputeHoldDays: 7,
+  minPayoutEtb: 100,
+  payoutSchedule: "WEEKLY",
+  payTelebirr: true,
+  payCbeBirr: true,
+  payMpesa: true,
+  payCard: false,
+  geofenceRadiusMeters: 150,
+  sessionCheckInWindowMinutes: 30,
+  sosContactsRequired: true,
+  requireFaydaId: true,
+  requireDegree: true,
+  requireSelfie: true,
+  autoApproveVerifications: false,
+  verificationSlaHours: 48,
+  antiPoachingEnabled: true,
+  redactionLanguages: "am,en",
+  redactionSensitivity: "HIGH",
+  adminMfaRequired: true,
+  sessionTimeoutMinutes: 60,
+  ipAllowlistEnabled: false,
+  ipAllowlistCidrs: "",
+  vaultEncryptionLabel: "AES-256",
+  adminAlertEmail: "",
+  criticalWebhookUrl: "",
+  notifyOnVerification: true,
+  notifyOnDispute: true,
+  notifyOnRiskFlag: true,
+  flagProgressAi: true,
+  flagConnectsEconomy: true,
+  flagGeoMapAdmin: false,
+  flagMaintenanceBanner: false,
+  maintenanceMode: false,
+};
+
 function formatValue(key: keyof AdminSettings, value: any): string {
   if (value === undefined || value === null) return "—";
   if (typeof value === "boolean") return value ? "ON" : "OFF";
@@ -144,7 +187,11 @@ export default function AdminSettingsPage() {
         setForm(s);
       }
     } catch (err: any) {
-      if (!cancelled) setError(err.message || "Failed to load settings");
+      if (!cancelled) {
+        setError(err.message || "Failed to load settings");
+        setSettings(CLIENT_DEFAULTS);
+        setForm(CLIENT_DEFAULTS);
+      }
     } finally {
       if (!cancelled) setLoading(false);
     }
@@ -157,6 +204,7 @@ export default function AdminSettingsPage() {
   const save = async () => {
     if (!form) return;
     setSaving(true);
+    setError("");
     try {
       await adminApi.updateSettings(form);
       await load();
@@ -173,6 +221,7 @@ export default function AdminSettingsPage() {
     setForm({ ...form, maintenanceMode: next });
     setMaintenanceConfirm(false);
     setSaving(true);
+    setError("");
     try {
       await adminApi.updateSettings({ maintenanceMode: next });
       await load();
@@ -186,6 +235,7 @@ export default function AdminSettingsPage() {
   const forceLogout = async () => {
     setLogoutConfirm(false);
     setSaving(true);
+    setError("");
     try {
       await adminApi.forceLogoutStaff();
       alert("Force logout staff executed. All staff sessions issued before this timestamp should be rejected on next request if the API enforces it.");
@@ -236,6 +286,9 @@ export default function AdminSettingsPage() {
       {error && (
         <div className="rounded-2xl border border-red-200 bg-red-50 p-4 text-sm text-red-700 dark:border-red-900 dark:bg-red-950/30">
           {error}
+          {error.includes("Could not load from server") && (
+            <p className="mt-1 text-xs text-red-600 dark:text-red-400">Save will create the config row.</p>
+          )}
         </div>
       )}
 
@@ -272,8 +325,8 @@ export default function AdminSettingsPage() {
                           onClick={() => updateField(field.key, !form?.[field.key])}
                           className={`inline-flex w-full items-center justify-between rounded-xl border px-4 py-2.5 text-sm font-bold transition ${
                             form?.[field.key]
-                              ? "border-teal-200 bg-teal-50 text-teal-700 dark:border-teal-800 dark:bg-teal-950/40 dark:text-teal-300"
-                              : "border-slate-200 bg-slate-50 text-slate-600 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-300"
+                              ? "border-teal-500 bg-teal-600 text-white dark:border-teal-400 dark:bg-teal-500"
+                              : "border-slate-700 bg-slate-900 text-slate-300 dark:border-white/10 dark:bg-slate-900/80 dark:text-slate-300"
                           }`}
                         >
                           <span>{form?.[field.key] ? "ON" : "OFF"}</span>
@@ -283,7 +336,7 @@ export default function AdminSettingsPage() {
                         <select
                           value={String(form?.[field.key] || "")}
                           onChange={(e) => updateField(field.key, e.target.value)}
-                          className="w-full rounded-xl border border-slate-200 bg-slate-50 px-3 py-2.5 text-sm outline-none focus:border-teal-500 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-200"
+                          className="w-full rounded-xl border border-slate-200 bg-slate-50 px-3 py-2.5 text-sm outline-none focus:border-teal-500 dark:border-white/10 dark:bg-slate-900/80 dark:text-slate-100 dark:placeholder:text-slate-500"
                         >
                           {field.options?.map((opt) => (
                             <option key={opt} value={opt}>
@@ -292,7 +345,7 @@ export default function AdminSettingsPage() {
                           ))}
                         </select>
                       ) : field.type === "readonly" ? (
-                        <div className="flex items-center gap-2 rounded-xl border border-slate-200 bg-slate-50 px-3 py-2.5 text-sm font-bold text-slate-700 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-300">
+                        <div className="flex items-center gap-2 rounded-xl border border-slate-200 bg-slate-50 px-3 py-2.5 text-sm font-bold text-slate-700 dark:border-white/10 dark:bg-slate-900/80 dark:text-slate-200">
                           <span className="rounded-full bg-slate-200 px-2 py-0.5 text-[10px] font-bold text-slate-600 dark:bg-slate-700 dark:text-slate-300">READ-ONLY</span>
                           {formatValue(field.key, form?.[field.key])}
                         </div>
@@ -304,7 +357,7 @@ export default function AdminSettingsPage() {
                             const val = field.type === "number" ? Number(e.target.value) : e.target.value;
                             updateField(field.key, val);
                           }}
-                          className="w-full rounded-xl border border-slate-200 bg-slate-50 px-3 py-2.5 text-sm outline-none focus:border-teal-500 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-200"
+                          className="w-full rounded-xl border border-slate-200 bg-slate-50 px-3 py-2.5 text-sm outline-none focus:border-teal-500 dark:border-white/10 dark:bg-slate-900/80 dark:text-slate-100 dark:placeholder:text-slate-500"
                         />
                       )}
                     </div>

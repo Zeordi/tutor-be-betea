@@ -393,24 +393,45 @@ export class AdminService {
   }
 
   async getSettings() {
-    const row = await prisma.systemConfig.findUnique({
-      where: { id: "default" },
-    });
-    const payload = (row?.payload && typeof row.payload === "object" ? row.payload : null) as SettingsPayload | null;
-    if (!payload) {
+    try {
+      const row = await prisma.systemConfig.findUnique({
+        where: { id: "default" },
+      });
+      const payload = (row?.payload && typeof row.payload === "object" ? row.payload : null) as SettingsPayload | null;
+      if (!payload) {
+        const created = await prisma.systemConfig.upsert({
+          where: { id: "default" },
+          create: {
+            id: "default",
+            payload: DEFAULT_SETTINGS,
+            updatedBy: null,
+          },
+          update: {},
+        });
+        return {
+          ...DEFAULT_SETTINGS,
+          ...(created.payload && typeof created.payload === "object" ? (created.payload as SettingsPayload) : {}),
+          meta: {
+            updatedAt: created.updatedAt,
+            updatedBy: created.updatedBy,
+          },
+        };
+      }
+      return {
+        ...DEFAULT_SETTINGS,
+        ...payload,
+        meta: {
+          updatedAt: row?.updatedAt,
+          updatedBy: row?.updatedBy,
+        },
+      };
+    } catch (err) {
+      console.error("getSettings failed", err);
       return {
         ...DEFAULT_SETTINGS,
         meta: null,
       };
     }
-    return {
-      ...DEFAULT_SETTINGS,
-      ...payload,
-      meta: {
-        updatedAt: row?.updatedAt,
-        updatedBy: row?.updatedBy,
-      },
-    };
   }
 
   async updateSettings(body: any, adminId: string) {
