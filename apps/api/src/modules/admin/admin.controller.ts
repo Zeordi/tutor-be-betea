@@ -53,6 +53,13 @@ export class AdminController {
     return this.adminService.updateSettings(body, user.id);
   }
 
+  @Post("settings/force-logout-staff")
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles("SUPER_ADMIN")
+  forceLogoutStaff(@CurrentUser() user: any) {
+    return this.adminService.forceLogoutStaff(user.id);
+  }
+
   @Get("audit-logs")
   @UseGuards(JwtAuthGuard, RolesGuard)
   @Roles("SUPER_ADMIN")
