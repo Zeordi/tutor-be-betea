@@ -74,15 +74,22 @@ export default function TicketsPage() {
       />
 
       {error && (
-        <div className="rounded-2xl border border-red-200 bg-red-50 p-4 text-sm text-red-700 dark:border-red-900 dark:bg-red-950/30">
-          {error}
+        <div className="flex items-center justify-between rounded-2xl border border-red-200 bg-red-50 p-4 dark:border-red-900 dark:bg-red-950/30">
+          <p className="text-sm text-red-700 dark:text-red-300">{error}</p>
+          <button
+            type="button"
+            onClick={load}
+            className="rounded-xl border border-red-200 bg-white px-3 py-1.5 text-xs font-bold text-red-700 hover:bg-red-50 dark:border-red-800 dark:bg-red-900/30 dark:text-red-200"
+          >
+            Retry
+          </button>
         </div>
       )}
 
       <div className="grid gap-4 lg:grid-cols-2">
         {loading ? (
           <div className="lg:col-span-2 px-4 py-8 text-center text-sm text-slate-500">Loading…</div>
-        ) : tickets.length === 0 ? (
+        ) : error ? null : tickets.length === 0 ? (
           <div className="lg:col-span-2 rounded-2xl border border-slate-200 bg-white p-8 text-center text-sm text-slate-500 dark:border-slate-800 dark:bg-[#112240] dark:text-slate-400">
             No tickets found.
           </div>
