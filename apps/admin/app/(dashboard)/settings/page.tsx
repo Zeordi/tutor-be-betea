@@ -326,18 +326,18 @@ export default function AdminSettingsPage() {
                            className={`inline-flex w-full items-center justify-between rounded-xl border px-4 py-2.5 text-sm font-bold transition ${
                              form?.[field.key]
                                ? "border-teal-500 bg-teal-600 text-white dark:border-teal-400 dark:bg-teal-500"
-                               : "border-slate-700 bg-slate-900 text-slate-300 dark:border-white/15 dark:bg-slate-800 dark:text-slate-200"
+                                : "border-slate-700 bg-slate-900 text-slate-300 dark:border-white/15 dark:bg-[#1e293b] dark:text-slate-200"
                            }`}
                         >
                           <span>{form?.[field.key] ? "ON" : "OFF"}</span>
                           <span className="text-xs">{form?.[field.key] ? "✓" : "○"}</span>
                         </button>
-                       ) : field.type === "select" ? (
-                         <select
-                           value={String(form?.[field.key] || "")}
-                           onChange={(e) => updateField(field.key, e.target.value)}
-                           className="w-full rounded-xl border border-slate-200 bg-slate-50 px-3 py-2.5 text-sm outline-none focus:border-teal-500 dark:border-white/15 dark:bg-slate-800 dark:text-white dark:placeholder:text-slate-500 dark:caret-teal-400"
-                         >
+                        ) : field.type === "select" ? (
+                          <select
+                            value={String(form?.[field.key] || "")}
+                            onChange={(e) => updateField(field.key, e.target.value)}
+                            className="w-full rounded-xl border border-slate-200 bg-slate-50 px-3 py-2.5 text-sm outline-none focus:border-teal-500 dark:border-white/15 dark:bg-[#1e293b] dark:text-white dark:placeholder:text-slate-400 dark:caret-teal-400"
+                          >
                           {field.options?.map((opt) => (
                             <option key={opt} value={opt}>
                               {opt}
@@ -357,7 +357,7 @@ export default function AdminSettingsPage() {
                              const val = field.type === "number" ? Number(e.target.value) : e.target.value;
                              updateField(field.key, val);
                            }}
-                           className="w-full rounded-xl border border-slate-200 bg-slate-50 px-3 py-2.5 text-sm outline-none focus:border-teal-500 dark:border-white/15 dark:bg-slate-800 dark:text-white dark:placeholder:text-slate-500 dark:caret-teal-400"
+                           className="w-full rounded-xl border border-slate-200 bg-slate-50 px-3 py-2.5 text-sm outline-none focus:border-teal-500 dark:border-white/15 dark:bg-[#1e293b] dark:text-white dark:placeholder:text-slate-400 dark:caret-teal-400"
                         />
                       )}
                     </div>
