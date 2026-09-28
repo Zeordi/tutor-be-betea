@@ -79,16 +79,18 @@ export default function TicketsPage() {
         </div>
       )}
 
-      <div className="space-y-3">
+      <div className="grid gap-4 lg:grid-cols-2">
         {loading ? (
-          <div className="px-4 py-8 text-center text-sm text-slate-500">Loading…</div>
+          <div className="lg:col-span-2 px-4 py-8 text-center text-sm text-slate-500">Loading…</div>
         ) : tickets.length === 0 ? (
-          <div className="px-4 py-8 text-center text-sm text-slate-500">No tickets found.</div>
+          <div className="lg:col-span-2 rounded-2xl border border-slate-200 bg-white p-8 text-center text-sm text-slate-500 dark:border-slate-800 dark:bg-[#112240] dark:text-slate-400">
+            No tickets found.
+          </div>
         ) : (
           tickets.map((t) => (
             <div
               key={t.id}
-              className="rounded-2xl border border-slate-200 bg-white p-4 dark:border-slate-800 dark:bg-[#112240]"
+              className="rounded-2xl border border-slate-200 bg-white p-5 dark:border-slate-800 dark:bg-[#112240]"
             >
               <div className="flex items-center justify-between gap-2">
                 <div>

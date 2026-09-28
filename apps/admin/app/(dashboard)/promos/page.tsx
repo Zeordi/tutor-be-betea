@@ -56,13 +56,13 @@ export default function PromosPage() {
     <div className="space-y-6">
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div>
-          <h1 className="text-2xl font-black text-[var(--foreground)]">Promo & Banner Manager</h1>
-          <p className="text-sm text-[var(--secondary)]">Usage caps · campaign placement</p>
+          <h1 className="text-2xl font-black text-slate-900 dark:text-white">Promo & Banner Manager</h1>
+          <p className="text-sm text-slate-500">Usage caps · campaign placement</p>
         </div>
         <button
           type="button"
           onClick={() => setShowForm(!showForm)}
-          className="rounded-xl bg-[var(--primary)] px-4 py-2 text-sm font-bold text-white"
+          className="rounded-xl bg-teal-600 px-4 py-2 text-sm font-bold text-white hover:bg-teal-700"
         >
           + New promo
         </button>
@@ -75,69 +75,70 @@ export default function PromosPage() {
       )}
 
       {showForm && (
-        <div className="rounded-2xl border border-[var(--border)] bg-[var(--card)] p-5">
+        <div className="rounded-2xl border border-slate-200 bg-white p-5 dark:border-slate-800 dark:bg-[#112240]">
+          <p className="mb-4 text-sm font-bold text-slate-900 dark:text-white">Create promo</p>
           <div className="grid gap-3 sm:grid-cols-2">
             <input
               value={form.code}
               onChange={(e) => setForm({ ...form, code: e.target.value })}
               placeholder="Promo code"
-              className="rounded-xl border border-[var(--border)] bg-[var(--muted)] px-3 py-2 text-sm outline-none focus:border-[var(--primary)]"
+              className="rounded-xl border border-slate-200 bg-slate-50 px-3 py-2 text-sm outline-none focus:border-teal-500 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-200"
             />
             <input
               value={form.description}
               onChange={(e) => setForm({ ...form, description: e.target.value })}
               placeholder="Description"
-              className="rounded-xl border border-[var(--border)] bg-[var(--muted)] px-3 py-2 text-sm outline-none focus:border-[var(--primary)]"
+              className="rounded-xl border border-slate-200 bg-slate-50 px-3 py-2 text-sm outline-none focus:border-teal-500 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-200"
             />
             <input
               type="number"
               value={form.discountPct}
               onChange={(e) => setForm({ ...form, discountPct: Number(e.target.value) })}
               placeholder="Discount %"
-              className="rounded-xl border border-[var(--border)] bg-[var(--muted)] px-3 py-2 text-sm outline-none focus:border-[var(--primary)]"
+              className="rounded-xl border border-slate-200 bg-slate-50 px-3 py-2 text-sm outline-none focus:border-teal-500 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-200"
             />
             <input
               type="number"
               value={form.usageLimit}
               onChange={(e) => setForm({ ...form, usageLimit: Number(e.target.value) })}
               placeholder="Usage limit"
-              className="rounded-xl border border-[var(--border)] bg-[var(--muted)] px-3 py-2 text-sm outline-none focus:border-[var(--primary)]"
+              className="rounded-xl border border-slate-200 bg-slate-50 px-3 py-2 text-sm outline-none focus:border-teal-500 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-200"
             />
           </div>
           <button
             type="button"
             onClick={createPromo}
-            className="mt-3 rounded-xl bg-[var(--primary)] px-4 py-2 text-sm font-bold text-white"
+            className="mt-3 rounded-xl bg-teal-600 px-4 py-2 text-sm font-bold text-white hover:bg-teal-700"
           >
             Save promo
           </button>
         </div>
       )}
 
-      <h2 className="text-sm font-extrabold uppercase tracking-wide text-[var(--secondary)]">Promo codes</h2>
+      <h2 className="text-sm font-extrabold uppercase tracking-wide text-slate-500">Promo codes</h2>
       <div className="space-y-3">
         {loading ? (
-          <div className="px-4 py-8 text-center text-sm text-slate-500">Loading…</div>
+          <div className="rounded-2xl border border-slate-200 bg-white p-8 text-center text-sm text-slate-500 dark:border-slate-800 dark:bg-[#112240] dark:text-slate-400">Loading…</div>
         ) : promos.length === 0 ? (
-          <div className="px-4 py-8 text-center text-sm text-slate-500">No promos found.</div>
+          <div className="rounded-2xl border border-slate-200 bg-white p-8 text-center text-sm text-slate-500 dark:border-slate-800 dark:bg-[#112240] dark:text-slate-400">No promos found.</div>
         ) : (
           promos.map((p) => {
             const pct = p.usageLimit > 0 ? Math.round((p.usedCount / p.usageLimit) * 100) : 0;
             return (
-              <div key={p.id} className="rounded-2xl border border-[var(--border)] bg-[var(--card)] p-5">
+              <div key={p.id} className="rounded-2xl border border-slate-200 bg-white p-5 dark:border-slate-800 dark:bg-[#112240]">
                 <div className="mb-2 flex flex-wrap items-center justify-between gap-2">
                   <div>
-                    <p className="font-mono text-lg font-black text-[var(--primary)]">{p.code}</p>
-                    <p className="text-sm text-[var(--secondary)]">{p.description || "—"}</p>
+                    <p className="font-mono text-lg font-black text-teal-600">{p.code}</p>
+                    <p className="text-sm text-slate-500">{p.description || "—"}</p>
                   </div>
                   <span className={`text-xs font-bold ${p.active ? "text-emerald-600" : "text-slate-400"}`}>
                     {p.active ? "active" : "inactive"}
                   </span>
                 </div>
-                <div className="h-2 overflow-hidden rounded-full bg-[var(--muted)]">
-                  <div className="h-full rounded-full bg-[var(--primary)]" style={{ width: `${pct}%` }} />
+                <div className="h-2 overflow-hidden rounded-full bg-slate-100 dark:bg-slate-800">
+                  <div className="h-full rounded-full bg-teal-600" style={{ width: `${pct}%` }} />
                 </div>
-                <p className="mt-1 text-xs text-[var(--secondary)]">
+                <p className="mt-1 text-xs text-slate-500">
                   {p.usedCount} / {p.usageLimit} uses · {pct}%
                 </p>
               </div>
@@ -146,15 +147,15 @@ export default function PromosPage() {
         )}
       </div>
 
-      <h2 className="text-sm font-extrabold uppercase tracking-wide text-[var(--secondary)]">Banners</h2>
+      <h2 className="text-sm font-extrabold uppercase tracking-wide text-slate-500">Banners</h2>
       <div className="grid gap-3 md:grid-cols-3">
         {BANNERS.map((b) => (
-          <div key={b.title} className="rounded-2xl border border-[var(--border)] bg-[var(--card)] p-5">
-            <p className="font-bold text-[var(--foreground)]">{b.title}</p>
-            <p className="mt-1 text-xs text-[var(--secondary)]">{b.place}</p>
+          <div key={b.title} className="rounded-2xl border border-slate-200 bg-white p-5 dark:border-slate-800 dark:bg-[#112240]">
+            <p className="font-bold text-slate-900 dark:text-white">{b.title}</p>
+            <p className="mt-1 text-xs text-slate-500">{b.place}</p>
             <span
               className={`mt-3 inline-block rounded-full px-2 py-0.5 text-[11px] font-bold ${
-                b.status === "live" ? "bg-teal-50 text-[var(--primary)] dark:bg-teal-950/40" : "bg-[var(--muted)] text-[var(--secondary)]"
+                b.status === "live" ? "bg-teal-50 text-teal-700 dark:bg-teal-950/40 dark:text-teal-300" : "bg-slate-100 text-slate-600 dark:bg-slate-800 dark:text-slate-300"
               }`}
             >
               {b.status}
