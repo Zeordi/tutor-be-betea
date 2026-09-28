@@ -323,21 +323,21 @@ export default function AdminSettingsPage() {
                         <button
                           type="button"
                           onClick={() => updateField(field.key, !form?.[field.key])}
-                          className={`inline-flex w-full items-center justify-between rounded-xl border px-4 py-2.5 text-sm font-bold transition ${
-                            form?.[field.key]
-                              ? "border-teal-500 bg-teal-600 text-white dark:border-teal-400 dark:bg-teal-500"
-                              : "border-slate-700 bg-slate-900 text-slate-300 dark:border-white/10 dark:bg-slate-900/80 dark:text-slate-300"
-                          }`}
+                           className={`inline-flex w-full items-center justify-between rounded-xl border px-4 py-2.5 text-sm font-bold transition ${
+                             form?.[field.key]
+                               ? "border-teal-500 bg-teal-600 text-white dark:border-teal-400 dark:bg-teal-500"
+                               : "border-slate-700 bg-slate-900 text-slate-300 dark:border-white/15 dark:bg-slate-800 dark:text-slate-200"
+                           }`}
                         >
                           <span>{form?.[field.key] ? "ON" : "OFF"}</span>
                           <span className="text-xs">{form?.[field.key] ? "✓" : "○"}</span>
                         </button>
-                      ) : field.type === "select" ? (
-                        <select
-                          value={String(form?.[field.key] || "")}
-                          onChange={(e) => updateField(field.key, e.target.value)}
-                          className="w-full rounded-xl border border-slate-200 bg-slate-50 px-3 py-2.5 text-sm outline-none focus:border-teal-500 dark:border-white/10 dark:bg-slate-900/80 dark:text-slate-100 dark:placeholder:text-slate-500"
-                        >
+                       ) : field.type === "select" ? (
+                         <select
+                           value={String(form?.[field.key] || "")}
+                           onChange={(e) => updateField(field.key, e.target.value)}
+                           className="w-full rounded-xl border border-slate-200 bg-slate-50 px-3 py-2.5 text-sm outline-none focus:border-teal-500 dark:border-white/15 dark:bg-slate-800 dark:text-white dark:placeholder:text-slate-500 dark:caret-teal-400"
+                         >
                           {field.options?.map((opt) => (
                             <option key={opt} value={opt}>
                               {opt}
@@ -349,15 +349,15 @@ export default function AdminSettingsPage() {
                           <span className="rounded-full bg-slate-200 px-2 py-0.5 text-[10px] font-bold text-slate-600 dark:bg-slate-700 dark:text-slate-300">READ-ONLY</span>
                           {formatValue(field.key, form?.[field.key])}
                         </div>
-                      ) : (
-                        <input
-                          type={field.type === "number" ? "number" : "text"}
-                          value={String(form?.[field.key] ?? "")}
-                          onChange={(e) => {
-                            const val = field.type === "number" ? Number(e.target.value) : e.target.value;
-                            updateField(field.key, val);
-                          }}
-                          className="w-full rounded-xl border border-slate-200 bg-slate-50 px-3 py-2.5 text-sm outline-none focus:border-teal-500 dark:border-white/10 dark:bg-slate-900/80 dark:text-slate-100 dark:placeholder:text-slate-500"
+                       ) : (
+                         <input
+                           type={field.type === "number" ? "number" : "text"}
+                           value={String(form?.[field.key] ?? "")}
+                           onChange={(e) => {
+                             const val = field.type === "number" ? Number(e.target.value) : e.target.value;
+                             updateField(field.key, val);
+                           }}
+                           className="w-full rounded-xl border border-slate-200 bg-slate-50 px-3 py-2.5 text-sm outline-none focus:border-teal-500 dark:border-white/15 dark:bg-slate-800 dark:text-white dark:placeholder:text-slate-500 dark:caret-teal-400"
                         />
                       )}
                     </div>
