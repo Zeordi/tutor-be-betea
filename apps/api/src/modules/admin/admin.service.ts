@@ -3,6 +3,85 @@ import { prisma } from "@tutor/database";
 import { createHmac, randomBytes } from "crypto";
 import * as bcrypt from "bcryptjs";
 
+type SettingsPayload = Record<string, any>;
+
+const DEFAULT_SETTINGS: SettingsPayload = {
+  platformFeePercent: 5,
+  connectPriceEtb: 100,
+  boostPriceEtb: 50,
+  subscriptionBasicEtb: 500,
+  subscriptionPremiumEtb: 1800,
+  subscriptionEliteEtb: 4200,
+  escrowAutoReleaseHours: 24,
+  disputeHoldDays: 7,
+  minPayoutEtb: 100,
+  payoutSchedule: "WEEKLY",
+  payTelebirr: true,
+  payCbeBirr: true,
+  payMpesa: true,
+  payCard: false,
+  geofenceRadiusMeters: 150,
+  sessionCheckInWindowMinutes: 30,
+  sosContactsRequired: true,
+  requireFaydaId: true,
+  requireDegree: true,
+  requireSelfie: true,
+  autoApproveVerifications: false,
+  verificationSlaHours: 48,
+  antiPoachingEnabled: true,
+  redactionLanguages: "am,en",
+  redactionSensitivity: "HIGH",
+  adminMfaRequired: true,
+  sessionTimeoutMinutes: 60,
+  ipAllowlistEnabled: false,
+  ipAllowlistCidrs: "",
+  vaultEncryptionLabel: "AES-256",
+  adminAlertEmail: "",
+  criticalWebhookUrl: "",
+  notifyOnVerification: true,
+  notifyOnDispute: true,
+  notifyOnRiskFlag: true,
+  flagProgressAi: true,
+  flagConnectsEconomy: true,
+  flagGeoMapAdmin: false,
+  flagMaintenanceBanner: false,
+  maintenanceMode: false,
+};
+
+const ALLOWED_KEYS = new Set(Object.keys(DEFAULT_SETTINGS));
+
+function clampNumber(value: any, min: number, max: number): number {
+  const n = Number(value);
+  if (Number.isNaN(n)) throw new BadRequestException(`Invalid number: ${value}`);
+  return Math.min(max, Math.max(min, n));
+}
+
+function validateSettings(raw: any): SettingsPayload {
+  if (!raw || typeof raw !== "object") return { ...DEFAULT_SETTINGS };
+  const out: SettingsPayload = { ...DEFAULT_SETTINGS };
+  for (const [key, rawValue] of Object.entries(raw)) {
+    if (!ALLOWED_KEYS.has(key)) continue;
+    const value = rawValue as any;
+    const def = DEFAULT_SETTINGS[key as keyof typeof DEFAULT_SETTINGS];
+    if (typeof def === "number") {
+      if (key === "platformFeePercent") out[key] = clampNumber(value, 0, 100);
+      else if (key === "geofenceRadiusMeters" || key === "sessionCheckInWindowMinutes" || key === "verificationSlaHours" || key === "disputeHoldDays" || key === "escrowAutoReleaseHours" || key === "sessionTimeoutMinutes") out[key] = clampNumber(value, 1, 10000);
+      else if (key === "minPayoutEtb") out[key] = clampNumber(value, 0, 1000000);
+      else out[key] = clampNumber(value, 0, 1000000);
+    } else if (typeof def === "boolean") {
+      out[key] = Boolean(value);
+    } else if (key === "payoutSchedule") {
+      if (["WEEKLY", "BIWEEKLY", "MONTHLY"].includes(value)) out[key] = value;
+    } else if (key === "redactionSensitivity") {
+      if (["LOW", "MEDIUM", "HIGH"].includes(value)) out[key] = value;
+    } else if (typeof def === "string") {
+      out[key] = String(value);
+    }
+  }
+  out.vaultEncryptionLabel = DEFAULT_SETTINGS.vaultEncryptionLabel;
+  return out;
+}
+
 @Injectable()
 export class AdminService {
   private chainSecret(): string {
@@ -314,23 +393,88 @@ export class AdminService {
   }
 
   async getSettings() {
+    const row = await prisma.systemConfig.findUnique({
+      where: { id: "default" },
+    });
+    const payload = (row?.payload && typeof row.payload === "object" ? row.payload : null) as SettingsPayload | null;
+    if (!payload) {
+      return {
+        ...DEFAULT_SETTINGS,
+        meta: null,
+      };
+    }
     return {
-      platformFeePercent: 5,
-      geofenceRadius: 150,
-      connectPrice: 100,
-      mfaEnabled: true,
-      antiPoachingFilter: true,
-      vaultEncryption: "AES-256",
+      ...DEFAULT_SETTINGS,
+      ...payload,
+      meta: {
+        updatedAt: row?.updatedAt,
+        updatedBy: row?.updatedBy,
+      },
     };
   }
 
-  async updateSettings(data: any, adminId: string) {
+  async updateSettings(body: any, adminId: string) {
+    const current = await prisma.systemConfig.findUnique({
+      where: { id: "default" },
+    });
+    const currentPayload = (current?.payload && typeof current.payload === "object" ? current.payload : {}) as SettingsPayload;
+    const merged = { ...currentPayload, ...body };
+    const validated = validateSettings(merged);
+    const saved = await prisma.systemConfig.upsert({
+      where: { id: "default" },
+      create: {
+        id: "default",
+        payload: validated,
+        updatedBy: adminId,
+      },
+      update: {
+        payload: validated,
+        updatedBy: adminId,
+      },
+    });
+    const savedPayload = (saved.payload && typeof saved.payload === "object" ? saved.payload : {}) as SettingsPayload;
     await this.writeAudit({
       adminId,
       actionType: "UPDATE_SETTINGS",
-      reason: JSON.stringify(data),
+      reason: `Settings updated by ${adminId}`,
     });
-    return { success: true, settings: data };
+    return {
+      ...DEFAULT_SETTINGS,
+      ...savedPayload,
+      meta: {
+        updatedAt: saved.updatedAt,
+        updatedBy: saved.updatedBy,
+      },
+    };
+  }
+
+  async forceLogoutStaff(adminId: string) {
+    const now = new Date().toISOString();
+    const saved = await prisma.systemConfig.upsert({
+      where: { id: "default" },
+      create: {
+        id: "default",
+        payload: { ...DEFAULT_SETTINGS, staffSessionsRevokedAfter: now },
+        updatedBy: adminId,
+      },
+      update: {
+        payload: {
+          ...DEFAULT_SETTINGS,
+          staffSessionsRevokedAfter: now,
+        },
+        updatedBy: adminId,
+      },
+    });
+    const savedPayload = (saved.payload && typeof saved.payload === "object" ? saved.payload : {}) as SettingsPayload;
+    await this.writeAudit({
+      adminId,
+      actionType: "FORCE_LOGOUT_STAFF",
+      reason: `Staff sessions revocation timestamp set to ${now}`,
+    });
+    return {
+      success: true,
+      staffSessionsRevokedAfter: (savedPayload as any)?.staffSessionsRevokedAfter || now,
+    };
   }
 
   async getRecentAttendance(limit = 50) {

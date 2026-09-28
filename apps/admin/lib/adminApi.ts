@@ -141,6 +141,53 @@ export type AdminStaff = {
   temporaryPassword?: string;
 };
 
+export type AdminSettings = {
+  platformFeePercent: number;
+  connectPriceEtb: number;
+  boostPriceEtb: number;
+  subscriptionBasicEtb: number;
+  subscriptionPremiumEtb: number;
+  subscriptionEliteEtb: number;
+  escrowAutoReleaseHours: number;
+  disputeHoldDays: number;
+  minPayoutEtb: number;
+  payoutSchedule: "WEEKLY" | "BIWEEKLY" | "MONTHLY";
+  payTelebirr: boolean;
+  payCbeBirr: boolean;
+  payMpesa: boolean;
+  payCard: boolean;
+  geofenceRadiusMeters: number;
+  sessionCheckInWindowMinutes: number;
+  sosContactsRequired: boolean;
+  requireFaydaId: boolean;
+  requireDegree: boolean;
+  requireSelfie: boolean;
+  autoApproveVerifications: boolean;
+  verificationSlaHours: number;
+  antiPoachingEnabled: boolean;
+  redactionLanguages: string;
+  redactionSensitivity: "LOW" | "MEDIUM" | "HIGH";
+  adminMfaRequired: boolean;
+  sessionTimeoutMinutes: number;
+  ipAllowlistEnabled: boolean;
+  ipAllowlistCidrs: string;
+  vaultEncryptionLabel: string;
+  adminAlertEmail: string;
+  criticalWebhookUrl: string;
+  notifyOnVerification: boolean;
+  notifyOnDispute: boolean;
+  notifyOnRiskFlag: boolean;
+  flagProgressAi: boolean;
+  flagConnectsEconomy: boolean;
+  flagGeoMapAdmin: boolean;
+  flagMaintenanceBanner: boolean;
+  maintenanceMode: boolean;
+  meta?: {
+    updatedAt?: string;
+    updatedBy?: string;
+  };
+};
+
 export const adminApi = {
   dashboard: () => api.get<AdminDashboardStats>("/admin/dashboard"),
 
@@ -239,9 +286,11 @@ export const adminApi = {
 
   analytics: () => api.get("/admin/analytics"),
 
-  settings: () => api.get("/admin/settings"),
+  settings: () => api.get<AdminSettings>("/admin/settings"),
 
-  updateSettings: (body: any) => api.patch("/admin/settings", body),
+  updateSettings: (body: Partial<AdminSettings>) => api.patch<AdminSettings>("/admin/settings", body),
+
+  forceLogoutStaff: () => api.post<{ success: boolean; staffSessionsRevokedAfter?: string }>("/admin/settings/force-logout-staff", {}),
 
   staff: () => api.get<AdminStaff[]>("/admin/staff"),
 
