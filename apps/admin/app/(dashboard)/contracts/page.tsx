@@ -32,6 +32,10 @@ function statusStyle(status: string) {
   }
 }
 
+function initialsFrom(id: string) {
+  return id.slice(0, 2).toUpperCase();
+}
+
 export default function EscrowMonitoringPage() {
   const [contracts, setContracts] = useState<AdminContract[]>([]);
   const [loading, setLoading] = useState(true);
@@ -61,6 +65,9 @@ export default function EscrowMonitoringPage() {
   const totalEscrow = contracts.reduce((s, c) => s + Number(c.escrowHeldAmount), 0);
   const activeCount = contracts.filter((c) => c.status === "ACTIVE").length;
   const disputedCount = contracts.filter((c) => c.status === "DISPUTED").length;
+  const disputedAmount = contracts
+    .filter((c) => c.status === "DISPUTED")
+    .reduce((s, c) => s + Number(c.escrowHeldAmount), 0);
 
   return (
     <div className="space-y-6">
@@ -92,66 +99,77 @@ export default function EscrowMonitoringPage() {
         </div>
       )}
 
-      <div className="grid gap-4 md:grid-cols-4">
+      <div className="grid gap-4 sm:grid-cols-3">
         <div className="rounded-2xl border border-slate-200 bg-white p-5 dark:border-slate-800 dark:bg-[#112240]">
-          <p className="text-2xl font-extrabold text-teal-600">{contracts.length}</p>
-          <p className="mt-2 text-xs text-slate-500">Total contracts</p>
+          <p className="text-2xl font-extrabold text-teal-600">
+            {totalEscrow.toLocaleString()} <span className="text-sm font-semibold text-slate-500">ETB</span>
+          </p>
+          <p className="mt-2 text-xs text-slate-500">Total escrow held</p>
         </div>
         <div className="rounded-2xl border border-slate-200 bg-white p-5 dark:border-slate-800 dark:bg-[#112240]">
-          <p className="text-2xl font-extrabold text-teal-600">{activeCount}</p>
-          <p className="mt-2 text-xs text-slate-500">Active</p>
+          <p className="text-2xl font-extrabold text-teal-600">
+            {activeCount}
+          </p>
+          <p className="mt-2 text-xs text-slate-500">Pending release</p>
         </div>
         <div className="rounded-2xl border border-slate-200 bg-white p-5 dark:border-slate-800 dark:bg-[#112240]">
-          <p className="text-2xl font-extrabold text-amber-600">{totalEscrow.toLocaleString()}</p>
-          <p className="mt-2 text-xs text-slate-500">Escrow held (ETB)</p>
-        </div>
-        <div className="rounded-2xl border border-slate-200 bg-white p-5 dark:border-slate-800 dark:bg-[#112240]">
-          <p className="text-2xl font-extrabold text-red-600">{disputedCount}</p>
+          <p className="text-2xl font-extrabold text-red-600">
+            {disputedCount > 0
+              ? `${disputedCount} (${disputedAmount.toLocaleString()} ETB)`
+              : "0"}
+          </p>
           <p className="mt-2 text-xs text-slate-500">Disputed</p>
         </div>
       </div>
 
-      <div className="overflow-hidden rounded-2xl border border-slate-200 bg-white dark:border-slate-800 dark:bg-[#112240]">
-        <div className="grid grid-cols-12 gap-2 border-b border-slate-100 px-4 py-3 text-[10px] font-bold uppercase tracking-wide text-slate-400 dark:border-slate-800">
-          <div className="col-span-2">Contract</div>
-          <div className="col-span-2">Parent</div>
-          <div className="col-span-2">Tutor</div>
-          <div className="col-span-2">Amount</div>
-          <div className="col-span-1">Escrow</div>
-          <div className="col-span-2">Status</div>
-          <div className="col-span-1">Start</div>
+      {loading ? (
+        <div className="rounded-2xl border border-slate-200 bg-white p-8 text-center text-sm text-slate-500 dark:border-slate-800 dark:bg-[#112240] dark:text-slate-400">
+          Loading…
         </div>
-        {loading ? (
-          <div className="px-4 py-8 text-center text-sm text-slate-500">Loading…</div>
-        ) : contracts.length === 0 ? (
-          <div className="px-4 py-8 text-center text-sm text-slate-500">No contracts found.</div>
-        ) : (
-          contracts.map((c) => (
+      ) : contracts.length === 0 ? (
+        <div className="rounded-2xl border border-slate-200 bg-white p-8 text-center text-sm text-slate-500 dark:border-slate-800 dark:bg-[#112240] dark:text-slate-400">
+          No contracts found.
+        </div>
+      ) : (
+        <div className="space-y-3">
+          {contracts.map((c) => (
             <div
               key={c.id}
-              className="grid grid-cols-12 items-center gap-2 border-b border-slate-50 px-4 py-3 text-sm last:border-0 dark:border-slate-800/60"
+              className="rounded-2xl border border-slate-200 bg-white p-4 dark:border-slate-800 dark:bg-[#112240]"
             >
-              <div className="col-span-2 font-bold text-slate-800 dark:text-white">{c.id.slice(0, 8)}</div>
-              <div className="col-span-2 text-slate-600 dark:text-slate-300">{c.parentId.slice(0, 8)}</div>
-              <div className="col-span-2 text-slate-600 dark:text-slate-300">{c.teacherId.slice(0, 8)}</div>
-              <div className="col-span-2 font-bold text-slate-900 dark:text-white">
-                {Number(c.agreedAmount).toLocaleString()} ETB
+              <div className="flex flex-wrap items-center gap-3 sm:flex-nowrap">
+                <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-slate-800 text-sm font-bold text-white">
+                  {initialsFrom(c.parentId)}
+                </div>
+                <div className="min-w-0 flex-1">
+                  <p className="text-sm font-bold text-slate-900 dark:text-white">
+                    {Number(c.agreedAmount).toLocaleString()} ETB
+                  </p>
+                  <p className="text-xs text-slate-500">
+                    Parent {c.parentId.slice(0, 8)} → Tutor {c.teacherId.slice(0, 8)}
+                  </p>
+                </div>
+                <div className="flex flex-wrap items-center gap-2">
+                  <span className={`rounded-full px-2.5 py-1 text-[10px] font-bold ${statusStyle(c.status)}`}>
+                    {c.status.replace(/_/g, " ")}
+                  </span>
+                  <span className="text-xs text-slate-500">
+                    Held: {Number(c.escrowHeldAmount).toLocaleString()} ETB
+                  </span>
+                </div>
               </div>
-              <div className="col-span-1 text-xs text-slate-500">
-                {Number(c.escrowHeldAmount).toLocaleString()}
-              </div>
-              <div className="col-span-2">
-                <span className={`rounded-full px-2 py-0.5 text-[10px] font-bold ${statusStyle(c.status)}`}>
-                  {c.status.replace(/_/g, " ")}
-                </span>
-              </div>
-              <div className="col-span-1 text-[11px] font-semibold text-slate-500">
-                {c.startDate ? new Date(c.startDate).toLocaleDateString() : "—"}
+              <div className="mt-3 flex flex-wrap items-center gap-2 text-xs text-slate-500 dark:text-slate-400">
+                {c.startDate && (
+                  <span>Started {new Date(c.startDate).toLocaleDateString()}</span>
+                )}
+                {c.endDate && (
+                  <span>· Ends {new Date(c.endDate).toLocaleDateString()}</span>
+                )}
               </div>
             </div>
-          ))
-        )}
-      </div>
+          ))}
+        </div>
+      )}
     </div>
   );
 }
