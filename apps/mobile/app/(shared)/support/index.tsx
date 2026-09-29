@@ -20,12 +20,12 @@ type Ticket = {
 };
 
 const CATEGORIES = [
-  { icon: "📅", label: "Booking", count: 12 },
-  { icon: "💰", label: "Payments", count: 8 },
-  { icon: "🛡️", label: "Safety", count: 6 },
-  { icon: "📊", label: "Reports", count: 5 },
-  { icon: "👤", label: "Account", count: 9 },
-  { icon: "🔗", label: "Contracts", count: 7 },
+  { icon: "📅", label: "Booking" },
+  { icon: "💰", label: "Payments" },
+  { icon: "🛡️", label: "Safety" },
+  { icon: "📊", label: "Reports" },
+  { icon: "👤", label: "Account" },
+  { icon: "🔗", label: "Contracts" },
 ];
 
 const FAQS = [
@@ -107,7 +107,6 @@ export default function HelpCenterScreen() {
               <Text style={{ color: colors.text, fontWeight: "700", fontSize: 11, marginTop: 6 }}>
                 {c.label}
               </Text>
-              <Text style={{ color: colors.sub, fontSize: 10 }}>{c.count} articles</Text>
             </TouchableOpacity>
           ))}
         </View>

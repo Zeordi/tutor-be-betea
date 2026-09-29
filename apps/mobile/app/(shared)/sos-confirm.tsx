@@ -14,15 +14,9 @@ import { SafeAreaView } from "react-native-safe-area-context";
 
 type SosState = "idle" | "holding" | "sent";
 
-const CONTACTS = [
-  { name: "Primary contact", phone: "+251 91 *** ****", role: "Primary" },
-  { name: "Emergency contact", phone: "+251 92 *** ****", role: "Emergency" },
-  { name: "TBB Safety Desk", phone: "911 · Platform", role: "Platform" },
-];
-
 export default function SOSConfirmScreen() {
-  const { isDark } = useTheme();
   const router = useRouter();
+  const { colors, isDark } = useTheme();
   const [state, setState] = useState<SosState>("idle");
   const [holdProgress, setHoldProgress] = useState(0);
   const timer = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -52,8 +46,8 @@ export default function SOSConfirmScreen() {
       : isDark
         ? "#450A0A"
         : "#FEF2F2";
-  const text = isDark ? "#F0FAFA" : "#0D2B2A";
-  const sub = isDark ? "#FCA5A5" : "#991B1B";
+  const text = colors.text ?? (isDark ? "#F0FAFA" : "#0D2B2A");
+  const sub = colors.subtext ?? (isDark ? "#FCA5A5" : "#991B1B");
   const card = isDark ? "rgba(127,29,29,0.25)" : "#FFFFFF";
 
   const clearTimers = () => {
@@ -155,15 +149,8 @@ export default function SOSConfirmScreen() {
           <Text style={{ color: text, fontWeight: "800", marginBottom: 10, fontSize: 12 }}>
             Will notify
           </Text>
-          {CONTACTS.map((c) => (
-            <View key={c.phone} style={styles.contactRow}>
-              <View style={{ flex: 1 }}>
-                <Text style={{ color: text, fontWeight: "700", fontSize: 13 }}>{c.name}</Text>
-                <Text style={{ color: sub, fontSize: 11 }}>{c.phone}</Text>
-              </View>
-              <Text style={{ color: sub, fontSize: 10, fontWeight: "700" }}>{c.role}</Text>
-            </View>
-          ))}
+          <Text style={{ color: text, fontWeight: "700", fontSize: 13 }}>TBB Safety Team</Text>
+          <Text style={{ color: sub, fontSize: 11 }}>Platform security · 24/7</Text>
           {["Share live GPS", "Open Safety Center case", "Record timestamp in audit log"].map(
             (x) => (
               <Text key={x} style={{ color: sub, fontSize: 12, marginTop: 6 }}>
@@ -219,10 +206,5 @@ const styles = StyleSheet.create({
     width: "100%",
     borderRadius: 16,
     padding: 16,
-  },
-  contactRow: {
-    flexDirection: "row",
-    alignItems: "center",
-    marginBottom: 10,
   },
 });

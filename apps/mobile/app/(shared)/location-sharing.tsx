@@ -7,8 +7,8 @@ import { SafeAreaView } from "react-native-safe-area-context";
 type ZoneStatus = "inside" | "approaching" | "outside";
 
 export default function LocationSharingScreen() {
-  const { isDark } = useTheme();
   const router = useRouter();
+  const { colors, isDark } = useTheme();
   const [seconds, setSeconds] = useState(0);
   const [status] = useState<ZoneStatus>("inside");
   const meters = status === "inside" ? 42 : status === "approaching" ? 118 : 210;
@@ -21,12 +21,12 @@ export default function LocationSharingScreen() {
   const mm = String(Math.floor(seconds / 60)).padStart(2, "0");
   const ss = String(seconds % 60).padStart(2, "0");
 
-  const bg = isDark ? "#0A1628" : "#F8FAFC";
-  const card = isDark ? "#112240" : "#FFFFFF";
-  const text = isDark ? "#F0FAFA" : "#0D2B2A";
-  const sub = isDark ? "#94A3B8" : "#64748B";
-  const primary = "#0D9488";
-  const border = isDark ? "#1E3A5F" : "#E2E8F0";
+  const bg = colors.background ?? (isDark ? "#0A1628" : "#F8FAFC");
+  const card = colors.card ?? (isDark ? "#112240" : "#FFFFFF");
+  const text = colors.text ?? colors.foreground;
+  const sub = colors.subtext ?? colors.mutedForeground ?? "#64748B";
+  const primary = colors.primary ?? "#0D9488";
+  const border = colors.border ?? (isDark ? "#1E3A5F" : "#E2E8F0");
 
   const statusLabel =
     status === "inside"
@@ -52,12 +52,12 @@ export default function LocationSharingScreen() {
           <View style={{ flexDirection: "row", alignItems: "center", gap: 6, marginTop: 2 }}>
             <View style={styles.liveDot} />
             <Text style={{ color: "#10B981", fontSize: 11, fontWeight: "700" }}>
-              Active · Sarbet, Addis Ababa
+              Active · Session in progress
             </Text>
           </View>
         </View>
-        <View style={styles.livePill}>
-          <Text style={{ color: "#047857", fontSize: 10, fontWeight: "800" }}>
+        <View style={[styles.livePill, { backgroundColor: isDark ? "rgba(16,185,129,0.15)" : "#D1FAE5" }]}>
+          <Text style={{ color: isDark ? "#34D399" : "#047857", fontSize: 10, fontWeight: "800" }}>
             Live {mm}:{ss}
           </Text>
         </View>
@@ -83,7 +83,7 @@ export default function LocationSharingScreen() {
           >
             <Text style={{ fontSize: 10 }}>👤</Text>
           </View>
-          <View style={[styles.mapBanner, { backgroundColor: card }]}>
+          <View style={[styles.mapBanner, { backgroundColor: card, borderColor: border }]}>
             <Text style={{ color: statusColor, fontWeight: "900", fontSize: 13 }}>
               {statusLabel}
             </Text>
@@ -111,7 +111,7 @@ export default function LocationSharingScreen() {
                   borderRadius: 999,
                 }}
               >
-                <Text style={{ color: "#047857", fontSize: 10, fontWeight: "800" }}>In session</Text>
+                <Text style={{ color: isDark ? "#34D399" : "#047857", fontSize: 10, fontWeight: "800" }}>In session</Text>
               </View>
             </View>
             <Text style={{ color: sub, fontSize: 12, marginTop: 10 }}>
@@ -157,12 +157,7 @@ const styles = StyleSheet.create({
     borderBottomWidth: 1,
   },
   liveDot: { width: 6, height: 6, borderRadius: 3, backgroundColor: "#10B981" },
-  livePill: {
-    backgroundColor: "#D1FAE5",
-    paddingHorizontal: 8,
-    paddingVertical: 3,
-    borderRadius: 999,
-  },
+  livePill: { paddingHorizontal: 8, paddingVertical: 3, borderRadius: 999 },
   mapWrap: {
     height: 240,
     alignItems: "center",
@@ -199,6 +194,7 @@ const styles = StyleSheet.create({
     right: 16,
     borderRadius: 12,
     padding: 12,
+    borderWidth: 1,
   },
   card: { borderRadius: 16, borderWidth: 1, padding: 14 },
   avatar: {

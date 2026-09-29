@@ -2,6 +2,7 @@ import { View, Text, StyleSheet, ScrollView, TouchableOpacity } from "react-nati
 import { useRouter } from "expo-router";
 import { useTheme } from "@/hooks/useTheme";
 import { SafeAreaView } from "react-native-safe-area-context";
+import { apiRequest, paths } from "@/lib/api";
 
 const FEATURES = [
   {
@@ -37,14 +38,14 @@ const FEATURES = [
 ];
 
 export default function SafetyCenterScreen() {
-  const { isDark } = useTheme();
   const router = useRouter();
-  const bg = isDark ? "#0A1628" : "#F8FAFC";
-  const card = isDark ? "#112240" : "#FFFFFF";
-  const text = isDark ? "#F0FAFA" : "#0D2B2A";
-  const sub = isDark ? "#94A3B8" : "#64748B";
-  const border = isDark ? "#1E3A5F" : "#E2E8F0";
-  const primary = "#0D9488";
+  const { colors, isDark } = useTheme();
+  const bg = colors.background ?? (isDark ? "#0A1628" : "#F8FAFC");
+  const card = colors.card ?? (isDark ? "#112240" : "#FFFFFF");
+  const text = colors.text ?? colors.foreground;
+  const sub = colors.subtext ?? colors.mutedForeground ?? "#64748B";
+  const primary = colors.primary ?? "#0D9488";
+  const border = colors.border ?? (isDark ? "#1E3A5F" : "#E2E8F0");
 
   return (
     <SafeAreaView style={[styles.container, { backgroundColor: bg }]} edges={["top"]}>
@@ -56,7 +57,6 @@ export default function SafetyCenterScreen() {
       </View>
 
       <ScrollView contentContainerStyle={styles.content}>
-        {/* Tappable SOS → full hold-to-confirm screen */}
         <TouchableOpacity
           activeOpacity={0.9}
           style={styles.sosCard}
@@ -74,7 +74,7 @@ export default function SafetyCenterScreen() {
           <Text style={styles.sosCta}>Tap to open Emergency SOS →</Text>
         </TouchableOpacity>
 
-        <View style={[styles.card, { backgroundColor: card }]}>
+        <View style={[styles.card, { backgroundColor: card, borderColor: border }]}>
           <Text style={[styles.section, { color: sub }]}>QUICK ACTIONS</Text>
           <TouchableOpacity
             style={[styles.actionRow, { borderBottomColor: border }]}
@@ -117,27 +117,18 @@ export default function SafetyCenterScreen() {
           </TouchableOpacity>
         </View>
 
-        <View style={[styles.card, { backgroundColor: card }]}>
+        <View style={[styles.card, { backgroundColor: card, borderColor: border }]}>
           <Text style={[styles.section, { color: sub }]}>EMERGENCY CONTACTS</Text>
-          {[
-            ["Abebe Haile", "Spouse", "+251 91 *** 4521"],
-            ["Kidist Mulugeta", "Sister", "+251 93 *** 8810"],
-          ].map(([name, rel, phone]) => (
-            <View key={name} style={[styles.contactRow, { borderBottomColor: border }]}>
-              <View style={[styles.miniAvatar, { backgroundColor: primary }]}>
-                <Text style={{ color: "#fff", fontWeight: "800" }}>{name[0]}</Text>
-              </View>
-              <View style={{ flex: 1 }}>
-                <Text style={{ color: text, fontWeight: "700", fontSize: 13 }}>{name}</Text>
-                <Text style={{ color: sub, fontSize: 11 }}>
-                  {rel} · {phone}
-                </Text>
-              </View>
-            </View>
-          ))}
+          <View style={styles.emptyBox}>
+            <Text style={{ fontSize: 28 }}>🆘</Text>
+            <Text style={[styles.emptyTitle, { color: text }]}>No emergency contacts yet</Text>
+            <Text style={{ color: sub, fontSize: 12, textAlign: "center", marginTop: 4 }}>
+              Manage emergency contacts in Settings.
+            </Text>
+          </View>
         </View>
 
-        <View style={[styles.card, { backgroundColor: card }]}>
+        <View style={[styles.card, { backgroundColor: card, borderColor: border }]}>
           <Text style={[styles.section, { color: sub }]}>SAFETY FEATURES</Text>
           {FEATURES.map((f) => (
             <TouchableOpacity
@@ -159,10 +150,10 @@ export default function SafetyCenterScreen() {
         </View>
 
         <TouchableOpacity
-          style={styles.reportBtn}
+          style={[styles.reportBtn, { borderColor: isDark ? "rgba(220,38,38,0.35)" : "#FECACA" }]}
           onPress={() => router.push("/(shared)/support/create")}
         >
-          <Text style={styles.reportText}>⚠️ Report a Safety Issue</Text>
+          <Text style={[styles.reportText, { color: "#DC2626" }]}>⚠️ Report a Safety Issue</Text>
         </TouchableOpacity>
       </ScrollView>
     </SafeAreaView>
@@ -211,7 +202,7 @@ const styles = StyleSheet.create({
     fontSize: 12,
     marginTop: 10,
   },
-  card: { borderRadius: 16, padding: 14 },
+  card: { borderRadius: 16, padding: 14, borderWidth: 1 },
   section: {
     fontSize: 10,
     fontWeight: "800",
@@ -232,6 +223,8 @@ const styles = StyleSheet.create({
     paddingVertical: 10,
     borderBottomWidth: 1,
   },
+  emptyBox: { alignItems: "center", paddingVertical: 24, gap: 8 },
+  emptyTitle: { fontSize: 15, fontWeight: "700", marginTop: 8 },
   miniAvatar: {
     width: 36,
     height: 36,
@@ -247,10 +240,9 @@ const styles = StyleSheet.create({
   },
   reportBtn: {
     borderWidth: 1,
-    borderColor: "#FECACA",
     borderRadius: 16,
     paddingVertical: 14,
     alignItems: "center",
   },
-  reportText: { color: "#DC2626", fontWeight: "800" },
+  reportText: { fontWeight: "800" },
 });

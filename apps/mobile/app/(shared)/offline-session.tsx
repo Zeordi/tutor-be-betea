@@ -24,15 +24,15 @@ type OfflineItem = {
 };
 
 export default function OfflineSessionScreen() {
-  const { isDark } = useTheme();
   const router = useRouter();
+  const { colors, isDark } = useTheme();
   const [syncing, setSyncing] = useState(false);
   const [items, setItems] = useState<OfflineItem[]>([
     {
       id: "off-1",
       type: "CHECK_IN",
       when: "Today 16:02",
-      note: "Signed payload · offlineId · Kazanchis",
+      note: "Signed payload · offlineId · Session location",
       status: "queued",
     },
     {
@@ -44,12 +44,12 @@ export default function OfflineSessionScreen() {
     },
   ]);
 
-  const bg = isDark ? "#0A1628" : "#F8FAFC";
-  const card = isDark ? "#112240" : "#FFFFFF";
-  const text = isDark ? "#F0FAFA" : "#0D2B2A";
-  const sub = isDark ? "#94A3B8" : "#64748B";
-  const primary = "#0D9488";
-  const border = isDark ? "#1E3A5F" : "#E2E8F0";
+  const bg = colors.background ?? (isDark ? "#0A1628" : "#F8FAFC");
+  const card = colors.card ?? (isDark ? "#112240" : "#FFFFFF");
+  const text = colors.text ?? colors.foreground;
+  const sub = colors.subtext ?? colors.mutedForeground ?? "#64748B";
+  const primary = colors.primary ?? "#0D9488";
+  const border = colors.border ?? (isDark ? "#1E3A5F" : "#E2E8F0");
   const pending = items.filter((i) => i.status === "queued").length;
 
   const retry = async () => {
@@ -130,10 +130,10 @@ export default function OfflineSessionScreen() {
             </View>
             <View style={{ flex: 1 }}>
               <Text style={{ color: text, fontWeight: "800", fontSize: 13 }}>
-                Abel Tesfaye · Mathematics
+                Tutor · Session
               </Text>
               <Text style={{ color: sub, fontSize: 11 }}>
-                Grade 11 · Kazanchis · Started 2:00 PM
+                Grade · Location · Started 2:00 PM
               </Text>
             </View>
           </View>
