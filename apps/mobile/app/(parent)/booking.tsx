@@ -4,14 +4,14 @@ import { useTheme } from "@/hooks/useTheme";
 import { SafeAreaView } from "react-native-safe-area-context";
 
 export default function PackageBookingScreen() {
-  const { isDark } = useTheme();
+  const { colors, isDark } = useTheme();
   const router = useRouter();
-  const bg = isDark ? "#0A1628" : "#F8FAFC";
-  const card = isDark ? "#112240" : "#FFFFFF";
-  const text = isDark ? "#F0FAFA" : "#0D2B2A";
-  const sub = isDark ? "#94A3B8" : "#64748B";
-  const primary = "#0D9488";
-  const border = isDark ? "#1E3A5F" : "#E2E8F0";
+  const bg = colors.background ?? (isDark ? "#0A1628" : "#F8FAFC");
+  const card = colors.card ?? (isDark ? "#112240" : "#FFFFFF");
+  const text = colors.text ?? colors.foreground;
+  const sub = colors.subtext ?? colors.mutedForeground ?? "#64748B";
+  const primary = colors.primary ?? "#0D9488";
+  const border = colors.border ?? (isDark ? "#1E3A5F" : "#E2E8F0");
 
   return (
     <SafeAreaView style={[styles.container, { backgroundColor: bg }]} edges={["top"]}>
@@ -23,7 +23,7 @@ export default function PackageBookingScreen() {
       </View>
 
       <ScrollView contentContainerStyle={styles.content}>
-        <View style={[styles.card, { backgroundColor: card }]}>
+        <View style={[styles.card, { backgroundColor: card, borderColor: border }]}>
           <Text style={{ color: text, fontWeight: "800", fontSize: 15 }}>Selamawit Tadesse</Text>
           <Text style={{ color: sub, fontSize: 12, marginTop: 2 }}>Mathematics · Grade 9–12 · ⭐ 4.9</Text>
         </View>
@@ -42,7 +42,7 @@ export default function PackageBookingScreen() {
           )}
         </View>
 
-        <View style={[styles.card, { backgroundColor: card }]}>
+        <View style={[styles.card, { backgroundColor: card, borderColor: border }]}>
           <Text style={[styles.section, { color: sub }]}>PAYMENT METHOD</Text>
           <View style={styles.payRow}>
             {[["📱", "Telebirr", true], ["🏦", "CBE Birr", false], ["💳", "Card", false]].map(
@@ -69,7 +69,7 @@ export default function PackageBookingScreen() {
           </View>
         </View>
 
-        <View style={[styles.card, { backgroundColor: card }]}>
+        <View style={[styles.card, { backgroundColor: card, borderColor: border }]}>
           <Text style={[styles.section, { color: sub }]}>SUMMARY</Text>
           {[
             ["Monthly Package", "7,500 ETB"],
@@ -107,7 +107,7 @@ const styles = StyleSheet.create({
   },
   title: { fontSize: 16, fontWeight: "800" },
   content: { padding: 16, gap: 12, paddingBottom: 40 },
-  card: { borderRadius: 16, padding: 14 },
+  card: { borderRadius: 16, padding: 14, borderWidth: 1 },
   package: { borderRadius: 16, padding: 16, borderWidth: 2 },
   section: { fontSize: 10, fontWeight: "800", letterSpacing: 0.5, marginBottom: 10 },
   payRow: { flexDirection: "row", gap: 8 },
