@@ -164,7 +164,7 @@ export default function ParentWalletScreen() {
         </Text>
       </View>
       <ScrollView contentContainerStyle={{ padding: 16, gap: 12 }}>
-        <View style={styles.hero}>
+        <View style={[styles.hero, { backgroundColor: primary }]}>
           <Text style={{ color: "rgba(255,255,255,0.8)", fontSize: 12 }}>Available balance</Text>
           <Text style={{ color: "#fff", fontSize: 32, fontWeight: "900", marginTop: 4 }}>
             {availableBalance.toLocaleString()} ETB
@@ -230,9 +230,9 @@ export default function ParentWalletScreen() {
 
         <Text style={[styles.section, { color: sub }]}>RECENT</Text>
         {(wallet?.transactions || []).length === 0 && (
-          <Text style={{ color: sub, textAlign: "center", paddingVertical: 12 }}>
-            No transactions yet.
-          </Text>
+          <View style={styles.emptyBox}>
+            <Text style={{ color: sub, textAlign: "center", paddingVertical: 12 }}>No transactions yet.</Text>
+          </View>
         )}
         {(wallet?.transactions || []).map((x) => (
           <View
@@ -270,7 +270,6 @@ const styles = StyleSheet.create({
     borderBottomWidth: 1,
   },
   hero: {
-    backgroundColor: "#0F766E",
     borderRadius: 20,
     padding: 20,
   },
@@ -307,5 +306,6 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
   },
+  emptyBox: { alignItems: "center", paddingVertical: 20 },
   retryBtn: { paddingVertical: 12, paddingHorizontal: 24, borderRadius: 12, alignItems: "center" },
 });

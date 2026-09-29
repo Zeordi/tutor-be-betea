@@ -136,8 +136,16 @@ export default function ParentJobDetailScreen() {
           <Text style={{ color: sub, fontSize: 10 }}>#{job.id}</Text>
         </View>
         <View style={styles.badgeRow}>
-          {job.urgent && <View style={styles.urgent}><Text style={styles.urgentText}>🔥 Urgent</Text></View>}
-          {job.boost && <View style={styles.boost}><Text style={styles.boostText}>🚀 Boosted</Text></View>}
+          {job.urgent && (
+            <View style={[styles.chip, { backgroundColor: isDark ? "rgba(220,38,38,0.2)" : "#FEE2E2" }]}>
+              <Text style={[styles.chipText, { color: isDark ? "#FCA5A5" : "#DC2626" }]}>🔥 Urgent</Text>
+            </View>
+          )}
+          {job.boost && (
+            <View style={[styles.chip, { backgroundColor: isDark ? "rgba(245,158,11,0.2)" : "#FEF3C7" }]}>
+              <Text style={[styles.chipText, { color: isDark ? "#FCD34D" : "#D97706" }]}>🚀 Boosted</Text>
+            </View>
+          )}
         </View>
       </View>
 
@@ -285,20 +293,8 @@ const styles = StyleSheet.create({
   },
   headerTitle: { fontSize: 15, fontWeight: "800" },
   badgeRow: { flexDirection: "row", gap: 6, flexWrap: "wrap" },
-  urgent: {
-    backgroundColor: "#FEE2E2",
-    paddingHorizontal: 8,
-    paddingVertical: 3,
-    borderRadius: 999,
-  },
-  urgentText: { color: "#DC2626", fontSize: 9, fontWeight: "700" },
-  boost: {
-    backgroundColor: "#FEF3C7",
-    paddingHorizontal: 8,
-    paddingVertical: 3,
-    borderRadius: 999,
-  },
-  boostText: { color: "#D97706", fontSize: 9, fontWeight: "700" },
+  chip: { paddingHorizontal: 8, paddingVertical: 3, borderRadius: 999 },
+  chipText: { fontSize: 9, fontWeight: "700" },
   tabs: { flexDirection: "row", borderBottomWidth: 1 },
   tab: { flex: 1, alignItems: "center", paddingVertical: 12 },
   content: { padding: 14, paddingBottom: 40, gap: 12 },
