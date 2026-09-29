@@ -51,20 +51,19 @@ export default function FiltersBottomSheet({
   resultCount = 24,
 }: Props) {
   const { colors, isDark } = useTheme();
-  const bg = colors.background ?? (isDark ? "#0A1628" : "#F8FAFC");
   const card = colors.card ?? (isDark ? "#112240" : "#FFFFFF");
   const text = colors.text ?? colors.foreground;
   const sub = colors.subtext ?? colors.mutedForeground ?? "#64748B";
   const primary = colors.primary ?? "#0D9488";
   const border = colors.border ?? (isDark ? "#1E3A5F" : "#E2E8F0");
 
-  const [subjects, setSubjects] = useState<string[]>(["Math", "Physics", "Chemistry"]);
-  const [grade, setGrade] = useState<string | null>("Grade 9–10");
-  const [priceRange, setPriceRange] = useState(500);
-  const [distance, setDistance] = useState("5 km");
+  const [subjects, setSubjects] = useState<string[]>([]);
+  const [grade, setGrade] = useState<string | null>(null);
+  const [priceRange, setPriceRange] = useState(1000);
+  const [distance, setDistance] = useState("Any");
   const [gender, setGender] = useState("Any");
   const [sessionStyle, setSessionStyle] = useState("Any");
-  const [verifiedOnly, setVerifiedOnly] = useState(true);
+  const [verifiedOnly, setVerifiedOnly] = useState(false);
 
   const toggleSubject = (s: string) => {
     setSubjects((prev) =>
@@ -75,7 +74,7 @@ export default function FiltersBottomSheet({
   const reset = () => {
     setSubjects([]);
     setGrade(null);
-    setPriceRange(500);
+    setPriceRange(1000);
     setDistance("Any");
     setGender("Any");
     setSessionStyle("Any");
@@ -96,7 +95,7 @@ export default function FiltersBottomSheet({
   };
 
   const chip = (active: boolean) => ({
-    backgroundColor: active ? primary : isDark ? "#1E293B" : "#F1F5F9",
+    backgroundColor: active ? primary : colors.muted,
     borderColor: active ? primary : border,
   });
   const chipText = (active: boolean) => ({

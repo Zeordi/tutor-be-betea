@@ -146,10 +146,10 @@ export default function TutorProfileScreen() {
           </Text>
 
           <View style={{ flexDirection: "row", flexWrap: "wrap", gap: 6, marginBottom: 12 }}>
-            {tp?.idVerified && <Pill text="🛡️ National ID Verified" solid />}
-            {tp?.degreeVerified && <Pill text="🎓 Degree Verified" />}
-            {tp?.badgeLevel === "GOLD" && <Pill text="🥇 Gold Top 1%" gold />}
-            {tp?.badgeLevel === "ELITE" && <Pill text="⭐ Elite" elite />}
+            {tp?.idVerified && <Pill text="🛡️ National ID Verified" solid colors={colors} isDark={isDark} />}
+            {tp?.degreeVerified && <Pill text="🎓 Degree Verified" colors={colors} isDark={isDark} />}
+            {tp?.badgeLevel === "GOLD" && <Pill text="🥇 Gold Top 1%" gold colors={colors} isDark={isDark} />}
+            {tp?.badgeLevel === "ELITE" && <Pill text="⭐ Elite" elite colors={colors} isDark={isDark} />}
           </View>
 
           <View style={[styles.stats, { backgroundColor: colors.card, borderColor: colors.border }]}>
@@ -168,6 +168,7 @@ export default function TutorProfileScreen() {
 
           {tp?.bioEn && (
             <View style={[styles.block, { backgroundColor: colors.card, borderColor: colors.border }]}>
+              <Text style={[styles.section, { color: colors.mutedForeground }]}>ABOUT</Text>
               <Text style={{ color: colors.foreground, fontSize: 13, lineHeight: 20 }}>{tp.bioEn}</Text>
             </View>
           )}
@@ -194,7 +195,10 @@ export default function TutorProfileScreen() {
       </ScrollView>
 
       <View style={[styles.footer, { backgroundColor: colors.card, borderTopColor: colors.border }]}>
-        <Pressable style={[styles.cta, { backgroundColor: colors.primary, flex: 1 }]}>
+        <Pressable
+          style={[styles.cta, { backgroundColor: colors.primary, flex: 1 }]}
+          onPress={() => router.push(`/(parent)/tutor/${teacher.id}`)}
+        >
           <Text style={styles.ctaText}>📅 Book Session</Text>
         </Pressable>
         <Pressable
@@ -208,12 +212,13 @@ export default function TutorProfileScreen() {
   );
 }
 
-function Pill({ text, solid, gold, elite }: { text: string; solid?: boolean; gold?: boolean; elite?: boolean }) {
+function Pill({ text, solid, gold, elite, colors, isDark }: { text: string; solid?: boolean; gold?: boolean; elite?: boolean; colors: any; isDark: boolean }) {
   let bg = "#E0F2FE";
   let color = "#0369A1";
-  if (solid) { bg = "#0D9488"; color = "#fff"; }
+  if (solid) { bg = colors.primary; color = "#FFFFFF"; }
   else if (gold) { bg = "#FEF3C7"; color = "#92400E"; }
-  else if (elite) { bg = "#7C3AED"; color = "#fff"; }
+  else if (elite) { bg = "#7C3AED"; color = "#FFFFFF"; }
+  else if (isDark) { bg = "rgba(13,148,136,0.2)"; color = colors.primary; }
   return (
     <View style={{ backgroundColor: bg, paddingHorizontal: 10, paddingVertical: 4, borderRadius: 999 }}>
       <Text style={{ fontSize: 11, fontWeight: "700", color }}>{text}</Text>
