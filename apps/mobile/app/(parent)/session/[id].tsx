@@ -63,10 +63,11 @@ export default function ParentSessionScreen() {
   const text = colors.text ?? colors.foreground;
   const sub = colors.subtext ?? colors.mutedForeground ?? "#64748B";
   const primary = colors.primary ?? "#0D9488";
+  const border = colors.border ?? (isDark ? "#1E3A5F" : "#E2E8F0");
 
   return (
     <SafeAreaView style={{ flex: 1, backgroundColor: bg }} edges={["top"]}>
-      <View style={[styles.header, { backgroundColor: card, borderBottomColor: colors.border }]}>
+      <View style={[styles.header, { backgroundColor: card, borderBottomColor: border }]}>
         <Pressable onPress={() => router.back()}>
           <Text style={{ fontSize: 18, color: sub }}>←</Text>
         </Pressable>
@@ -75,8 +76,8 @@ export default function ParentSessionScreen() {
 
       <View style={{ padding: 16, gap: 12 }}>
         {error ? (
-          <View style={[styles.banner, { backgroundColor: "#FEE2E2", borderColor: "#FECACA" }]}>
-            <Text style={{ fontWeight: "700", color: "#991B1B" }}>{error}</Text>
+          <View style={[styles.banner, { backgroundColor: isDark ? "rgba(220,38,38,0.2)" : "#FEE2E2", borderColor: isDark ? "rgba(220,38,38,0.35)" : "#FECACA" }]}>
+            <Text style={{ color: isDark ? "#FCA5A5" : "#991B1B", fontWeight: "700" }}>{error}</Text>
           </View>
         ) : null}
 
@@ -85,20 +86,30 @@ export default function ParentSessionScreen() {
             <ActivityIndicator size="large" color={primary} />
           </View>
         ) : logs.length === 0 ? (
-          <View style={[styles.card, { backgroundColor: card, borderColor: colors.border }]}>
-            <Text style={{ color: sub }}>No sessions yet. Attendance will show after tutor check-in.</Text>
+          <View style={[styles.card, { backgroundColor: card, borderColor: border }]}>
+            <Text style={{ fontSize: 32 }}>📅</Text>
+            <Text style={[styles.emptyTitle, { color: text, marginTop: 8 }]}>No sessions yet</Text>
+            <Text style={{ color: sub, fontSize: 12, textAlign: "center", marginTop: 4 }}>
+              Attendance will show after tutor check-in.
+            </Text>
           </View>
         ) : (
           logs.map((log) => (
-            <View key={log.id} style={[styles.card, { backgroundColor: card, borderColor: colors.border }]}>
+            <View key={log.id} style={[styles.card, { backgroundColor: card, borderColor: border }]}>
               <Text style={[styles.label, { color: sub }]}>
                 {new Date(log.checkInTime).toLocaleString()}
               </Text>
-              <Text style={{ color: text, marginTop: 4 }}>
-                Geofence: {log.isVerifiedGeofence ? "Verified ✅" : "Not verified"}
-                {log.requiresManualConfirm ? " · ⚠️ Manual confirm required" : ""}
-              </Text>
-              <Text style={{ color: sub, marginTop: 2 }}>
+              <View style={[styles.chipRow, { backgroundColor: isDark ? "#1E3A5F" : "#F1F5F9" }]}>
+                <Text style={{ color: text, fontSize: 12 }}>
+                  Geofence: {log.isVerifiedGeofence ? "Verified ✅" : "Not verified"}
+                </Text>
+                {log.requiresManualConfirm && (
+                  <View style={[styles.chip, { backgroundColor: isDark ? "rgba(245,158,11,0.2)" : "#FEF3C7" }]}>
+                    <Text style={{ color: isDark ? "#FCD34D" : "#D97706", fontSize: 10, fontWeight: "700" }}>Manual confirm</Text>
+                  </View>
+                )}
+              </View>
+              <Text style={{ color: sub, marginTop: 6 }}>
                 Distance: {Number(log.distanceMeters ?? 0).toLocaleString()}m
               </Text>
               <Text style={{ color: sub, marginTop: 2 }}>
@@ -134,7 +145,10 @@ const styles = StyleSheet.create({
   title: { fontSize: 17, fontWeight: "800" },
   card: { borderRadius: 16, borderWidth: 1, padding: 14 },
   label: { fontSize: 10, fontWeight: "800", letterSpacing: 0.6 },
+  chipRow: { flexDirection: "row", alignItems: "center", gap: 8, marginTop: 8, padding: 8, borderRadius: 12 },
+  chip: { paddingHorizontal: 10, paddingVertical: 3, borderRadius: 999 },
   banner: { borderRadius: 12, borderWidth: 1, padding: 12 },
+  emptyTitle: { fontSize: 15, fontWeight: "700", marginTop: 8 },
   cta: { marginTop: 12, paddingVertical: 12, borderRadius: 12, alignItems: "center" },
   ctaText: { color: "#fff", fontWeight: "800", fontSize: 14 },
 });
