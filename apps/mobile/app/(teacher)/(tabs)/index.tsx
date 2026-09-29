@@ -117,7 +117,7 @@ export default function TeacherHomeScreen() {
               {[1, 2, 3, 4].map((i) => (
                 <View
                   key={i}
-                  style={[styles.kpi, { backgroundColor: colors.card, borderColor: colors.border }]}
+                  style={[styles.kpiItem, { backgroundColor: colors.card, borderColor: colors.border }]}
                 >
                   <Text style={{ color: colors.mutedForeground, fontSize: 11 }}>Loading</Text>
                   <Text style={{ color: colors.foreground, fontWeight: "800", fontSize: 14 }}>...</Text>
