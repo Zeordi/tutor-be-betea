@@ -124,6 +124,11 @@ export default function ReferralScreen() {
   const milestoneCount = friends.filter((f) => f.status === "Joined").length;
   const progressText = `${milestoneCount} / ${code.milestones[code.milestones.length - 1]?.threshold || 10} friends`;
 
+  const joinedBg = isDark ? "rgba(16,185,129,0.2)" : "#D1FAE5";
+  const joinedFg = isDark ? "#34D399" : "#047857";
+  const pendingBg = isDark ? "rgba(245,158,11,0.2)" : "#FEF3C7";
+  const pendingFg = isDark ? "#FCD34D" : "#D97706";
+
   return (
     <SafeAreaView style={[styles.safe, { backgroundColor: colors.bg }]} edges={["top"]}>
       <View style={[styles.header, { backgroundColor: colors.card, borderBottomColor: colors.border }]}>
@@ -230,50 +235,60 @@ export default function ReferralScreen() {
 
         <View style={[styles.card, { backgroundColor: colors.card, borderColor: colors.border }]}>
           <Text style={[styles.label, { color: colors.sub }]}>INVITED FRIENDS</Text>
-          {friends.map((f) => (
-            <View
-              key={f.id}
-              style={[styles.friendRow, { backgroundColor: isDark ? "#1e293b99" : "#f8fafc" }]}
-            >
-              <View style={[styles.avatar, { backgroundColor: colors.primary }]}>
-                <Text style={{ color: "#fff", fontWeight: "700" }}>{f.name[0]}</Text>
-              </View>
-              <View style={{ flex: 1 }}>
-                <Text style={{ color: colors.text, fontWeight: "700", fontSize: 12 }}>{f.name}</Text>
-                <Text style={{ color: colors.sub, fontSize: 10 }}>{f.date}</Text>
-              </View>
-              <View style={{ alignItems: "flex-end" }}>
-                <View
-                  style={{
-                    backgroundColor: f.status === "Joined" ? "#d1fae5" : "#fef3c7",
-                    paddingHorizontal: 8,
-                    paddingVertical: 2,
-                    borderRadius: 999,
-                  }}
-                >
-                  <Text
+          {friends.length === 0 ? (
+            <View style={{ alignItems: "center", paddingVertical: 24, gap: 8 }}>
+              <Text style={{ fontSize: 28 }}>👥</Text>
+              <Text style={{ color: colors.text, fontWeight: "700", fontSize: 13 }}>No invited friends yet</Text>
+              <Text style={{ color: colors.sub, fontSize: 11, textAlign: "center" }}>
+                Share your code to start earning rewards.
+              </Text>
+            </View>
+          ) : (
+            friends.map((f) => (
+              <View
+                key={f.id}
+                style={[styles.friendRow, { backgroundColor: isDark ? "#1e293b99" : "#f8fafc" }]}
+              >
+                <View style={[styles.avatar, { backgroundColor: colors.primary }]}>
+                  <Text style={{ color: "#fff", fontWeight: "700" }}>{f.name[0]}</Text>
+                </View>
+                <View style={{ flex: 1 }}>
+                  <Text style={{ color: colors.text, fontWeight: "700", fontSize: 12 }}>{f.name}</Text>
+                  <Text style={{ color: colors.sub, fontSize: 10 }}>{f.date}</Text>
+                </View>
+                <View style={{ alignItems: "flex-end" }}>
+                  <View
                     style={{
-                      color: f.status === "Joined" ? "#047857" : "#b45309",
-                      fontSize: 10,
-                      fontWeight: "700",
+                      backgroundColor: f.status === "Joined" ? joinedBg : pendingBg,
+                      paddingHorizontal: 8,
+                      paddingVertical: 2,
+                      borderRadius: 999,
                     }}
                   >
-                    {f.status}
+                    <Text
+                      style={{
+                        color: f.status === "Joined" ? joinedFg : pendingFg,
+                        fontSize: 10,
+                        fontWeight: "700",
+                      }}
+                    >
+                      {f.status}
+                    </Text>
+                  </View>
+                  <Text
+                    style={{
+                      color: f.status === "Joined" ? "#10b981" : colors.sub,
+                      fontSize: 10,
+                      fontWeight: "700",
+                      marginTop: 2,
+                    }}
+                  >
+                    {f.earned}
                   </Text>
                 </View>
-                <Text
-                  style={{
-                    color: f.status === "Joined" ? "#10b981" : colors.sub,
-                    fontSize: 10,
-                    fontWeight: "700",
-                    marginTop: 2,
-                  }}
-                >
-                  {f.earned}
-                </Text>
               </View>
-            </View>
-          ))}
+            ))
+          )}
         </View>
 
         <View

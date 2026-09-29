@@ -1,4 +1,4 @@
-import { View, Text, ScrollView, TouchableOpacity, ActivityIndicator } from "react-native";
+import { View, Text, ScrollView, TouchableOpacity, ActivityIndicator, StyleSheet } from "react-native";
 import { useEffect, useState } from "react";
 import { useRouter } from "expo-router";
 import { useTheme } from "@/hooks/useTheme";
@@ -56,13 +56,16 @@ export default function ParentProfileScreen() {
     return (
       <SafeAreaView style={{ flex: 1, backgroundColor: bg }} edges={["top"]}>
         <ScrollView contentContainerStyle={{ padding: 16, gap: 12 }}>
-          <View style={{ backgroundColor: card, borderRadius: 18, padding: 16, flexDirection: "row", gap: 12, alignItems: "center" }}>
+          <View style={[styles.headerCard, { backgroundColor: card, borderColor: border }]}>
             <View style={{ width: 52, height: 52, borderRadius: 16, backgroundColor: primary, alignItems: "center", justifyContent: "center" }}>
               <Text style={{ color: "#fff", fontWeight: "900", fontSize: 18 }}>{initials}</Text>
             </View>
             <View>
               <Text style={{ color: text, fontWeight: "800", fontSize: 16 }}>{displayName}</Text>
-              <Text style={{ color: sub, fontSize: 12 }}>Parent · Addis Ababa</Text>
+              <Text style={{ color: sub, fontSize: 12 }}>
+                {profile?.role || authUser?.role || "Parent"}
+                {profile?.phoneNumber ? ` · ${profile.phoneNumber}` : ""}
+              </Text>
             </View>
           </View>
         </ScrollView>
@@ -98,7 +101,10 @@ export default function ParentProfileScreen() {
     ["❤️", "Saved Tutors", "/(parent)/favorites"],
     ["🛡️", "Safety Center", "/(parent)/safety"],
     ["📜", "Session History", "/(parent)/session-history"],
-    ["🔔", "Notifications", "/(parent)/notification-settings"],
+    ["🔔", "Notifications", "/(parent)/notifications"],
+    ["⚙️", "Notification Settings", "/(parent)/notification-settings"],
+    ["💳", "Subscription", "/(parent)/subscription"],
+    ["🎁", "Referral", "/(parent)/referral"],
     ["🎫", "Support", "/(shared)/support"],
     ["⚙️", "Settings", "/(shared)/settings"],
   ];
@@ -106,19 +112,22 @@ export default function ParentProfileScreen() {
   return (
     <SafeAreaView style={{ flex: 1, backgroundColor: bg }} edges={["top"]}>
       <ScrollView contentContainerStyle={{ padding: 16, gap: 12 }}>
-        <View style={{ backgroundColor: card, borderRadius: 18, padding: 16, flexDirection: "row", gap: 12, alignItems: "center" }}>
+        <View style={[styles.headerCard, { backgroundColor: card, borderColor: border }]}>
           <View style={{ width: 52, height: 52, borderRadius: 16, backgroundColor: primary, alignItems: "center", justifyContent: "center" }}>
             <Text style={{ color: "#fff", fontWeight: "900", fontSize: 18 }}>{initials}</Text>
           </View>
           <View>
             <Text style={{ color: text, fontWeight: "800", fontSize: 16 }}>{displayName}</Text>
-            <Text style={{ color: sub, fontSize: 12 }}>Parent · Addis Ababa</Text>
+            <Text style={{ color: sub, fontSize: 12 }}>
+              {profile?.role || authUser?.role || "Parent"}
+              {profile?.phoneNumber ? ` · ${profile.phoneNumber}` : ""}
+            </Text>
           </View>
         </View>
         {items.map(([icon, label, href]) => (
           <TouchableOpacity
             key={label}
-            style={{ backgroundColor: card, borderRadius: 14, padding: 14, flexDirection: "row", alignItems: "center", gap: 12 }}
+            style={[styles.menuRow, { backgroundColor: card, borderColor: border }]}
             onPress={() => router.push(href as any)}
           >
             <Text style={{ fontSize: 18 }}>{icon}</Text>
@@ -130,3 +139,8 @@ export default function ParentProfileScreen() {
     </SafeAreaView>
   );
 }
+
+const styles = StyleSheet.create({
+  headerCard: { borderRadius: 18, padding: 16, flexDirection: "row", gap: 12, alignItems: "center", borderWidth: 1 },
+  menuRow: { borderRadius: 14, padding: 14, flexDirection: "row", alignItems: "center", gap: 12, borderWidth: 1 },
+});

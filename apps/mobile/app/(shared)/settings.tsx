@@ -60,7 +60,7 @@ export default function SettingsScreen() {
       <ScrollView contentContainerStyle={styles.content}>
         <Text style={[styles.title, { color: colors.text }]}>Settings</Text>
 
-        <View style={[styles.card, { backgroundColor: colors.surface ?? colors.card }]}>
+        <View style={[styles.card, { backgroundColor: colors.surface ?? colors.card, borderColor: colors.border }]}>
           <Text style={[styles.name, { color: colors.text }]}>
             {user?.fullName || "User"}
           </Text>
@@ -72,7 +72,7 @@ export default function SettingsScreen() {
           </Text>
         </View>
 
-        <View style={[styles.row, { backgroundColor: colors.surface ?? colors.card }]}>
+        <View style={[styles.row, { backgroundColor: colors.surface ?? colors.card, borderColor: colors.border }]}>
           <View style={{ flex: 1 }}>
             <Text style={[styles.rowLabel, { color: colors.text }]}>Dark Mode</Text>
             <Text style={styles.hint}>Theme for the whole app</Text>
@@ -86,7 +86,7 @@ export default function SettingsScreen() {
         </View>
 
         {/* Opt-in only — default OFF */}
-        <View style={[styles.row, { backgroundColor: colors.surface ?? colors.card }]}>
+        <View style={[styles.row, { backgroundColor: colors.surface ?? colors.card, borderColor: colors.border }]}>
           <View style={{ flex: 1, paddingRight: 12 }}>
             <Text style={[styles.rowLabel, { color: colors.text }]}>
               Biometric Quick Sign In
@@ -140,7 +140,7 @@ export default function SettingsScreen() {
         )}
 
         <Pressable
-          style={[styles.logoutButton, { backgroundColor: colors.surface ?? colors.card }]}
+          style={[styles.logoutButton, { backgroundColor: colors.surface ?? colors.card, borderColor: colors.border }]}
           onPress={handleLogout}
         >
           <Text style={{ color: "#DC2626", fontWeight: "700", fontSize: 16 }}>Logout</Text>
@@ -154,7 +154,7 @@ const styles = StyleSheet.create({
   container: { flex: 1 },
   content: { padding: 20, paddingBottom: 40 },
   title: { fontSize: 24, fontWeight: "700", marginBottom: 24 },
-  card: { borderRadius: 16, padding: 16, marginBottom: 16 },
+  card: { borderRadius: 16, padding: 16, marginBottom: 16, borderWidth: 1 },
   name: { fontSize: 18, fontWeight: "700" },
   section: {
     fontSize: 11,
@@ -170,6 +170,7 @@ const styles = StyleSheet.create({
     borderRadius: 16,
     padding: 16,
     marginBottom: 12,
+    borderWidth: 1,
   },
   rowLabel: { fontSize: 16, fontWeight: "600" },
   hint: { fontSize: 11, color: "#94A3B8", marginTop: 4 },
@@ -178,5 +179,6 @@ const styles = StyleSheet.create({
     borderRadius: 16,
     padding: 16,
     alignItems: "center",
+    borderWidth: 1,
   },
 });
