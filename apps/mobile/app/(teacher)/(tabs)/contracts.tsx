@@ -125,13 +125,26 @@ export default function ActiveContractsScreen() {
                   styles.statusPill,
                   {
                     backgroundColor:
-                      c.status === "Active" ? "#CCFBF1" : "#FEF3C7",
+                      c.status === "Active"
+                        ? isDark
+                          ? "rgba(6, 78, 59, 0.4)"
+                          : "#CCFBF1"
+                        : isDark
+                          ? "rgba(120, 53, 15, 0.4)"
+                          : "#FEF3C7",
                   },
                 ]}
               >
                 <Text
                   style={{
-                    color: c.status === "Active" ? "#0F766E" : "#D97706",
+                    color:
+                      c.status === "Active"
+                        ? isDark
+                          ? "#A7F3D0"
+                          : "#0F766E"
+                        : isDark
+                          ? "#FCD34D"
+                          : "#D97706",
                     fontSize: 10,
                     fontWeight: "700",
                   }}

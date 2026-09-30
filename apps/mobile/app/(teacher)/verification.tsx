@@ -51,6 +51,13 @@ export default function DocumentReuploadScreen() {
   const [uploadingId, setUploadingId] = useState<string | null>(null);
   const [error, setError] = useState("");
 
+  const bg = colors.background ?? (isDark ? "#0A1628" : "#F8FAFC");
+  const card = colors.card ?? (isDark ? "#112240" : "#FFFFFF");
+  const text = colors.text ?? colors.foreground ?? (isDark ? "#F0FAFA" : "#0D2B2A");
+  const sub = colors.subtext ?? colors.mutedForeground ?? "#64748B";
+  const primary = colors.primary ?? "#0D9488";
+  const border = colors.border ?? (isDark ? "#1E3A5F" : "#E2E8F0");
+
   const loadDocs = async () => {
     let cancelled = false;
     setLoading(true);
@@ -113,59 +120,67 @@ export default function DocumentReuploadScreen() {
 
   const docLabel = (doc: VaultDoc) => DOC_LABELS[doc.documentType] || doc.documentType;
 
+  const hasAnyNote = docs.some((d) => d.adminNote || d.rejectionReason);
+
   return (
-    <SafeAreaView style={[styles.safe, { backgroundColor: colors.bg }]} edges={["top"]}>
-      <View style={[styles.header, { backgroundColor: colors.card, borderBottomColor: colors.border }]}>
+    <SafeAreaView style={{ flex: 1, backgroundColor: bg }} edges={["top"]}>
+      <View style={[styles.header, { backgroundColor: card, borderBottomColor: border }]}>
         <TouchableOpacity onPress={() => router.back()}>
-          <Text style={{ color: colors.sub, fontSize: 16 }}>←</Text>
+          <Text style={{ color: sub, fontSize: 16 }}>←</Text>
         </TouchableOpacity>
         <View style={{ flex: 1, marginLeft: 10 }}>
-          <Text style={[styles.headerTitle, { color: colors.text }]}>Document Re-upload</Text>
-          <Text style={{ color: colors.sub, fontSize: 10 }}>Vault · AES-256 · Admin only</Text>
+          <Text style={[styles.headerTitle, { color: text }]}>Document Re-upload</Text>
+          <Text style={{ color: sub, fontSize: 10 }}>Vault · AES-256 · Admin only</Text>
         </View>
       </View>
 
       {loading ? (
         <View style={{ flex: 1, alignItems: "center", justifyContent: "center" }}>
-          <ActivityIndicator size="large" color={colors.primary} />
+          <ActivityIndicator size="large" color={primary} />
         </View>
       ) : error ? (
         <View style={{ padding: 24, alignItems: "center" }}>
-          <Text style={{ color: colors.text, marginBottom: 12 }}>{error}</Text>
-          <TouchableOpacity onPress={loadDocs} style={{ backgroundColor: colors.primary, paddingVertical: 12, paddingHorizontal: 24, borderRadius: 12 }}>
+          <Text style={{ color: text, marginBottom: 12 }}>{error}</Text>
+          <TouchableOpacity onPress={loadDocs} style={{ backgroundColor: primary, paddingVertical: 12, paddingHorizontal: 24, borderRadius: 12 }}>
             <Text style={{ color: "#fff", fontWeight: "700", fontSize: 13 }}>Retry</Text>
           </TouchableOpacity>
         </View>
       ) : (
         <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
-          <View
-            style={[
-              styles.adminNote,
-              {
-                backgroundColor: isDark ? "#7f1d1d33" : "#fef2f2",
-                borderColor: isDark ? "#7f1d1d" : "#fecaca",
-              },
-            ]}
-          >
-            <Text style={{ color: "#ef4444", fontWeight: "700", fontSize: 11, marginBottom: 4 }}>
-              📋 Admin Note
-            </Text>
-            <Text style={{ color: colors.text, fontSize: 11, lineHeight: 16 }}>
-              Dear Hana, thank you for registering. We could not verify your National ID because the
-              image quality was insufficient. Please ensure both sides are photographed clearly in good
-              lighting. Degree transcripts must include the registrar stamp. — TBB Verification Team
-            </Text>
-            <Text style={{ color: colors.sub, fontSize: 10, marginTop: 6 }}>
-              Oct 9, 2024 · Verification Analyst
-            </Text>
-          </View>
+          {hasAnyNote && (
+            <View
+              style={[
+                styles.adminNote,
+                {
+                  backgroundColor: isDark ? "#7f1d1d33" : "#fef2f2",
+                  borderColor: isDark ? "#7f1d1d" : "#fecaca",
+                },
+              ]}
+            >
+              <Text style={{ color: "#ef4444", fontWeight: "700", fontSize: 11, marginBottom: 4 }}>
+                📋 Admin Note
+              </Text>
+              {docs
+                .filter((d) => d.adminNote || d.rejectionReason)
+                .map((d) => (
+                  <View key={d.id} style={{ marginBottom: 8 }}>
+                    <Text style={{ color: colors.text, fontSize: 11, lineHeight: 16, fontWeight: "600" }}>
+                      {docLabel(d)}:
+                    </Text>
+                    <Text style={{ color: colors.text, fontSize: 11, lineHeight: 16 }}>
+                      {d.adminNote || d.rejectionReason}
+                    </Text>
+                  </View>
+                ))}
+            </View>
+          )}
 
           {docs.map((doc) => {
             const st = statusStyle(docStatus(doc), isDark);
             return (
               <View
                 key={doc.id}
-                style={[styles.card, { backgroundColor: colors.card, borderColor: colors.border }]}
+                style={[styles.card, { backgroundColor: card, borderColor: colors.border }]}
               >
                 <View style={styles.row}>
                   <View style={[styles.docIcon, { backgroundColor: isDark ? "#1e293b" : "#f1f5f9" }]}>
@@ -196,18 +211,18 @@ export default function DocumentReuploadScreen() {
                   </View>
                 </View>
 
-                 {(doc.adminNote || doc.rejectionReason) ? (
-                   <View
-                     style={[
-                       styles.noteBox,
-                       { backgroundColor: isDark ? "#1e293b99" : "#f8fafc" },
-                     ]}
-                   >
-                     <Text style={{ color: colors.sub, fontSize: 11, lineHeight: 16 }}>
-                       {doc.adminNote || doc.rejectionReason}
-                     </Text>
-                   </View>
-                 ) : null}
+                {(doc.adminNote || doc.rejectionReason) ? (
+                  <View
+                    style={[
+                      styles.noteBox,
+                      { backgroundColor: isDark ? "#1e293b99" : "#f8fafc" },
+                    ]}
+                  >
+                    <Text style={{ color: colors.sub, fontSize: 11, lineHeight: 16 }}>
+                      {doc.adminNote || doc.rejectionReason}
+                    </Text>
+                  </View>
+                ) : null}
 
                 {doc.status !== "approved" ? (
                   <View style={{ flexDirection: "row", gap: 8, marginTop: 10 }}>
