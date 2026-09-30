@@ -89,14 +89,32 @@ export default function OfflineSessionScreen() {
           style={[
             styles.banner,
             {
-              backgroundColor: pending ? "#FEF3C7" : "#D1FAE5",
-              borderColor: pending ? "#FCD34D" : "#6EE7B7",
+              backgroundColor: pending
+                ? isDark
+                  ? "rgba(120, 53, 15, 0.25)"
+                  : "#FEF3C7"
+                : isDark
+                  ? "rgba(6, 78, 59, 0.25)"
+                  : "#D1FAE5",
+              borderColor: pending
+                ? isDark
+                  ? "#92400E"
+                  : "#FCD34D"
+                : isDark
+                  ? "#064E3B"
+                  : "#6EE7B7",
             },
           ]}
         >
           <Text
             style={{
-              color: pending ? "#92400E" : "#065F46",
+              color: pending
+                ? isDark
+                  ? "#FCD34D"
+                  : "#92400E"
+                : isDark
+                  ? "#A7F3D0"
+                  : "#065F46",
               fontWeight: "800",
               fontSize: 12,
             }}

@@ -2,6 +2,7 @@ import React, { useState } from "react";
 import {
   View,
   Text,
+  TextInput,
   ScrollView,
   TouchableOpacity,
   StyleSheet,
@@ -27,6 +28,7 @@ export default function ReportProblemScreen() {
   const { colors, isDark } = useTheme();
   const [step, setStep] = useState(1);
   const [issueType, setIssueType] = useState<string | null>(null);
+  const [explanation, setExplanation] = useState("");
   const [submitting, setSubmitting] = useState(false);
 
   const submit = async () => {
@@ -37,7 +39,7 @@ export default function ReportProblemScreen() {
         method: "POST",
           body: JSON.stringify({
             reasonType: issueType,
-            explanation: "Please describe your issue.",
+            explanation: explanation.trim() || "No details provided.",
             contractId: null,
             evidenceAttachmentUrls: [],
           }),
@@ -145,9 +147,14 @@ export default function ReportProblemScreen() {
                   { backgroundColor: isDark ? "#1e293b" : "#f8fafc", borderColor: colors.border },
                 ]}
               >
-                <Text style={{ color: colors.sub, fontSize: 11, lineHeight: 16 }}>
-                  Describe your issue here. The more detail you provide, the faster we can resolve this.
-                </Text>
+                <TextInput
+                  value={explanation}
+                  onChangeText={setExplanation}
+                  placeholder="Describe your issue here..."
+                  placeholderTextColor={colors.sub}
+                  multiline
+                  style={{ color: colors.text, fontSize: 11, lineHeight: 16, minHeight: 80, textAlignVertical: "top" }}
+                />
               </View>
 
               <Text style={{ color: colors.sub, fontSize: 10, fontWeight: "600", marginTop: 12, marginBottom: 8 }}>
