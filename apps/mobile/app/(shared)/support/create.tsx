@@ -35,12 +35,12 @@ export default function ReportProblemScreen() {
       setSubmitting(true);
       await apiRequest(paths.supportCreate, {
         method: "POST",
-        body: JSON.stringify({
-          reasonType: issueType,
-          explanation: "Tutor arrived 45 minutes late without advance notice. This has now happened 3 times in the past month.",
-          contractId: null,
-          evidenceAttachmentUrls: [],
-        }),
+          body: JSON.stringify({
+            reasonType: issueType,
+            explanation: "Please describe your issue.",
+            contractId: null,
+            evidenceAttachmentUrls: [],
+          }),
       });
       setStep(3);
     } catch (e: any) {
@@ -145,9 +145,8 @@ export default function ReportProblemScreen() {
                   { backgroundColor: isDark ? "#1e293b" : "#f8fafc", borderColor: colors.border },
                 ]}
               >
-                <Text style={{ color: colors.text, fontSize: 11, lineHeight: 16 }}>
-                  Tutor arrived 45 minutes late without advance notice. This has now happened 3 times
-                  in the past month. Sessions feel rushed and progress was impacted.
+                <Text style={{ color: colors.sub, fontSize: 11, lineHeight: 16 }}>
+                  Describe your issue here. The more detail you provide, the faster we can resolve this.
                 </Text>
               </View>
 
@@ -216,7 +215,6 @@ export default function ReportProblemScreen() {
             >
               <Text style={[styles.label, { color: colors.sub }]}>CASE SUMMARY</Text>
               {[
-                ["Ticket", "#TBB-28471"],
                 ["Issue Type", issueType || "—"],
                 ["Submitted", new Date().toLocaleString()],
                 ["Expected Response", "< 24 hours"],

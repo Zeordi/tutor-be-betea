@@ -27,22 +27,7 @@ export default function OfflineSessionScreen() {
   const router = useRouter();
   const { colors, isDark } = useTheme();
   const [syncing, setSyncing] = useState(false);
-  const [items, setItems] = useState<OfflineItem[]>([
-    {
-      id: "off-1",
-      type: "CHECK_IN",
-      when: "Today 16:02",
-      note: "Signed payload · offlineId · Session location",
-      status: "queued",
-    },
-    {
-      id: "off-2",
-      type: "CHECK_OUT",
-      when: "Today 17:31",
-      note: "GPS + duration cached · 89 min",
-      status: "queued",
-    },
-  ]);
+  const [items, setItems] = useState<OfflineItem[]>([]);
 
   const bg = colors.background ?? (isDark ? "#0A1628" : "#F8FAFC");
   const card = colors.card ?? (isDark ? "#112240" : "#FFFFFF");
@@ -122,24 +107,15 @@ export default function OfflineSessionScreen() {
           </Text>
         </View>
 
-        <View style={[styles.card, { backgroundColor: card, borderColor: border }]}>
-          <Text style={[styles.section, { color: sub }]}>CURRENT SESSION (OFFLINE)</Text>
-          <View style={{ flexDirection: "row", gap: 10, alignItems: "center" }}>
-            <View style={[styles.avatar, { backgroundColor: primary }]}>
-              <Text style={{ color: "#fff", fontWeight: "800" }}>AT</Text>
-            </View>
-            <View style={{ flex: 1 }}>
-              <Text style={{ color: text, fontWeight: "800", fontSize: 13 }}>
-                Tutor · Session
-              </Text>
-              <Text style={{ color: sub, fontSize: 11 }}>
-                Grade · Location · Started 2:00 PM
-              </Text>
-            </View>
-          </View>
-        </View>
-
         <Text style={[styles.section, { color: sub, marginTop: 16 }]}>PENDING QUEUE</Text>
+
+        {items.length === 0 && (
+          <View style={{ alignItems: "center", paddingVertical: 32 }}>
+            <Text style={{ color: sub, textAlign: "center" }}>
+              No offline sessions pending sync.
+            </Text>
+          </View>
+        )}
 
         {items.map((item) => (
           <View
