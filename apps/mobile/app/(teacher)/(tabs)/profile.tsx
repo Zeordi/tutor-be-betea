@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { View, Text, ScrollView, TouchableOpacity, ActivityIndicator } from "react-native";
+import { View, Text, ScrollView, TouchableOpacity, ActivityIndicator, Switch } from "react-native";
 import { useRouter } from "expo-router";
 import { useTheme } from "@/hooks/useTheme";
 import { useAuth } from "@/hooks/useAuth";
@@ -32,7 +32,7 @@ function getInitials(name: string) {
 }
 
 export default function TeacherProfileScreen() {
-  const { isDark } = useTheme();
+  const { isDark, toggleTheme } = useTheme();
   const { user } = useAuth();
   const router = useRouter();
   const [loading, setLoading] = useState(true);
@@ -114,6 +114,11 @@ export default function TeacherProfileScreen() {
             <Text style={{ color: sub }}>›</Text>
           </TouchableOpacity>
         ))}
+        <View style={{ backgroundColor: card, borderRadius: 14, padding: 14, flexDirection: "row", alignItems: "center", gap: 12, borderWidth: 1, borderColor: isDark ? "#1E3A5F" : "#E2E8F0" }}>
+          <Text style={{ fontSize: 18 }}>🌓</Text>
+          <Text style={{ color: text, fontWeight: "700", flex: 1 }}>Dark Mode</Text>
+          <Switch value={isDark} onValueChange={toggleTheme} />
+        </View>
       </ScrollView>
     </SafeAreaView>
   );
