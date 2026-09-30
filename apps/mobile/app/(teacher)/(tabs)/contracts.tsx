@@ -30,7 +30,7 @@ export default function ActiveContractsScreen() {
   const card = isDark ? "#112240" : "#FFFFFF";
   const text = isDark ? "#F0FAFA" : "#0D2B2A";
   const sub = isDark ? "#94A3B8" : "#64748B";
-  const primary = "#0D9488";
+  const primary = "#2563EB";
   const border = isDark ? "#1E3A5F" : "#E2E8F0";
   const surface = isDark ? "#1E293B" : "#F8FAFC";
 
@@ -63,7 +63,7 @@ export default function ActiveContractsScreen() {
     return (
       <SafeAreaView style={{ flex: 1, backgroundColor: bg }} edges={["top"]}>
         <View style={[styles.header, { borderBottomColor: border }]}>
-          <Text style={{ color: text, fontSize: 18, fontWeight: "800" }}>Active Contracts</Text>
+          <Text style={{ color: text, fontSize: 18, fontWeight: "800" }}>Sessions</Text>
         </View>
         <View style={{ flex: 1, alignItems: "center", justifyContent: "center" }}>
           <ActivityIndicator size="large" color={primary} />
@@ -76,7 +76,7 @@ export default function ActiveContractsScreen() {
     return (
       <SafeAreaView style={{ flex: 1, backgroundColor: bg }} edges={["top"]}>
         <View style={[styles.header, { borderBottomColor: border }]}>
-          <Text style={{ color: text, fontSize: 18, fontWeight: "800" }}>Active Contracts</Text>
+          <Text style={{ color: text, fontSize: 18, fontWeight: "800" }}>Sessions</Text>
         </View>
         <View style={{ padding: 24, alignItems: "center" }}>
           <Text style={{ color: text, marginBottom: 12 }}>{error}</Text>
@@ -101,7 +101,7 @@ export default function ActiveContractsScreen() {
   return (
     <SafeAreaView style={{ flex: 1, backgroundColor: bg }} edges={["top"]}>
       <View style={[styles.header, { borderBottomColor: border }]}>
-        <Text style={{ color: text, fontSize: 18, fontWeight: "800" }}>Active Contracts</Text>
+        <Text style={{ color: text, fontSize: 18, fontWeight: "800" }}>Sessions</Text>
         <Text style={{ color: sub, fontSize: 11, marginTop: 2 }}>{summary}</Text>
       </View>
 
@@ -125,13 +125,26 @@ export default function ActiveContractsScreen() {
                   styles.statusPill,
                   {
                     backgroundColor:
-                      c.status === "Active" ? "#CCFBF1" : "#FEF3C7",
+                      c.status === "Active"
+                        ? isDark
+                          ? "rgba(6, 78, 59, 0.4)"
+                          : "#CCFBF1"
+                        : isDark
+                          ? "rgba(120, 53, 15, 0.4)"
+                          : "#FEF3C7",
                   },
                 ]}
               >
                 <Text
                   style={{
-                    color: c.status === "Active" ? "#0F766E" : "#D97706",
+                    color:
+                      c.status === "Active"
+                        ? isDark
+                          ? "#A7F3D0"
+                          : "#0F766E"
+                        : isDark
+                          ? "#FCD34D"
+                          : "#D97706",
                     fontSize: 10,
                     fontWeight: "700",
                   }}

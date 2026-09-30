@@ -13,18 +13,18 @@ type Session = {
 };
 
 export default function TeacherCalendarScreen() {
-  const { isDark } = useTheme();
   const router = useRouter();
+  const { colors, isDark } = useTheme();
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [contracts, setContracts] = useState<any[]>([]);
 
-  const bg = isDark ? "#0A1628" : "#F8FAFC";
-  const card = isDark ? "#112240" : "#FFFFFF";
-  const text = isDark ? "#F0FAFA" : "#0D2B2A";
-  const sub = isDark ? "#94A3B8" : "#64748B";
-  const primary = "#0D9488";
-  const border = isDark ? "#1E3A5F" : "#E2E8F0";
+  const bg = colors.background ?? (isDark ? "#0A1628" : "#F8FAFC");
+  const card = colors.card ?? (isDark ? "#112240" : "#FFFFFF");
+  const text = colors.text ?? colors.foreground ?? (isDark ? "#F0FAFA" : "#0D2B2A");
+  const sub = colors.subtext ?? colors.mutedForeground ?? "#64748B";
+  const primary = "#2563EB";
+  const border = colors.border ?? (isDark ? "#1E3A5F" : "#E2E8F0");
 
   useEffect(() => {
     let cancelled = false;
@@ -54,16 +54,32 @@ export default function TeacherCalendarScreen() {
       }));
   }, [contracts]);
 
+  const weekDates = useMemo(() => {
+    const today = new Date();
+    const dayOfWeek = today.getDay();
+    const monday = new Date(today);
+    monday.setDate(today.getDate() - ((dayOfWeek + 6) % 7));
+    return Array.from({ length: 7 }, (_, i) => {
+      const d = new Date(monday);
+      d.setDate(monday.getDate() + i);
+      return d.getDate();
+    });
+  }, []);
+
+  const monthLabel = useMemo(() => {
+    const now = new Date();
+    return now.toLocaleString("default", { month: "long", year: "numeric" });
+  }, []);
+
   const DAYS = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"];
-  const DATES = [2, 3, 4, 5, 6, 7, 8];
 
   if (loading) {
     return (
-      <SafeAreaView style={[styles.container, { backgroundColor: bg }]} edges={["top"]}>
-        <View style={[styles.header, { borderBottomColor: border }]}>
+      <SafeAreaView style={{ flex: 1, backgroundColor: bg }} edges={["top"]}>
+        <View style={{ flexDirection: "row", alignItems: "center", gap: 12, padding: 14, borderBottomWidth: 1, borderBottomColor: border }}>
           <TouchableOpacity onPress={() => router.back()}><Text style={{ color: sub }}>←</Text></TouchableOpacity>
-          <Text style={[styles.title, { color: text }]}>Calendar</Text>
-          <Text style={{ color: primary, fontWeight: "700", fontSize: 12 }}>June 2025</Text>
+          <Text style={{ color: text, fontSize: 16, fontWeight: "800", flex: 1 }}>Calendar</Text>
+          <Text style={{ color: primary, fontWeight: "700", fontSize: 12 }}>{monthLabel}</Text>
         </View>
         <View style={{ flex: 1, alignItems: "center", justifyContent: "center" }}>
           <ActivityIndicator size="large" color={primary} />
@@ -74,11 +90,11 @@ export default function TeacherCalendarScreen() {
 
   if (error) {
     return (
-      <SafeAreaView style={[styles.container, { backgroundColor: bg }]} edges={["top"]}>
-        <View style={[styles.header, { borderBottomColor: border }]}>
+      <SafeAreaView style={{ flex: 1, backgroundColor: bg }} edges={["top"]}>
+        <View style={{ flexDirection: "row", alignItems: "center", gap: 12, padding: 14, borderBottomWidth: 1, borderBottomColor: border }}>
           <TouchableOpacity onPress={() => router.back()}><Text style={{ color: sub }}>←</Text></TouchableOpacity>
-          <Text style={[styles.title, { color: text }]}>Calendar</Text>
-          <Text style={{ color: primary, fontWeight: "700", fontSize: 12 }}>June 2025</Text>
+          <Text style={{ color: text, fontSize: 16, fontWeight: "800", flex: 1 }}>Calendar</Text>
+          <Text style={{ color: primary, fontWeight: "700", fontSize: 12 }}>{monthLabel}</Text>
         </View>
         <View style={{ padding: 24, alignItems: "center" }}>
           <Text style={{ color: text, marginBottom: 12 }}>{error}</Text>
@@ -91,19 +107,27 @@ export default function TeacherCalendarScreen() {
   }
 
   return (
-    <SafeAreaView style={[styles.container, { backgroundColor: bg }]} edges={["top"]}>
-      <View style={[styles.header, { borderBottomColor: border }]}>
+    <SafeAreaView style={{ flex: 1, backgroundColor: bg }} edges={["top"]}>
+      <View style={{ flexDirection: "row", alignItems: "center", gap: 12, padding: 14, borderBottomWidth: 1, borderBottomColor: border }}>
         <TouchableOpacity onPress={() => router.back()}><Text style={{ color: sub }}>←</Text></TouchableOpacity>
-        <Text style={[styles.title, { color: text }]}>Calendar</Text>
-        <Text style={{ color: primary, fontWeight: "700", fontSize: 12 }}>June 2025</Text>
+        <Text style={{ color: text, fontSize: 16, fontWeight: "800", flex: 1 }}>Calendar</Text>
+        <Text style={{ color: primary, fontWeight: "700", fontSize: 12 }}>{monthLabel}</Text>
       </View>
 
       <View style={styles.weekStrip}>
         {DAYS.map((d, i) => {
-          const active = i === 0;
+          const active = i === new Date().getDay() - 1 || (new Date().getDay() === 0 && i === 6);
           const hasSession = sessions.some((s) => {
-            const d = new Date(s.nextSessionAt).getDay();
-            return d === (i + 1) % 7;
+            const sessionDate = new Date(s.nextSessionAt);
+            const sessionDay = sessionDate.getDay();
+            const sessionDateNum = sessionDate.getDate();
+            const monday = new Date();
+            const dayOfWeek = monday.getDay();
+            const mondayDate = new Date(monday);
+            mondayDate.setDate(monday.getDate() - ((dayOfWeek + 6) % 7));
+            const sessionMonday = new Date(sessionDate);
+            sessionMonday.setDate(sessionDate.getDate() - ((sessionDay + 6) % 7));
+            return sessionMonday.getTime() === mondayDate.getTime() && sessionDay === (i + 1) % 7;
           });
           return (
             <View
@@ -117,7 +141,7 @@ export default function TeacherCalendarScreen() {
                 {d}
               </Text>
               <Text style={{ color: active ? "#fff" : text, fontWeight: "900", fontSize: 13 }}>
-                {DATES[i]}
+                {weekDates[i]}
               </Text>
               {hasSession && (
                 <View
@@ -157,7 +181,7 @@ export default function TeacherCalendarScreen() {
         {sessions.length === 0 && (
           <Text style={{ color: sub, textAlign: "center", marginTop: 20 }}>No upcoming sessions</Text>
         )}
-        <TouchableOpacity style={[styles.addSlot, { borderColor: primary }]}>
+        <TouchableOpacity style={[styles.addSlot, { borderColor: primary }]} onPress={() => router.push("/(teacher)/availability")}>
           <Text style={{ color: primary, fontWeight: "800" }}>+ Add Available Slot</Text>
         </TouchableOpacity>
       </ScrollView>

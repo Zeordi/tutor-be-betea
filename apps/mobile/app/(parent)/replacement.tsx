@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import {
   View, Text, StyleSheet, ScrollView, TouchableOpacity, TextInput, Alert,
 } from "react-native";
@@ -15,20 +15,41 @@ const REASONS = [
   "Other",
 ];
 
+type Contract = {
+  id: string;
+  teacher: { fullName: string };
+};
+
 export default function RequestReplacementScreen() {
-  const { isDark } = useTheme();
   const router = useRouter();
+  const { colors, isDark } = useTheme();
   const { contractId } = useLocalSearchParams<{ contractId?: string }>();
   const [reason, setReason] = useState(0);
   const [details, setDetails] = useState("");
   const [submitting, setSubmitting] = useState(false);
+  const [teacherName, setTeacherName] = useState<string | null>(null);
+  const [contractError, setContractError] = useState("");
 
-  const bg = isDark ? "#0A1628" : "#F8FAFC";
-  const card = isDark ? "#112240" : "#FFFFFF";
-  const text = isDark ? "#F0FAFA" : "#0D2B2A";
-  const sub = isDark ? "#94A3B8" : "#64748B";
-  const primary = "#0D9488";
-  const border = isDark ? "#1E3A5F" : "#E2E8F0";
+  const bg = colors.background ?? (isDark ? "#0A1628" : "#F8FAFC");
+  const card = colors.card ?? (isDark ? "#112240" : "#FFFFFF");
+  const text = colors.text ?? colors.foreground;
+  const sub = colors.subtext ?? colors.mutedForeground ?? "#64748B";
+  const primary = colors.primary ?? "#0D9488";
+  const border = colors.border ?? (isDark ? "#1E3A5F" : "#E2E8F0");
+
+  useEffect(() => {
+    if (!contractId) return;
+    let cancelled = false;
+    setContractError("");
+    apiRequest<Contract>(paths.contract(String(contractId)))
+      .then((data) => {
+        if (!cancelled) setTeacherName(data.teacher?.fullName || null);
+      })
+      .catch((err) => {
+        if (!cancelled) setContractError(err.message || "Failed to load contract");
+      });
+    return () => { cancelled = true; };
+  }, [contractId]);
 
   const handleSubmit = async () => {
     if (!contractId) {
@@ -72,10 +93,17 @@ export default function RequestReplacementScreen() {
           </Text>
         </View>
 
-        <View style={[styles.card, { backgroundColor: card }]}>
+        <View style={[styles.card, { backgroundColor: card, borderColor: border }]}>
           <Text style={[styles.section, { color: sub }]}>CURRENT TUTOR</Text>
-          <Text style={{ color: text, fontWeight: "800" }}>Selamawit Tadesse</Text>
-          <Text style={{ color: sub, fontSize: 12 }}>Mathematics · Contract #{contractId || "N/A"}</Text>
+          <Text style={{ color: text, fontWeight: "800" }}>
+            {teacherName || "Tutor on this contract"}
+          </Text>
+          <Text style={{ color: sub, fontSize: 12 }}>
+            {contractId ? `Contract #${contractId}` : "Open this screen from a contract to see tutor details"}
+          </Text>
+          {contractError ? (
+            <Text style={{ color: "#DC2626", fontSize: 11, marginTop: 4 }}>{contractError}</Text>
+          ) : null}
         </View>
 
         <Text style={[styles.section, { color: sub }]}>REASON FOR REPLACEMENT</Text>
@@ -141,7 +169,7 @@ const styles = StyleSheet.create({
   title: { fontSize: 16, fontWeight: "800" },
   content: { padding: 16, gap: 10, paddingBottom: 40 },
   notice: { borderRadius: 16, padding: 14 },
-  card: { borderRadius: 16, padding: 14 },
+  card: { borderRadius: 16, padding: 14, borderWidth: 1 },
   section: { fontSize: 10, fontWeight: "800", letterSpacing: 0.5, marginBottom: 8 },
   reason: {
     flexDirection: "row",

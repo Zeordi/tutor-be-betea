@@ -2,6 +2,7 @@ import React, { useState } from "react";
 import {
   View,
   Text,
+  TextInput,
   ScrollView,
   TouchableOpacity,
   StyleSheet,
@@ -27,6 +28,7 @@ export default function ReportProblemScreen() {
   const { colors, isDark } = useTheme();
   const [step, setStep] = useState(1);
   const [issueType, setIssueType] = useState<string | null>(null);
+  const [explanation, setExplanation] = useState("");
   const [submitting, setSubmitting] = useState(false);
 
   const submit = async () => {
@@ -35,12 +37,12 @@ export default function ReportProblemScreen() {
       setSubmitting(true);
       await apiRequest(paths.supportCreate, {
         method: "POST",
-        body: JSON.stringify({
-          reasonType: issueType,
-          explanation: "Tutor arrived 45 minutes late without advance notice. This has now happened 3 times in the past month.",
-          contractId: null,
-          evidenceAttachmentUrls: [],
-        }),
+          body: JSON.stringify({
+            reasonType: issueType,
+            explanation: explanation.trim() || "No details provided.",
+            contractId: null,
+            evidenceAttachmentUrls: [],
+          }),
       });
       setStep(3);
     } catch (e: any) {
@@ -145,10 +147,14 @@ export default function ReportProblemScreen() {
                   { backgroundColor: isDark ? "#1e293b" : "#f8fafc", borderColor: colors.border },
                 ]}
               >
-                <Text style={{ color: colors.text, fontSize: 11, lineHeight: 16 }}>
-                  Tutor arrived 45 minutes late without advance notice. This has now happened 3 times
-                  in the past month. Sessions feel rushed and progress was impacted.
-                </Text>
+                <TextInput
+                  value={explanation}
+                  onChangeText={setExplanation}
+                  placeholder="Describe your issue here..."
+                  placeholderTextColor={colors.sub}
+                  multiline
+                  style={{ color: colors.text, fontSize: 11, lineHeight: 16, minHeight: 80, textAlignVertical: "top" }}
+                />
               </View>
 
               <Text style={{ color: colors.sub, fontSize: 10, fontWeight: "600", marginTop: 12, marginBottom: 8 }}>
@@ -216,7 +222,6 @@ export default function ReportProblemScreen() {
             >
               <Text style={[styles.label, { color: colors.sub }]}>CASE SUMMARY</Text>
               {[
-                ["Ticket", "#TBB-28471"],
                 ["Issue Type", issueType || "—"],
                 ["Submitted", new Date().toLocaleString()],
                 ["Expected Response", "< 24 hours"],

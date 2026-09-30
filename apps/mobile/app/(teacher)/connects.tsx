@@ -20,19 +20,19 @@ type ConnectsData = {
 
 export default function ConnectsScreen() {
   const router = useRouter();
-  const { isDark } = useTheme();
+  const { colors, isDark } = useTheme();
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [data, setData] = useState<ConnectsData | null>(null);
   const [topUpAmount, setTopUpAmount] = useState("");
   const [topUpLoading, setTopUpLoading] = useState(false);
 
-  const bg = isDark ? "#0A1628" : "#F8FAFC";
-  const card = isDark ? "#112240" : "#FFFFFF";
-  const text = isDark ? "#F0FAFA" : "#0D2B2A";
-  const sub = isDark ? "#94A3B8" : "#64748B";
+  const bg = colors.background ?? (isDark ? "#0A1628" : "#F8FAFC");
+  const card = colors.card ?? (isDark ? "#112240" : "#FFFFFF");
+  const text = colors.text ?? colors.foreground ?? (isDark ? "#F0FAFA" : "#0D2B2A");
+  const sub = colors.subtext ?? colors.mutedForeground ?? "#64748B";
   const primary = "#0D9488";
-  const border = isDark ? "#1E3A5F" : "#E2E8F0";
+  const border = colors.border ?? (isDark ? "#1E3A5F" : "#E2E8F0");
 
   useEffect(() => {
     let cancelled = false;

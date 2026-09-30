@@ -48,6 +48,19 @@ export default function SessionHistoryScreen() {
   const primary = colors.primary ?? "#0D9488";
   const border = colors.border ?? (isDark ? "#1E3A5F" : "#E2E8F0");
 
+  const getStatusStyle = (status: string) => {
+    switch (status) {
+      case "ACTIVE":
+        return { bg: isDark ? "rgba(16,185,129,0.2)" : "#D1FAE5", fg: isDark ? "#34D399" : "#047857" };
+      case "COMPLETED":
+        return { bg: isDark ? "#334155" : "#F1F5F9", fg: isDark ? "#94A3B8" : "#64748B" };
+      case "DISPUTED":
+        return { bg: isDark ? "rgba(220,38,38,0.2)" : "#FEE2E2", fg: isDark ? "#FCA5A5" : "#DC2626" };
+      default:
+        return { bg: isDark ? "#334155" : "#F1F5F9", fg: colors.mutedForeground };
+    }
+  };
+
   if (loading) {
     return (
       <SafeAreaView style={{ flex: 1, backgroundColor: bg }} edges={["top"]}>
@@ -109,35 +122,38 @@ export default function SessionHistoryScreen() {
       </View>
       <ScrollView contentContainerStyle={{ padding: 14, gap: 10 }}>
         {contracts.length === 0 && (
-          <Text style={{ color: sub, textAlign: "center", marginTop: 40 }}>
-            No sessions yet.
-          </Text>
-        )}
-        {contracts.map((c) => (
-          <TouchableOpacity
-            key={c.id}
-            style={[styles.card, { backgroundColor: card, borderColor: border }]}
-            onPress={() => router.push(`/(parent)/contract/${c.id}`)}
-          >
-            <View style={styles.row}>
-              <Text style={{ color: text, fontWeight: "800", flex: 1 }}>
-                {c.student?.studentName || "Student"} · {c.teacher?.fullName || "Tutor"}
-              </Text>
-              <Text
-                style={{
-                  color: c.status === "COMPLETED" ? "#059669" : c.status === "DISPUTED" ? "#DC2626" : primary,
-                  fontWeight: "800",
-                  fontSize: 11,
-                }}
-              >
-                {c.status.replace("_", " ")}
-              </Text>
-            </View>
-            <Text style={{ color: sub, fontSize: 12, marginTop: 4 }}>
-              {new Date(c.startDate).toLocaleDateString()} · {Number(c.agreedAmount).toLocaleString()} ETB
+          <View style={styles.emptyBox}>
+            <Text style={{ fontSize: 32 }}>📚</Text>
+            <Text style={[styles.emptyTitle, { color: text }]}>No sessions yet</Text>
+            <Text style={{ color: sub, fontSize: 12, textAlign: "center", marginTop: 4 }}>
+              Your completed and upcoming sessions will appear here.
             </Text>
-          </TouchableOpacity>
-        ))}
+          </View>
+        )}
+        {contracts.map((c) => {
+          const statusStyle = getStatusStyle(c.status);
+          return (
+            <TouchableOpacity
+              key={c.id}
+              style={[styles.card, { backgroundColor: card, borderColor: border }]}
+              onPress={() => router.push(`/(parent)/contract/${c.id}`)}
+            >
+              <View style={styles.rowBetween}>
+                <Text style={{ color: text, fontWeight: "800", fontSize: 13, flex: 1 }}>
+                  {c.student?.studentName || "Student"} · {c.teacher?.fullName || "Tutor"}
+                </Text>
+                <View style={[styles.statusChip, { backgroundColor: statusStyle.bg }]}>
+                  <Text style={{ color: statusStyle.fg, fontSize: 10, fontWeight: "700" }}>
+                    {c.status.replace("_", " ")}
+                  </Text>
+                </View>
+              </View>
+              <Text style={{ color: sub, fontSize: 12, marginTop: 4 }}>
+                {new Date(c.startDate).toLocaleDateString()} · {Number(c.agreedAmount).toLocaleString()} ETB
+              </Text>
+            </TouchableOpacity>
+          );
+        })}
       </ScrollView>
     </SafeAreaView>
   );
@@ -151,6 +167,9 @@ const styles = StyleSheet.create({
     borderBottomWidth: 1,
   },
   card: { borderRadius: 16, borderWidth: 1, padding: 14 },
-  row: { flexDirection: "row", alignItems: "center" },
+  rowBetween: { flexDirection: "row", justifyContent: "space-between", alignItems: "center", gap: 8 },
+  statusChip: { paddingHorizontal: 10, paddingVertical: 3, borderRadius: 999 },
+  emptyBox: { alignItems: "center", paddingVertical: 48, gap: 8 },
+  emptyTitle: { fontSize: 16, fontWeight: "700", marginTop: 8 },
   retryBtn: { paddingVertical: 12, paddingHorizontal: 24, borderRadius: 12, alignItems: "center" },
 });

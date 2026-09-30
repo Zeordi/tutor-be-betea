@@ -20,7 +20,7 @@ type Conversation = {
 };
 
 export default function MessagesScreen() {
-  const { isDark } = useTheme();
+  const { colors, isDark } = useTheme();
   const router = useRouter();
   const [conversations, setConversations] = useState<Conversation[]>([]);
   const [loading, setLoading] = useState(true);
@@ -41,12 +41,12 @@ export default function MessagesScreen() {
     return () => { cancelled = true; };
   }, []);
 
-  const bg = isDark ? "#0A1628" : "#F8FAFC";
-  const card = isDark ? "#112240" : "#FFFFFF";
-  const text = isDark ? "#F0FAFA" : "#0D2B2A";
-  const sub = isDark ? "#94A3B8" : "#64748B";
-  const primary = "#0D9488";
-  const border = isDark ? "#1E3A5F" : "#E2E8F0";
+  const bg = colors.background ?? (isDark ? "#0A1628" : "#F8FAFC");
+  const card = colors.card ?? (isDark ? "#112240" : "#FFFFFF");
+  const text = colors.text ?? colors.foreground;
+  const sub = colors.subtext ?? colors.mutedForeground ?? "#64748B";
+  const primary = colors.primary ?? "#0D9488";
+  const border = colors.border ?? (isDark ? "#1E3A5F" : "#E2E8F0");
 
   if (loading) {
     return (
@@ -71,11 +71,13 @@ export default function MessagesScreen() {
       </View>
 
       {conversations.length === 0 ? (
-        <View style={{ flex: 1, alignItems: "center", justifyContent: "center", padding: 24 }}>
-          <Text style={{ color: sub, textAlign: "center", lineHeight: 18 }}>
+        <View style={{ flex: 1, alignItems: "center", justifyContent: "center", padding: 24, gap: 8 }}>
+          <Text style={{ fontSize: 32 }}>💬</Text>
+          <Text style={{ color: text, fontWeight: "700", fontSize: 15 }}>No messages yet</Text>
+          <Text style={{ color: sub, textAlign: "center", lineHeight: 18, fontSize: 12 }}>
             Your session conversations will appear here.
           </Text>
-          <Text style={{ color: sub, fontSize: 10, textAlign: "center", marginTop: 8, opacity: 0.7 }}>
+          <Text style={{ color: sub, fontSize: 10, textAlign: "center", opacity: 0.7 }}>
             Start a conversation from a contract or tutor profile.
           </Text>
         </View>
@@ -84,36 +86,44 @@ export default function MessagesScreen() {
           data={conversations}
           keyExtractor={(item) => item.id}
           contentContainerStyle={{ padding: 16, gap: 10 }}
-          renderItem={({ item }) => (
-            <TouchableOpacity
-              style={[styles.card, { backgroundColor: card, borderColor: border }]}
-              onPress={() => router.push(`/(shared)/chat/${item.id}`)}
-            >
-              <View style={styles.avatar}>
-                <Text style={{ color: "#fff", fontWeight: "800", fontSize: 14 }}>
-                  {(item.otherUser.fullName || "T")[0]}
-                </Text>
-              </View>
-              <View style={{ flex: 1, marginLeft: 12 }}>
-                <View style={styles.rowBetween}>
-                  <Text style={{ color: text, fontWeight: "800", fontSize: 13 }}>{item.otherUser.fullName}</Text>
-                  {item.lastMessage && (
-                    <Text style={{ color: sub, fontSize: 10 }}>
-                      {new Date(item.lastMessage.createdAt).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}
-                    </Text>
-                  )}
+          renderItem={({ item }) => {
+            const initials = item.otherUser.fullName
+              .split(" ")
+              .map((n) => n[0])
+              .join("")
+              .slice(0, 2)
+              .toUpperCase();
+            return (
+              <TouchableOpacity
+                style={[styles.card, { backgroundColor: card, borderColor: border }]}
+                onPress={() => router.push(`/(shared)/chat/${item.id}`)}
+              >
+                <View style={[styles.avatar, { backgroundColor: primary }]}>
+                  <Text style={{ color: "#fff", fontWeight: "800", fontSize: 14 }}>
+                    {initials || "?"}
+                  </Text>
                 </View>
-                <Text style={{ color: sub, fontSize: 12, marginTop: 2 }} numberOfLines={1}>
-                  {item.lastMessage?.body || "No messages yet"}
-                </Text>
-              </View>
-              {item.unreadCount > 0 && (
-                <View style={[styles.badge, { backgroundColor: primary }]}>
-                  <Text style={{ color: "#fff", fontSize: 10, fontWeight: "800" }}>{item.unreadCount}</Text>
+                <View style={{ flex: 1, marginLeft: 12 }}>
+                  <View style={styles.rowBetween}>
+                    <Text style={{ color: text, fontWeight: "800", fontSize: 13 }}>{item.otherUser.fullName}</Text>
+                    {item.lastMessage && (
+                      <Text style={{ color: sub, fontSize: 10 }}>
+                        {new Date(item.lastMessage.createdAt).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}
+                      </Text>
+                    )}
+                  </View>
+                  <Text style={{ color: sub, fontSize: 12, marginTop: 2 }} numberOfLines={1}>
+                    {item.lastMessage?.body || "No messages yet"}
+                  </Text>
                 </View>
-              )}
-            </TouchableOpacity>
-          )}
+                {item.unreadCount > 0 && (
+                  <View style={[styles.badge, { backgroundColor: primary }]}>
+                    <Text style={{ color: "#fff", fontSize: 10, fontWeight: "800" }}>{item.unreadCount}</Text>
+                  </View>
+                )}
+              </TouchableOpacity>
+            );
+          }}
         />
       )}
     </SafeAreaView>
@@ -129,7 +139,6 @@ const styles = StyleSheet.create({
     width: 40,
     height: 40,
     borderRadius: 20,
-    backgroundColor: "#0D9488",
     alignItems: "center",
     justifyContent: "center",
   },

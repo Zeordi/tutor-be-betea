@@ -31,16 +31,16 @@ const INITIAL = [
 ];
 
 export default function NotificationSettingsScreen() {
-  const { isDark } = useTheme();
+  const { colors, isDark } = useTheme();
   const router = useRouter();
   const [groups, setGroups] = useState(INITIAL);
 
-  const bg = isDark ? "#0A1628" : "#F8FAFC";
-  const card = isDark ? "#112240" : "#FFFFFF";
-  const text = isDark ? "#F0FAFA" : "#0D2B2A";
-  const sub = isDark ? "#94A3B8" : "#64748B";
-  const primary = "#0D9488";
-  const border = isDark ? "#1E3A5F" : "#E2E8F0";
+  const bg = colors.background ?? (isDark ? "#0A1628" : "#F8FAFC");
+  const card = colors.card ?? (isDark ? "#112240" : "#FFFFFF");
+  const text = colors.text ?? colors.foreground;
+  const sub = colors.subtext ?? colors.mutedForeground ?? "#64748B";
+  const primary = colors.primary ?? "#0D9488";
+  const border = colors.border ?? (isDark ? "#1E3A5F" : "#E2E8F0");
 
   const toggle = (gi: number, ii: number) => {
     setGroups((prev) =>
@@ -69,7 +69,7 @@ export default function NotificationSettingsScreen() {
         {groups.map((g, gi) => (
           <View key={g.group} style={{ marginBottom: 16 }}>
             <Text style={[styles.section, { color: sub }]}>{g.group.toUpperCase()}</Text>
-            <View style={[styles.card, { backgroundColor: card }]}>
+            <View style={[styles.card, { backgroundColor: card, borderColor: border }]}>
               {g.items.map((item, ii) => (
                 <TouchableOpacity
                   key={item.label}
@@ -83,7 +83,7 @@ export default function NotificationSettingsScreen() {
                   <View
                     style={[
                       styles.toggle,
-                      { backgroundColor: item.on ? primary : "#CBD5E1" },
+                      { backgroundColor: item.on ? primary : (isDark ? "#475569" : "#CBD5E1") },
                     ]}
                   >
                     <View
@@ -118,7 +118,7 @@ const styles = StyleSheet.create({
   title: { fontSize: 16, fontWeight: "800" },
   content: { padding: 16, paddingBottom: 40 },
   section: { fontSize: 10, fontWeight: "800", letterSpacing: 0.5, marginBottom: 8 },
-  card: { borderRadius: 16, overflow: "hidden" },
+  card: { borderRadius: 16, overflow: "hidden", borderWidth: 1 },
   row: {
     flexDirection: "row",
     alignItems: "center",

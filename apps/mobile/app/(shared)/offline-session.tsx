@@ -24,32 +24,17 @@ type OfflineItem = {
 };
 
 export default function OfflineSessionScreen() {
-  const { isDark } = useTheme();
   const router = useRouter();
+  const { colors, isDark } = useTheme();
   const [syncing, setSyncing] = useState(false);
-  const [items, setItems] = useState<OfflineItem[]>([
-    {
-      id: "off-1",
-      type: "CHECK_IN",
-      when: "Today 16:02",
-      note: "Signed payload · offlineId · Kazanchis",
-      status: "queued",
-    },
-    {
-      id: "off-2",
-      type: "CHECK_OUT",
-      when: "Today 17:31",
-      note: "GPS + duration cached · 89 min",
-      status: "queued",
-    },
-  ]);
+  const [items, setItems] = useState<OfflineItem[]>([]);
 
-  const bg = isDark ? "#0A1628" : "#F8FAFC";
-  const card = isDark ? "#112240" : "#FFFFFF";
-  const text = isDark ? "#F0FAFA" : "#0D2B2A";
-  const sub = isDark ? "#94A3B8" : "#64748B";
-  const primary = "#0D9488";
-  const border = isDark ? "#1E3A5F" : "#E2E8F0";
+  const bg = colors.background ?? (isDark ? "#0A1628" : "#F8FAFC");
+  const card = colors.card ?? (isDark ? "#112240" : "#FFFFFF");
+  const text = colors.text ?? colors.foreground;
+  const sub = colors.subtext ?? colors.mutedForeground ?? "#64748B";
+  const primary = colors.primary ?? "#0D9488";
+  const border = colors.border ?? (isDark ? "#1E3A5F" : "#E2E8F0");
   const pending = items.filter((i) => i.status === "queued").length;
 
   const retry = async () => {
@@ -104,14 +89,32 @@ export default function OfflineSessionScreen() {
           style={[
             styles.banner,
             {
-              backgroundColor: pending ? "#FEF3C7" : "#D1FAE5",
-              borderColor: pending ? "#FCD34D" : "#6EE7B7",
+              backgroundColor: pending
+                ? isDark
+                  ? "rgba(120, 53, 15, 0.25)"
+                  : "#FEF3C7"
+                : isDark
+                  ? "rgba(6, 78, 59, 0.25)"
+                  : "#D1FAE5",
+              borderColor: pending
+                ? isDark
+                  ? "#92400E"
+                  : "#FCD34D"
+                : isDark
+                  ? "#064E3B"
+                  : "#6EE7B7",
             },
           ]}
         >
           <Text
             style={{
-              color: pending ? "#92400E" : "#065F46",
+              color: pending
+                ? isDark
+                  ? "#FCD34D"
+                  : "#92400E"
+                : isDark
+                  ? "#A7F3D0"
+                  : "#065F46",
               fontWeight: "800",
               fontSize: 12,
             }}
@@ -122,24 +125,15 @@ export default function OfflineSessionScreen() {
           </Text>
         </View>
 
-        <View style={[styles.card, { backgroundColor: card, borderColor: border }]}>
-          <Text style={[styles.section, { color: sub }]}>CURRENT SESSION (OFFLINE)</Text>
-          <View style={{ flexDirection: "row", gap: 10, alignItems: "center" }}>
-            <View style={[styles.avatar, { backgroundColor: primary }]}>
-              <Text style={{ color: "#fff", fontWeight: "800" }}>AT</Text>
-            </View>
-            <View style={{ flex: 1 }}>
-              <Text style={{ color: text, fontWeight: "800", fontSize: 13 }}>
-                Abel Tesfaye · Mathematics
-              </Text>
-              <Text style={{ color: sub, fontSize: 11 }}>
-                Grade 11 · Kazanchis · Started 2:00 PM
-              </Text>
-            </View>
-          </View>
-        </View>
-
         <Text style={[styles.section, { color: sub, marginTop: 16 }]}>PENDING QUEUE</Text>
+
+        {items.length === 0 && (
+          <View style={{ alignItems: "center", paddingVertical: 32 }}>
+            <Text style={{ color: sub, textAlign: "center" }}>
+              No offline sessions pending sync.
+            </Text>
+          </View>
+        )}
 
         {items.map((item) => (
           <View

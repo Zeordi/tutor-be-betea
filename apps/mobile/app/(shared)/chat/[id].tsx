@@ -30,6 +30,7 @@ export default function ChatScreen() {
   const [input, setInput] = useState("");
   const [loading, setLoading] = useState(true);
   const [sending, setSending] = useState(false);
+  const [peerName, setPeerName] = useState<string | null>(null);
 
   const load = async () => {
     if (!roomId) return;
@@ -46,6 +47,14 @@ export default function ChatScreen() {
             originalBlocked: m.originalBlocked || false,
           })),
         );
+      }
+      try {
+        const convo = await apiRequest<any>(`/chat/${roomId}`);
+        if (!cancelled && convo?.otherUser?.fullName) {
+          setPeerName(convo.otherUser.fullName);
+        }
+      } catch {
+        // keep neutral avatar if conversation metadata unavailable
       }
     } catch {
       // keep UI even if load fails
@@ -98,6 +107,17 @@ export default function ChatScreen() {
   const sub = colors.subtext ?? colors.mutedForeground ?? "#64748B";
   const primary = colors.primary ?? "#0D9488";
 
+  const initials = (() => {
+    if (peerName) {
+      return peerName.split(" ").map((n) => n[0]).join("").slice(0, 2).toUpperCase();
+    }
+    if (roomId && typeof roomId === "string") {
+      const letter = roomId[0];
+      return letter ? letter.toUpperCase() : "?";
+    }
+    return "?";
+  })();
+
   if (loading) {
     return (
       <SafeAreaView style={[styles.root, { backgroundColor: bg }]} edges={["top"]}>
@@ -124,11 +144,11 @@ export default function ChatScreen() {
           <Text style={{ fontSize: 18, color: sub }}>←</Text>
         </Pressable>
         <View style={[styles.av, { backgroundColor: primary }]}>
-          <Text style={{ color: "#fff", fontWeight: "700" }}>ST</Text>
+          <Text style={{ color: "#fff", fontWeight: "700" }}>{initials}</Text>
         </View>
         <View style={{ flex: 1 }}>
           <Text style={[styles.name, { color: text }]}>Chat</Text>
-          <Text style={{ color: "#10B981", fontSize: 11 }}>Session chat</Text>
+          <Text style={{ color: sub, fontSize: 11 }}>{peerName ? `Session with ${peerName}` : "Session chat"}</Text>
         </View>
       </View>
 
@@ -160,9 +180,11 @@ export default function ChatScreen() {
           </View>
         ))}
         {messages.length === 0 && (
-          <Text style={{ color: sub, textAlign: "center", marginTop: 40 }}>
-            No messages yet. Say hello 👋
-          </Text>
+          <View style={{ alignItems: "center", paddingVertical: 40 }}>
+            <Text style={{ color: sub, textAlign: "center" }}>
+              No messages yet. Say hello 👋
+            </Text>
+          </View>
         )}
       </ScrollView>
 

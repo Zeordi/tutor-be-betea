@@ -74,19 +74,27 @@ export default function ChildProfileScreen() {
     }
   };
 
+  const bg = colors.background ?? (isDark ? "#0A1628" : "#F8FAFC");
+  const card = colors.card ?? (isDark ? "#112240" : "#FFFFFF");
+  const text = colors.text ?? colors.foreground;
+  const sub = colors.subtext ?? colors.mutedForeground ?? "#64748B";
+  const primary = colors.primary ?? "#0D9488";
+  const border = colors.border ?? (isDark ? "#1E3A5F" : "#E2E8F0");
+  const headerBg = colors.card ?? (isDark ? "#112240" : "#FFFFFF");
+
   if (loading) {
     return (
-      <SafeAreaView style={[styles.safe, { backgroundColor: colors.bg }]} edges={["top"]}>
-        <View style={[styles.header, { backgroundColor: colors.card, borderBottomColor: colors.border }]}>
+      <SafeAreaView style={{ flex: 1, backgroundColor: bg }} edges={["top"]}>
+        <View style={[styles.header, { backgroundColor: headerBg, borderBottomColor: border }]}>
           <TouchableOpacity onPress={() => router.back()}>
-            <Text style={{ color: colors.sub, fontSize: 16 }}>←</Text>
+            <Text style={{ color: sub, fontSize: 16 }}>←</Text>
           </TouchableOpacity>
-          <Text style={[styles.headerTitle, { color: colors.text, flex: 1, marginLeft: 10 }]}>
+          <Text style={{ color: text, fontSize: 16, fontWeight: "800", flex: 1, marginLeft: 10 }}>
             Child Profile
           </Text>
         </View>
         <View style={{ flex: 1, alignItems: "center", justifyContent: "center" }}>
-          <ActivityIndicator size="large" color={colors.primary} />
+          <ActivityIndicator size="large" color={primary} />
         </View>
       </SafeAreaView>
     );
@@ -94,18 +102,18 @@ export default function ChildProfileScreen() {
 
   if (error || !child) {
     return (
-      <SafeAreaView style={[styles.safe, { backgroundColor: colors.bg }]} edges={["top"]}>
-        <View style={[styles.header, { backgroundColor: colors.card, borderBottomColor: colors.border }]}>
+      <SafeAreaView style={{ flex: 1, backgroundColor: bg }} edges={["top"]}>
+        <View style={[styles.header, { backgroundColor: headerBg, borderBottomColor: border }]}>
           <TouchableOpacity onPress={() => router.back()}>
-            <Text style={{ color: colors.sub, fontSize: 16 }}>←</Text>
+            <Text style={{ color: sub, fontSize: 16 }}>←</Text>
           </TouchableOpacity>
-          <Text style={[styles.headerTitle, { color: colors.text, flex: 1, marginLeft: 10 }]}>
+          <Text style={{ color: text, fontSize: 16, fontWeight: "800", flex: 1, marginLeft: 10 }}>
             Child Profile
           </Text>
         </View>
         <View style={{ padding: 24, alignItems: "center" }}>
-          <Text style={{ color: colors.text, marginBottom: 12 }}>{error || "Child not found"}</Text>
-          <TouchableOpacity onPress={() => router.back()} style={[styles.retryBtn, { backgroundColor: colors.primary }]}>
+          <Text style={{ color: text, marginBottom: 12 }}>{error || "Child not found"}</Text>
+          <TouchableOpacity onPress={() => router.back()} style={[styles.retryBtn, { backgroundColor: primary }]}>
             <Text style={{ color: "#fff", fontWeight: "700" }}>Go Back</Text>
           </TouchableOpacity>
         </View>
@@ -114,44 +122,44 @@ export default function ChildProfileScreen() {
   }
 
   return (
-    <SafeAreaView style={[styles.safe, { backgroundColor: colors.bg }]} edges={["top"]}>
-      <View style={[styles.header, { backgroundColor: colors.card, borderBottomColor: colors.border }]}>
+    <SafeAreaView style={{ flex: 1, backgroundColor: bg }} edges={["top"]}>
+      <View style={[styles.header, { backgroundColor: headerBg, borderBottomColor: border }]}>
         <TouchableOpacity onPress={() => router.back()}>
-          <Text style={{ color: colors.sub, fontSize: 16 }}>←</Text>
+          <Text style={{ color: sub, fontSize: 16 }}>←</Text>
         </TouchableOpacity>
-        <Text style={[styles.headerTitle, { color: colors.text, flex: 1, marginLeft: 10 }]}>
+        <Text style={{ color: text, fontSize: 16, fontWeight: "800", flex: 1, marginLeft: 10 }}>
           Child Profile
         </Text>
         <TouchableOpacity onPress={handleSave} disabled={saving}>
-          <Text style={{ color: colors.primary, fontWeight: "700", fontSize: 13 }}>
+          <Text style={{ color: primary, fontWeight: "700", fontSize: 13 }}>
             {saving ? "Saving..." : "Save"}
           </Text>
         </TouchableOpacity>
       </View>
 
       <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
-        <View style={[styles.card, { backgroundColor: colors.card, borderColor: colors.border, alignItems: "center" }]}>
-          <View style={[styles.avatarXl, { backgroundColor: colors.primary }]}>
+        <View style={[styles.card, { backgroundColor: card, borderColor: border, alignItems: "center" }]}>
+          <View style={[styles.avatarXl, { backgroundColor: primary }]}>
             <Text style={{ color: "#fff", fontSize: 22, fontWeight: "800" }}>
               {child.studentName.split(" ").map((n) => n[0]).join("").slice(0, 2)}
             </Text>
           </View>
-          <Text style={{ color: colors.text, fontWeight: "800", fontSize: 16, marginTop: 10 }}>
+          <Text style={{ color: text, fontWeight: "800", fontSize: 16, marginTop: 10 }}>
             {child.studentName}
           </Text>
-          <Text style={{ color: colors.sub, fontSize: 11 }}>
+          <Text style={{ color: sub, fontSize: 11 }}>
             {child.gradeLevel} · {curriculum === "national" ? "National" : "Cambridge"} · #{child.id}
           </Text>
         </View>
 
-        <View style={[styles.card, { backgroundColor: colors.card, borderColor: colors.border }]}>
-          <Text style={[styles.label, { color: colors.sub }]}>BASIC INFORMATION</Text>
+        <View style={[styles.card, { backgroundColor: card, borderColor: border }]}>
+          <Text style={[styles.label, { color: sub }]}>BASIC INFORMATION</Text>
           {[
             ["Full Name", child.studentName],
             ["Grade Level", child.gradeLevel],
           ].map(([label, val]) => (
             <View key={label} style={{ marginBottom: 10 }}>
-              <Text style={{ color: colors.sub, fontSize: 10, fontWeight: "600", marginBottom: 4 }}>
+              <Text style={{ color: sub, fontSize: 10, fontWeight: "600", marginBottom: 4 }}>
                 {label}
               </Text>
               <View
@@ -169,8 +177,8 @@ export default function ChildProfileScreen() {
           ))}
         </View>
 
-        <View style={[styles.card, { backgroundColor: colors.card, borderColor: colors.border }]}>
-          <Text style={[styles.label, { color: colors.sub }]}>CURRICULUM</Text>
+        <View style={[styles.card, { backgroundColor: card, borderColor: border }]}>
+          <Text style={[styles.label, { color: sub }]}>CURRICULUM</Text>
           <View style={{ flexDirection: "row", gap: 8 }}>
             {(
               [
@@ -186,53 +194,53 @@ export default function ChildProfileScreen() {
                   style={[
                     styles.currBtn,
                     {
-                      borderColor: selected ? colors.primary : colors.border,
+                      borderColor: selected ? primary : border,
                       backgroundColor: selected
                         ? isDark
-                          ? "#134e4a44"
-                          : "#f0fdfa"
+                          ? "rgba(13,148,136,0.15)"
+                          : "#F0FDFA"
                         : "transparent",
                     },
                   ]}
                 >
                   <Text
                     style={{
-                      color: selected ? colors.primary : colors.text,
+                      color: selected ? primary : text,
                       fontWeight: "700",
                       fontSize: 11,
                     }}
                   >
                     {label}
                   </Text>
-                  <Text style={{ color: colors.sub, fontSize: 9, marginTop: 4 }}>{desc}</Text>
+                  <Text style={{ color: sub, fontSize: 9, marginTop: 4 }}>{desc}</Text>
                 </TouchableOpacity>
               );
             })}
           </View>
         </View>
 
-        <View style={[styles.card, { backgroundColor: colors.card, borderColor: colors.border }]}>
-          <Text style={[styles.label, { color: colors.sub }]}>SUBJECTS</Text>
+        <View style={[styles.card, { backgroundColor: card, borderColor: border }]}>
+          <Text style={[styles.label, { color: sub }]}>SUBJECTS</Text>
           <View style={{ flexDirection: "row", flexWrap: "wrap", gap: 8 }}>
-            {child.subjects.map((s, i) => (
+            {child.subjects.map((s) => (
               <View
                 key={s}
                 style={[
                   styles.tag,
                   {
-                    borderColor: colors.primary,
-                    backgroundColor: isDark ? "#134e4a44" : "#f0fdfa",
+                    borderColor: primary,
+                    backgroundColor: isDark ? "rgba(13,148,136,0.15)" : "#F0FDFA",
                   },
                 ]}
               >
                 <Text
                   style={{
-                    color: colors.primary,
+                    color: primary,
                     fontSize: 11,
                     fontWeight: "600",
                   }}
                 >
-                  {s} ×
+                  {s}
                 </Text>
               </View>
             ))}
@@ -240,7 +248,7 @@ export default function ChildProfileScreen() {
         </View>
 
         <TouchableOpacity
-          style={[styles.cta, { backgroundColor: colors.primary }]}
+          style={[styles.cta, { backgroundColor: primary }]}
           onPress={handleSave}
           disabled={saving}
         >

@@ -16,56 +16,48 @@ const STEPS = [
     icon: "👤",
     label: "Complete Your Bio",
     desc: "Add headline, subjects, languages, and teaching style",
-    status: "done" as const,
-    time: "Completed Oct 5",
+    route: "/(teacher)/profile/edit",
   },
   {
     id: 2,
     icon: "🪪",
     label: "Upload Identity Documents",
     desc: "Fayda National ID (front & back) + university degree",
-    status: "issue" as const,
-    time: "Action required · See notes",
+    route: "/(teacher)/verification",
   },
   {
     id: 3,
     icon: "📅",
     label: "Set Availability",
     desc: "Add your weekly recurring schedule and preferred zones",
-    status: "done" as const,
-    time: "Completed Oct 6",
+    route: "/(teacher)/availability",
   },
   {
     id: 4,
     icon: "💰",
     label: "Payout Setup",
     desc: "Link Telebirr or CBE Birr account for earnings withdrawal",
-    status: "pending" as const,
-    time: "Not started",
+    route: "/(teacher)/earnings",
   },
   {
     id: 5,
     icon: "📞",
     label: "Intro Call with Tutor Success",
     desc: "Optional 15-min orientation call with TBB team",
-    status: "pending" as const,
-    time: "Not started",
+    route: "/(shared)/support/create",
   },
   {
     id: 6,
     icon: "🚀",
     label: "Profile Goes Live",
     desc: "After all required steps are complete, you'll be searchable",
-    status: "locked" as const,
-    time: "Waiting on steps 2 & 4",
+    route: null,
   },
 ];
 
 export default function OnboardingChecklistScreen() {
   const router = useRouter();
   const { colors, isDark } = useTheme();
-  const doneCount = STEPS.filter((s) => s.status === "done").length;
-  const progress = Math.round((doneCount / (STEPS.length - 1)) * 100);
 
   return (
     <SafeAreaView style={[styles.safe, { backgroundColor: colors.bg }]} edges={["top"]}>
@@ -80,25 +72,9 @@ export default function OnboardingChecklistScreen() {
       </View>
 
       <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
-        <View style={styles.progressHero}>
-          <View style={styles.rowBetween}>
-            <View>
-              <Text style={styles.heroTitle}>Onboarding Progress</Text>
-              <Text style={styles.heroSub}>
-                {doneCount} of {STEPS.length - 1} required steps complete
-              </Text>
-            </View>
-            <Text style={styles.heroPct}>{progress}%</Text>
-          </View>
-          <View style={styles.progressTrack}>
-            <View style={[styles.progressFill, { width: `${progress}%` }]} />
-          </View>
-          <Text style={styles.heroAm}>ፕሮፋይልዎን ለማጠናቀቅ 2 ደረጃዎች ይቀሩዎታል</Text>
-        </View>
-
         <View style={[styles.card, { backgroundColor: colors.card, borderColor: colors.border }]}>
           {STEPS.map((step, i) => {
-            const locked = step.status === "locked";
+            const locked = step.id === 6;
             return (
               <View
                 key={step.id}
@@ -114,61 +90,22 @@ export default function OnboardingChecklistScreen() {
                   style={[
                     styles.stepIcon,
                     {
-                      backgroundColor:
-                        step.status === "done"
-                          ? isDark
-                            ? "#064e3b55"
-                            : "#d1fae5"
-                          : step.status === "issue"
-                            ? isDark
-                              ? "#7f1d1d55"
-                              : "#fee2e2"
-                            : isDark
-                              ? "#1e293b"
-                              : "#f1f5f9",
+                      backgroundColor: isDark ? "#1e293b" : "#f1f5f9",
                     },
                   ]}
                 >
                   <Text style={{ fontSize: 18 }}>{step.icon}</Text>
                 </View>
                 <View style={{ flex: 1 }}>
-                  <View style={{ flexDirection: "row", alignItems: "center", gap: 6 }}>
-                    <Text style={{ color: locked ? colors.sub : colors.text, fontWeight: "800", fontSize: 12 }}>
-                      {step.label}
-                    </Text>
-                    {step.status === "done" && (
-                      <Badge text="Done" bg="#d1fae5" fg="#047857" />
-                    )}
-                    {step.status === "issue" && (
-                      <Badge text="Action" bg="#fee2e2" fg="#b91c1c" />
-                    )}
-                  </View>
-                  <Text style={{ color: colors.sub, fontSize: 10, marginTop: 2 }}>{step.desc}</Text>
-                  <Text
-                    style={{
-                      color:
-                        step.status === "done"
-                          ? "#10b981"
-                          : step.status === "issue"
-                            ? "#ef4444"
-                            : colors.sub,
-                      fontSize: 10,
-                      fontWeight: "600",
-                      marginTop: 4,
-                    }}
-                  >
-                    {step.time}
+                  <Text style={{ color: locked ? colors.sub : colors.text, fontWeight: "800", fontSize: 12 }}>
+                    {step.label}
                   </Text>
+                  <Text style={{ color: colors.sub, fontSize: 10, marginTop: 2 }}>{step.desc}</Text>
                 </View>
-                {step.status !== "done" && step.status !== "locked" && (
-                  <TouchableOpacity
-                    onPress={() => {
-                      if (step.status === "issue") router.push("/(teacher)/verification");
-                      else if (step.id === 4) router.push("/(teacher)/earnings");
-                    }}
-                  >
+                {step.route && (
+                  <TouchableOpacity onPress={() => router.push(step.route as any)}>
                     <Text style={{ color: colors.primary, fontWeight: "700", fontSize: 12 }}>
-                      {step.status === "issue" ? "Fix →" : "Start →"}
+                      Open →
                     </Text>
                   </TouchableOpacity>
                 )}
@@ -192,20 +129,12 @@ export default function OnboardingChecklistScreen() {
           <Text style={{ color: isDark ? "#fbbf24" : "#d97706", fontSize: 11, marginVertical: 6 }}>
             Add your Telebirr or CBE Birr number to complete payout setup and unlock profile publishing.
           </Text>
-          <TouchableOpacity style={styles.amberBtn}>
+          <TouchableOpacity style={styles.amberBtn} onPress={() => router.push("/(teacher)/earnings")}>
             <Text style={{ color: "#fff", fontWeight: "800", fontSize: 12 }}>Set Up Payout Now →</Text>
           </TouchableOpacity>
         </View>
       </ScrollView>
     </SafeAreaView>
-  );
-}
-
-function Badge({ text, bg, fg }: { text: string; bg: string; fg: string }) {
-  return (
-    <View style={{ backgroundColor: bg, paddingHorizontal: 6, paddingVertical: 2, borderRadius: 999 }}>
-      <Text style={{ color: fg, fontSize: 9, fontWeight: "700" }}>{text}</Text>
-    </View>
   );
 }
 
@@ -220,25 +149,6 @@ const styles = StyleSheet.create({
   },
   headerTitle: { fontSize: 15, fontWeight: "700" },
   content: { padding: 14, paddingBottom: 40 },
-  progressHero: {
-    borderRadius: 18,
-    padding: 16,
-    backgroundColor: "#0f766e",
-    marginBottom: 12,
-  },
-  rowBetween: { flexDirection: "row", justifyContent: "space-between", alignItems: "flex-end" },
-  heroTitle: { color: "#fff", fontWeight: "800", fontSize: 14 },
-  heroSub: { color: "rgba(255,255,255,0.75)", fontSize: 11, marginTop: 2 },
-  heroPct: { color: "#fff", fontSize: 28, fontWeight: "900" },
-  progressTrack: {
-    height: 8,
-    backgroundColor: "rgba(255,255,255,0.2)",
-    borderRadius: 999,
-    marginTop: 12,
-    overflow: "hidden",
-  },
-  progressFill: { height: "100%", backgroundColor: "#fff", borderRadius: 999 },
-  heroAm: { color: "rgba(255,255,255,0.6)", fontSize: 10, marginTop: 8 },
   card: { borderRadius: 16, borderWidth: 1, overflow: "hidden", marginBottom: 12 },
   stepRow: {
     flexDirection: "row",

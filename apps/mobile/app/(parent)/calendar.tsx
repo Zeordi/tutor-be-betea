@@ -43,10 +43,10 @@ export default function AvailabilityCalendarScreen() {
     return () => { cancelled = true; };
   }, []);
 
-  const bg = colors.bg ?? (isDark ? "#0A1628" : "#F8FAFC");
+  const bg = colors.background ?? (isDark ? "#0A1628" : "#F8FAFC");
   const card = colors.card ?? (isDark ? "#112240" : "#FFFFFF");
-  const text = colors.text ?? (isDark ? "#F0FAFA" : "#0D2B2A");
-  const sub = colors.sub ?? (isDark ? "#94A3B8" : "#64748B");
+  const text = colors.text ?? colors.foreground;
+  const sub = colors.subtext ?? colors.mutedForeground ?? "#64748B";
   const primary = colors.primary ?? "#0D9488";
   const border = colors.border ?? (isDark ? "#1E3A5F" : "#E2E8F0");
 
@@ -83,7 +83,8 @@ export default function AvailabilityCalendarScreen() {
       <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
         {contracts.length === 0 ? (
           <View style={[styles.card, { backgroundColor: card, borderColor: border, alignItems: "center", paddingVertical: 32 }]}>
-            <Text style={{ color: sub, fontSize: 14, textAlign: "center" }}>No sessions scheduled yet</Text>
+            <Text style={{ fontSize: 32 }}>📅</Text>
+            <Text style={[styles.emptyTitle, { color: text, marginTop: 8 }]}>No sessions scheduled yet</Text>
             <Text style={{ color: sub, fontSize: 11, marginTop: 4, textAlign: "center" }}>
               Your active and upcoming sessions will appear here.
             </Text>
@@ -131,4 +132,5 @@ const styles = StyleSheet.create({
   card: { borderRadius: 16, padding: 14, borderWidth: 1 },
   rowBetween: { flexDirection: "row", justifyContent: "space-between", alignItems: "center" },
   pill: { paddingHorizontal: 8, paddingVertical: 3, borderRadius: 999 },
+  emptyTitle: { fontSize: 15, fontWeight: "700" },
 });

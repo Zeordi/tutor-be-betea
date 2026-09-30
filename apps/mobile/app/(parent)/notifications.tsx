@@ -166,7 +166,7 @@ export default function NotificationsFeedScreen() {
               style={[
                 styles.tabChip,
                 {
-                  backgroundColor: active ? colors.primary : isDark ? "#1e293b" : "#f1f5f9",
+                  backgroundColor: active ? colors.primary : (isDark ? "#1e293b" : "#f1f5f9"),
                 },
               ]}
             >
@@ -174,7 +174,7 @@ export default function NotificationsFeedScreen() {
                 {t}
               </Text>
               {count > 0 && (
-                <View style={[styles.dot, { backgroundColor: active ? "#fff" : "#ef4444" }]}>
+                <View style={[styles.dot, { backgroundColor: active ? "#fff" : colors.primary }]}>
                   <Text style={{ color: active ? colors.primary : "#fff", fontSize: 9, fontWeight: "800" }}>
                     {count}
                   </Text>
@@ -190,9 +190,13 @@ export default function NotificationsFeedScreen() {
         keyExtractor={(item) => item.id}
         contentContainerStyle={{ padding: 14, paddingBottom: 40 }}
         ListEmptyComponent={
-          <Text style={{ color: colors.sub, textAlign: "center", marginTop: 40 }}>
-            No notifications in this category
-          </Text>
+          <View style={{ alignItems: "center", paddingVertical: 40, gap: 8 }}>
+            <Text style={{ fontSize: 32 }}>🔔</Text>
+            <Text style={{ color: colors.text, fontWeight: "700", fontSize: 14 }}>No notifications</Text>
+            <Text style={{ color: colors.sub, fontSize: 12, textAlign: "center" }}>
+              You're all caught up. New notifications will appear here.
+            </Text>
+          </View>
         }
         renderItem={({ item }) => (
           <TouchableOpacity
@@ -222,7 +226,7 @@ export default function NotificationsFeedScreen() {
                 {item.body}
               </Text>
             </View>
-            {!item.read && <View style={styles.unreadDot} />}
+            {!item.read && <View style={[styles.unreadDot, { backgroundColor: colors.primary }]} />}
           </TouchableOpacity>
         )}
       />
@@ -278,7 +282,6 @@ const styles = StyleSheet.create({
     width: 8,
     height: 8,
     borderRadius: 4,
-    backgroundColor: "#0d9488",
     marginTop: 6,
   },
   retryBtn: { paddingVertical: 12, paddingHorizontal: 24, borderRadius: 12, alignItems: "center" },

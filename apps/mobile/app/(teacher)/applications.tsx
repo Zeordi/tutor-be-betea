@@ -58,7 +58,7 @@ export default function MyApplicationsScreen() {
   const card = colors.card ?? (isDark ? "#112240" : "#FFFFFF");
   const text = colors.text ?? colors.foreground ?? (isDark ? "#F0FAFA" : "#0D2B2A");
   const sub = colors.subtext ?? colors.mutedForeground ?? "#64748B";
-  const primary = colors.primary ?? "#0D9488";
+  const primary = "#2563EB";
   const border = colors.border ?? (isDark ? "#1E3A5F" : "#E2E8F0");
 
   const statusStyle = (s: string) => {

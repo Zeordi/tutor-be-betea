@@ -140,9 +140,13 @@ export default function SubscriptionScreen() {
         )}
 
         {plans.length === 0 && (
-          <Text style={{ color: subColor, textAlign: "center", marginTop: 24 }}>
-            No plans available.
-          </Text>
+          <View style={{ alignItems: "center", paddingVertical: 32, gap: 8 }}>
+            <Text style={{ fontSize: 32 }}>📋</Text>
+            <Text style={{ color: text, fontWeight: "700", fontSize: 14 }}>No plans available</Text>
+            <Text style={{ color: subColor, fontSize: 12, textAlign: "center" }}>
+              Check back later or contact support for available subscription plans.
+            </Text>
+          </View>
         )}
 
         {plans.map((plan) => {
@@ -215,7 +219,7 @@ const styles = StyleSheet.create({
   },
   title: { fontSize: 16, fontWeight: "800" },
   content: { padding: 16, gap: 12 },
-  card: { borderRadius: 18, padding: 16 },
+  card: { borderRadius: 18, padding: 16, borderWidth: 1 },
   rowBetween: {
     flexDirection: "row",
     justifyContent: "space-between",

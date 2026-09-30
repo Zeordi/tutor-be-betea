@@ -1,4 +1,4 @@
-import { View, Text, ScrollView, TouchableOpacity, StyleSheet, ActivityIndicator } from "react-native";
+import { View, Text, ScrollView, TouchableOpacity, StyleSheet, ActivityIndicator, Alert } from "react-native";
 import { useEffect, useState } from "react";
 import { useRouter } from "expo-router";
 import { useTheme } from "@/hooks/useTheme";
@@ -14,6 +14,7 @@ type SavedTeacher = {
       hourlyRate: number;
       rating: number;
       subCity: string | null;
+      subjects: string[];
     } | null;
   };
 };
@@ -50,6 +51,15 @@ export default function FavoritesScreen() {
   const sub = colors.subtext ?? colors.mutedForeground ?? "#64748B";
   const primary = colors.primary ?? "#0D9488";
   const border = colors.border ?? (isDark ? "#1E3A5F" : "#E2E8F0");
+
+  const removeFavorite = async (teacherId: string) => {
+    try {
+      await apiRequest(paths.favorite(teacherId), { method: "DELETE" });
+      setSaved((prev) => prev.filter((item) => item.teacher.id !== teacherId));
+    } catch (err: any) {
+      Alert.alert("Error", err.message || "Failed to remove favorite");
+    }
+  };
 
   if (loading) {
     return (
@@ -112,15 +122,20 @@ export default function FavoritesScreen() {
       </View>
       <ScrollView contentContainerStyle={{ padding: 14, gap: 12 }}>
         {saved.length === 0 && (
-          <Text style={{ color: sub, textAlign: "center", marginTop: 40 }}>
-            No saved tutors yet. Heart a profile to pin it here.
-          </Text>
+          <View style={styles.emptyBox}>
+            <Text style={{ fontSize: 32 }}>❤️</Text>
+            <Text style={[styles.emptyTitle, { color: text }]}>No saved tutors yet</Text>
+            <Text style={{ color: sub, fontSize: 12, textAlign: "center", marginTop: 4 }}>
+              Heart a tutor profile to save it here for quick access.
+            </Text>
+          </View>
         )}
         {saved.map((t) => {
           const tp = t.teacher.teacherProfile;
           const rate = tp?.hourlyRate || 0;
           const rating = tp?.rating || 0;
           const city = tp?.subCity || "—";
+          const subjects = tp?.subjects?.slice(0, 2).join(" · ") || "";
           return (
             <TouchableOpacity
               key={t.id}
@@ -134,11 +149,19 @@ export default function FavoritesScreen() {
               </View>
               <View style={{ flex: 1 }}>
                 <Text style={{ color: text, fontWeight: "800" }}>{t.teacher.fullName}</Text>
-                <Text style={{ color: sub, fontSize: 12 }}>{city}</Text>
+                <Text style={{ color: sub, fontSize: 12 }} numberOfLines={1}>
+                  {subjects || city}
+                </Text>
                 <Text style={{ color: sub, fontSize: 11, marginTop: 2 }}>
                   ⭐ {rating.toFixed(1)} · {rate} ETB/hr
                 </Text>
               </View>
+              <TouchableOpacity
+                style={styles.removeBtn}
+                onPress={() => removeFavorite(t.teacher.id)}
+              >
+                <Text style={{ color: "#DC2626", fontSize: 12, fontWeight: "700" }}>✕</Text>
+              </TouchableOpacity>
             </TouchableOpacity>
           );
         })}
@@ -165,9 +188,12 @@ const styles = StyleSheet.create({
   avatar: {
     width: 48,
     height: 48,
-    borderRadius: 14,
+    borderRadius: 24,
     alignItems: "center",
     justifyContent: "center",
   },
+  emptyBox: { alignItems: "center", paddingVertical: 48, gap: 8 },
+  emptyTitle: { fontSize: 16, fontWeight: "700", marginTop: 8 },
+  removeBtn: { padding: 6 },
   retryBtn: { paddingVertical: 12, paddingHorizontal: 24, borderRadius: 12, alignItems: "center" },
 });

@@ -8,7 +8,7 @@ import { useRouter } from "expo-router";
 import { apiRequest, paths } from "@/lib/api";
 
 export default function PostJobScreen() {
-  const { isDark } = useTheme();
+  const { colors, isDark } = useTheme();
   const router = useRouter();
   const [boost, setBoost] = useState(false);
   const [urgent, setUrgent] = useState(true);
@@ -20,14 +20,13 @@ export default function PostJobScreen() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
 
-  const bg = isDark ? "#0A1628" : "#F8FAFC";
-  const card = isDark ? "#112240" : "#FFFFFF";
-  const text = isDark ? "#F0FAFA" : "#0D2B2A";
-  const sub = isDark ? "#94A3B8" : "#64748B";
-  const primary = "#0D9488";
-  const border = isDark ? "#1E3A5F" : "#E2E8F0";
-  const headerBg = isDark ? "#0F1B2D" : "#FFFFFF";
-  const inputBg = isDark ? "#0A1628" : "#FFFFFF";
+  const bg = colors.background ?? (isDark ? "#0A1628" : "#F8FAFC");
+  const card = colors.card ?? (isDark ? "#112240" : "#FFFFFF");
+  const text = colors.text ?? colors.foreground;
+  const sub = colors.subtext ?? colors.mutedForeground ?? "#64748B";
+  const primary = colors.primary ?? "#0D9488";
+  const border = colors.border ?? (isDark ? "#1E3A5F" : "#E2E8F0");
+  const headerBg = colors.card ?? (isDark ? "#112240" : "#FFFFFF");
 
   const submit = async () => {
     setError("");
@@ -84,7 +83,7 @@ export default function PostJobScreen() {
               placeholder={f.placeholder}
               placeholderTextColor={sub}
               keyboardType={f.keyboardType as any}
-              style={[styles.input, { color: text, backgroundColor: inputBg, borderColor: border }]}
+              style={[styles.input, { color: text, backgroundColor: card, borderColor: border }]}
             />
           </View>
         ))}
@@ -97,18 +96,18 @@ export default function PostJobScreen() {
             multiline
             placeholder="Describe the role, requirements, schedule..."
             placeholderTextColor={sub}
-            style={[styles.input, styles.textarea, { color: text, backgroundColor: inputBg, borderColor: border }]}
+            style={[styles.input, styles.textarea, { color: text, backgroundColor: card, borderColor: border }]}
           />
         </View>
 
-        <View style={[styles.promoCard, { backgroundColor: card }]}>
+        <View style={[styles.promoCard, { backgroundColor: card, borderColor: border }]}>
           <Text style={[styles.label, { color: sub }]}>PROMOTE YOUR LISTING</Text>
           <TouchableOpacity style={styles.toggleRow} onPress={() => setBoost(!boost)}>
             <View>
               <Text style={{ color: text, fontWeight: "800", fontSize: 12 }}>🚀 Boost · 3x visibility</Text>
               <Text style={{ color: sub, fontSize: 10 }}>+2 Connects</Text>
             </View>
-            <View style={[styles.toggle, { backgroundColor: boost ? "#F59E0B" : "#CBD5E1" }]}>
+            <View style={[styles.toggle, { backgroundColor: boost ? "#F59E0B" : (isDark ? "#475569" : "#CBD5E1") }]}>
               <View style={[styles.knob, { marginLeft: boost ? 18 : 2 }]} />
             </View>
           </TouchableOpacity>
@@ -117,7 +116,7 @@ export default function PostJobScreen() {
               <Text style={{ color: text, fontWeight: "800", fontSize: 12 }}>🔥 Urgent — Hire in 24hrs</Text>
               <Text style={{ color: sub, fontSize: 10 }}>Shows Urgent badge</Text>
             </View>
-            <View style={[styles.toggle, { backgroundColor: urgent ? "#EF4444" : "#CBD5E1" }]}>
+            <View style={[styles.toggle, { backgroundColor: urgent ? "#EF4444" : (isDark ? "#475569" : "#CBD5E1") }]}>
               <View style={[styles.knob, { marginLeft: urgent ? 18 : 2 }]} />
             </View>
           </TouchableOpacity>
@@ -142,7 +141,7 @@ const styles = StyleSheet.create({
   label: { fontSize: 10, fontWeight: "800", marginBottom: 6, letterSpacing: 0.4 },
   input: { borderWidth: 1, borderRadius: 14, paddingHorizontal: 12, paddingVertical: 12, fontSize: 13 },
   textarea: { minHeight: 90, textAlignVertical: "top" },
-  promoCard: { borderRadius: 16, padding: 14, gap: 10 },
+  promoCard: { borderRadius: 16, padding: 14, gap: 10, borderWidth: 1 },
   toggleRow: { flexDirection: "row", justifyContent: "space-between", alignItems: "center" },
   toggle: { width: 40, height: 22, borderRadius: 11, justifyContent: "center" },
   knob: { width: 18, height: 18, borderRadius: 9, backgroundColor: "#fff" },

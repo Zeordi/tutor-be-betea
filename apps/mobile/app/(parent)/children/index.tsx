@@ -98,9 +98,19 @@ export default function ChildrenIndexScreen() {
       </View>
       <ScrollView contentContainerStyle={{ padding: 14, gap: 12 }}>
         {children.length === 0 && (
-          <Text style={{ color: sub, textAlign: "center", marginTop: 24 }}>
-            No children added yet.
-          </Text>
+          <View style={styles.emptyBox}>
+            <Text style={{ fontSize: 32 }}>👶</Text>
+            <Text style={[styles.emptyTitle, { color: text }]}>No children yet</Text>
+            <Text style={{ color: sub, fontSize: 12, textAlign: "center", marginTop: 4 }}>
+              Add your first child to get started with tutoring.
+            </Text>
+            <TouchableOpacity
+              style={[styles.emptyCta, { borderColor: primary }]}
+              onPress={() => router.push("/(parent)/children/add")}
+            >
+              <Text style={{ color: primary, fontWeight: "700", fontSize: 13 }}>+ Add Child</Text>
+            </TouchableOpacity>
+          </View>
         )}
         {children.map((c) => (
           <TouchableOpacity
@@ -115,7 +125,7 @@ export default function ChildrenIndexScreen() {
               <Text style={{ color: text, fontWeight: "800" }}>
                 {c.studentName} · Gr.{c.gradeLevel}
               </Text>
-              <Text style={{ color: sub, fontSize: 12, marginTop: 2 }}>
+              <Text style={{ color: sub, fontSize: 12, marginTop: 2 }} numberOfLines={1}>
                 {c.curriculum} · {c.subjects.slice(0, 3).join(" · ")}
               </Text>
             </View>
@@ -151,5 +161,8 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "center",
   },
+  emptyBox: { alignItems: "center", paddingVertical: 48, gap: 8 },
+  emptyTitle: { fontSize: 16, fontWeight: "700", marginTop: 8 },
+  emptyCta: { marginTop: 8, paddingHorizontal: 18, paddingVertical: 10, borderRadius: 12, borderWidth: 1 },
   retryBtn: { paddingVertical: 12, paddingHorizontal: 24, borderRadius: 12, alignItems: "center" },
 });

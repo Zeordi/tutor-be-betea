@@ -65,6 +65,15 @@ export default function ProgressDashboardScreen() {
   const border = colors.border ?? (isDark ? "#1E3A5F" : "#E2E8F0");
   const surface = isDark ? "#1E293B" : "#F8FAFC";
 
+  const retry = () => {
+    setError("");
+    setLoading(true);
+    apiRequest<ChildProgress[]>(paths.progressMine)
+      .then((data) => setChildren(Array.isArray(data) ? data : []))
+      .catch((err) => setError(err.message))
+      .finally(() => setLoading(false));
+  };
+
   if (loading) {
     return (
       <SafeAreaView style={[styles.safe, { backgroundColor: bg }]} edges={["top"]}>
@@ -86,17 +95,7 @@ export default function ProgressDashboardScreen() {
         </View>
         <View style={{ padding: 24, alignItems: "center" }}>
           <Text style={{ color: text, marginBottom: 12 }}>{error}</Text>
-          <TouchableOpacity
-            onPress={() => {
-              setError("");
-              setLoading(true);
-              apiRequest<ChildProgress[]>(paths.progressMine)
-                .then((data) => setChildren(Array.isArray(data) ? data : []))
-                .catch((err) => setError(err.message))
-                .finally(() => setLoading(false));
-            }}
-            style={[styles.retryBtn, { backgroundColor: primary }]}
-          >
+          <TouchableOpacity onPress={retry} style={[styles.retryBtn, { backgroundColor: primary }]}>
             <Text style={{ color: "#fff", fontWeight: "700", fontSize: 13 }}>Retry</Text>
           </TouchableOpacity>
         </View>
@@ -217,14 +216,19 @@ export default function ProgressDashboardScreen() {
           ))}
         </View>
 
-        <View style={[styles.aiCard, { backgroundColor: primary }]}>
-          <Text style={styles.aiLabel}>🤖 AI INSIGHT</Text>
-          <Text style={styles.aiBody}>
-            {child.aiInsights && child.aiInsights.length > 0
-              ? child.aiInsights[0]
-              : `${child.studentName} shows steady improvement. Focus next week on weaker subjects and past-paper practice before exams.`}
-          </Text>
-        </View>
+        {child.aiInsights && child.aiInsights.length > 0 ? (
+          <View style={[styles.aiCard, { backgroundColor: primary }]}>
+            <Text style={styles.aiLabel}>🤖 AI INSIGHT</Text>
+            <Text style={styles.aiBody}>{child.aiInsights[0]}</Text>
+          </View>
+        ) : (
+          <View style={[styles.aiCard, { backgroundColor: isDark ? colors.surface2 : "#F0FDFA", borderColor: border, borderWidth: 1 }]}>
+            <Text style={[styles.aiLabel, { color: sub }]}>🤖 AI INSIGHT</Text>
+            <Text style={[styles.aiBody, { color: sub }]}>
+              Keep tracking sessions to unlock personalized insights for {child.studentName}.
+            </Text>
+          </View>
+        )}
 
         <TouchableOpacity
           style={[styles.cta, { backgroundColor: primary }]}

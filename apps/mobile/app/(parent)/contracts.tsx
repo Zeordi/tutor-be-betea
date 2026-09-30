@@ -17,7 +17,7 @@ type Contract = {
 };
 
 export default function ContractsListScreen() {
-  const { colors } = useTheme();
+  const { colors, isDark } = useTheme();
   const router = useRouter();
   const [contracts, setContracts] = useState<Contract[]>([]);
   const [loading, setLoading] = useState(true);
@@ -41,16 +41,16 @@ export default function ContractsListScreen() {
     loadContracts();
   }, [loadContracts]);
 
-  const getStatusColor = (status: string) => {
+  const getStatusStyle = (status: string) => {
     switch (status) {
       case "ACTIVE":
-        return "#16A34A";
+        return { bg: isDark ? "rgba(16,185,129,0.2)" : "#D1FAE5", fg: isDark ? "#34D399" : "#047857" };
       case "PENDING_ESCROW":
-        return "#D97706";
+        return { bg: isDark ? "rgba(245,158,11,0.2)" : "#FEF3C7", fg: isDark ? "#FCD34D" : "#D97706" };
       case "COMPLETED":
-        return "#64748B";
+        return { bg: isDark ? "#334155" : "#F1F5F9", fg: isDark ? "#94A3B8" : "#64748B" };
       default:
-        return colors.textSecondary;
+        return { bg: isDark ? "#334155" : "#F1F5F9", fg: colors.mutedForeground };
     }
   };
 
@@ -91,24 +91,29 @@ export default function ContractsListScreen() {
             setRefreshing(true);
             loadContracts();
           }}
-          renderItem={({ item }) => (
-            <Pressable
-              style={[styles.card, { backgroundColor: colors.surface }]}
-              onPress={() => router.push(`/(parent)/contract/${item.id}`)}
-            >
-              <View style={styles.cardHeader}>
-                <Text style={[styles.amount, { color: colors.text }]}>
-                  ETB {Number(item.agreedAmount).toLocaleString()}
+          renderItem={({ item }) => {
+            const statusStyle = getStatusStyle(item.status);
+            return (
+              <Pressable
+                style={[styles.card, { backgroundColor: colors.surface, borderColor: colors.border }]}
+                onPress={() => router.push(`/(parent)/contract/${item.id}`)}
+              >
+                <View style={styles.cardHeader}>
+                  <Text style={[styles.amount, { color: colors.text }]}>
+                    ETB {Number(item.agreedAmount).toLocaleString()}
+                  </Text>
+                  <View style={[styles.statusChip, { backgroundColor: statusStyle.bg }]}>
+                    <Text style={{ color: statusStyle.fg, fontSize: 10, fontWeight: "700" }}>
+                      {item.status.replace("_", " ")}
+                    </Text>
+                  </View>
+                </View>
+                <Text style={{ color: colors.textSecondary, marginTop: 6 }}>
+                  Escrow: ETB {Number(item.escrowHeldAmount).toLocaleString()}
                 </Text>
-                <Text style={{ color: getStatusColor(item.status), fontWeight: "600" }}>
-                  {item.status.replace("_", " ")}
-                </Text>
-              </View>
-              <Text style={{ color: colors.textSecondary, marginTop: 6 }}>
-                Escrow: ETB {Number(item.escrowHeldAmount).toLocaleString()}
-              </Text>
-            </Pressable>
-          )}
+              </Pressable>
+            );
+          }}
           ListEmptyComponent={
             <EmptyState
               title="No contracts yet"
@@ -128,6 +133,7 @@ const styles = StyleSheet.create({
   card: {
     borderRadius: 16,
     padding: 16,
+    borderWidth: 1,
   },
   cardHeader: {
     flexDirection: "row",
@@ -135,5 +141,6 @@ const styles = StyleSheet.create({
     alignItems: "center",
   },
   amount: { fontSize: 17, fontWeight: "700" },
+  statusChip: { paddingHorizontal: 10, paddingVertical: 4, borderRadius: 999 },
   retryBtn: { paddingVertical: 12, paddingHorizontal: 24, borderRadius: 12, alignItems: "center" },
 });

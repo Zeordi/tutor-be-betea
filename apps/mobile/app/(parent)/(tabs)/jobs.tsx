@@ -22,8 +22,8 @@ type Application = {
 };
 
 export default function ParentJobsScreen() {
-  const { isDark } = useTheme();
   const router = useRouter();
+  const { colors, isDark } = useTheme();
   const [tab, setTab] = useState(0);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
@@ -32,31 +32,39 @@ export default function ParentJobsScreen() {
 
   const tabs = ["My Jobs", "Applications", "Hired"];
 
-  const bg = isDark ? "#0A1628" : "#F8FAFC";
-  const card = isDark ? "#112240" : "#FFFFFF";
-  const text = isDark ? "#F0FAFA" : "#0D2B2A";
-  const sub = isDark ? "#94A3B8" : "#64748B";
-  const primary = "#0D9488";
-  const border = isDark ? "#1E3A5F" : "#E2E8F0";
+  const bg = colors.background ?? (isDark ? "#0A1628" : "#F8FAFC");
+  const card = colors.card ?? (isDark ? "#112240" : "#FFFFFF");
+  const text = colors.text ?? colors.foreground;
+  const sub = colors.subtext ?? colors.mutedForeground ?? "#64748B";
+  const primary = colors.primary ?? "#0D9488";
+  const border = colors.border ?? (isDark ? "#1E3A5F" : "#E2E8F0");
 
-  useEffect(() => {
+  const loadJobs = async () => {
     let cancelled = false;
     setLoading(true);
     setError("");
+    try {
+      const data = await apiRequest<Job[]>(paths.jobsMine);
+      if (!cancelled) setJobs(data || []);
+    } catch (err: any) {
+      if (!cancelled) setError(err.message || "Failed to load jobs");
+    } finally {
+      if (!cancelled) setLoading(false);
+    }
+  };
 
-    apiRequest<Job[]>(paths.jobsMine)
-      .then((data) => {
-        if (!cancelled) setJobs(data || []);
-      })
-      .catch((err) => {
-        if (!cancelled) setError(err.message || "Failed to load jobs");
-      })
-      .finally(() => {
-        if (!cancelled) setLoading(false);
-      });
-
-    return () => { cancelled = true; };
+  useEffect(() => {
+    loadJobs();
   }, []);
+
+  const retry = () => {
+    setError("");
+    setLoading(true);
+    apiRequest<Job[]>(paths.jobsMine)
+      .then((data) => setJobs(data || []))
+      .catch((err) => setError(err.message || "Failed to load jobs"))
+      .finally(() => setLoading(false));
+  };
 
   if (loading) {
     return (
@@ -81,7 +89,7 @@ export default function ParentJobsScreen() {
         <View style={{ flex: 1, alignItems: "center", justifyContent: "center", gap: 12, padding: 24 }}>
           <Text style={{ fontSize: 32 }}>⚠️</Text>
           <Text style={{ color: text, fontWeight: "700", textAlign: "center" }}>{error}</Text>
-          <TouchableOpacity onPress={() => window.location.reload()} style={[styles.retry, { backgroundColor: primary }]}>
+          <TouchableOpacity onPress={retry} style={[styles.retry, { backgroundColor: primary }]}>
             <Text style={styles.retryText}>Retry</Text>
           </TouchableOpacity>
         </View>
@@ -115,14 +123,24 @@ export default function ParentJobsScreen() {
             {jobs.map((j) => (
               <TouchableOpacity
                 key={j.id}
-                style={[styles.card, { backgroundColor: card }]}
+                style={[styles.card, { backgroundColor: card, borderColor: border }]}
                 onPress={() => router.push(`/(parent)/job/${j.id}`)}
               >
                 <View style={styles.rowBetween}>
                   <View style={styles.badgeRow}>
-                    {j.urgent && <Text style={styles.urgent}>🔥 Urgent</Text>}
-                    {j.boost && <Text style={styles.boost}>🚀 Boosted</Text>}
-                    <Text style={[styles.status, { color: j.status === "Active" ? primary : sub }]}>{j.status}</Text>
+                    {j.urgent && (
+                      <View style={[styles.chip, { backgroundColor: isDark ? "rgba(220,38,38,0.2)" : "#FEE2E2" }]}>
+                        <Text style={[styles.chipText, { color: isDark ? "#FCA5A5" : "#DC2626" }]}>🔥 Urgent</Text>
+                      </View>
+                    )}
+                    {j.boost && (
+                      <View style={[styles.chip, { backgroundColor: isDark ? "rgba(245,158,11,0.2)" : "#FEF3C7" }]}>
+                        <Text style={[styles.chipText, { color: isDark ? "#FCD34D" : "#D97706" }]}>🚀 Boosted</Text>
+                      </View>
+                    )}
+                    <View style={[styles.chip, { backgroundColor: isDark ? "rgba(13,148,136,0.2)" : "#CCFBF1" }]}>
+                      <Text style={[styles.chipText, { color: isDark ? primary : "#0F766E" }]}>{j.status}</Text>
+                    </View>
                   </View>
                   <Text style={{ color: sub, fontSize: 10 }}>{j.postedAt}</Text>
                 </View>
@@ -142,7 +160,13 @@ export default function ParentJobsScreen() {
               </TouchableOpacity>
             ))}
             {jobs.length === 0 && (
-              <Text style={{ color: sub, textAlign: "center", marginTop: 40 }}>No jobs yet. Post your first job!</Text>
+              <View style={styles.emptyBox}>
+                <Text style={{ fontSize: 32 }}>💼</Text>
+                <Text style={[styles.emptyTitle, { color: text }]}>No jobs yet</Text>
+                <Text style={{ color: sub, fontSize: 12, textAlign: "center", marginTop: 4 }}>
+                  Post your first job to start receiving applications.
+                </Text>
+              </View>
             )}
           </>
         )}
@@ -150,10 +174,16 @@ export default function ParentJobsScreen() {
         {tab === 1 && (
           <>
             {apps.length === 0 && (
-              <Text style={{ color: sub, textAlign: "center", marginTop: 40 }}>No applications yet.</Text>
+              <View style={styles.emptyBox}>
+                <Text style={{ fontSize: 32 }}>📨</Text>
+                <Text style={[styles.emptyTitle, { color: text }]}>No applications yet</Text>
+                <Text style={{ color: sub, fontSize: 12, textAlign: "center", marginTop: 4 }}>
+                  Applications will appear here once tutors apply to your jobs.
+                </Text>
+              </View>
             )}
             {apps.map((a) => (
-              <View key={a.id} style={[styles.card, { backgroundColor: card }]}>
+              <View key={a.id} style={[styles.card, { backgroundColor: card, borderColor: border }]}>
                 <View style={styles.rowBetween}>
                   <Text style={[styles.jobTitle, { color: text }]}>{a.applicant.fullName}</Text>
                   <Text style={{ color: primary, fontSize: 11, fontWeight: "700" }}>{a.status}</Text>
@@ -165,7 +195,13 @@ export default function ParentJobsScreen() {
         )}
 
         {tab === 2 && (
-          <Text style={{ color: sub, textAlign: "center", marginTop: 40 }}>No hired tutors yet</Text>
+          <View style={styles.emptyBox}>
+            <Text style={{ fontSize: 32 }}>🤝</Text>
+            <Text style={[styles.emptyTitle, { color: text }]}>No hired tutors yet</Text>
+            <Text style={{ color: sub, fontSize: 12, textAlign: "center", marginTop: 4 }}>
+              When you hire a tutor, they will appear here.
+            </Text>
+          </View>
         )}
       </ScrollView>
     </SafeAreaView>
@@ -180,19 +216,23 @@ const styles = StyleSheet.create({
   tabBtn: { flex: 1, alignItems: "center", paddingBottom: 10 },
   tabLine: { height: 2, width: 28, borderRadius: 2, marginTop: 6 },
   dashedBtn: {
-    borderWidth: 2, borderStyle: "dashed", borderRadius: 16,
-    paddingVertical: 14, alignItems: "center",
+    borderWidth: 2,
+    borderStyle: "dashed",
+    borderRadius: 16,
+    paddingVertical: 14,
+    alignItems: "center",
   },
-  card: { borderRadius: 16, padding: 14 },
+  card: { borderRadius: 16, borderWidth: 1, padding: 14 },
   rowBetween: { flexDirection: "row", justifyContent: "space-between", alignItems: "flex-start" },
-  badgeRow: { flexDirection: "row", flexWrap: "wrap", gap: 4 },
-  urgent: { fontSize: 10, backgroundColor: "#FEE2E2", color: "#DC2626", paddingHorizontal: 6, paddingVertical: 2, borderRadius: 99, overflow: "hidden", fontWeight: "700" },
-  boost: { fontSize: 10, backgroundColor: "#FEF3C7", color: "#D97706", paddingHorizontal: 6, paddingVertical: 2, borderRadius: 99, overflow: "hidden", fontWeight: "700" },
-  status: { fontSize: 10, fontWeight: "700" },
+  badgeRow: { flexDirection: "row", flexWrap: "wrap", gap: 6 },
+  chip: { paddingHorizontal: 10, paddingVertical: 3, borderRadius: 999 },
+  chipText: { fontSize: 10, fontWeight: "700" },
   jobTitle: { fontSize: 13, fontWeight: "800", marginTop: 6 },
   btnRow: { flexDirection: "row", gap: 8, marginTop: 10 },
   primaryBtn: { flex: 1, paddingVertical: 10, borderRadius: 10, alignItems: "center" },
   outlineBtn: { flex: 1, paddingVertical: 10, borderRadius: 10, alignItems: "center", borderWidth: 1 },
+  emptyBox: { alignItems: "center", paddingVertical: 40, gap: 8 },
+  emptyTitle: { fontSize: 15, fontWeight: "700", marginTop: 8 },
   retry: { paddingVertical: 12, paddingHorizontal: 24, borderRadius: 12, alignItems: "center" },
   retryText: { color: "#fff", fontWeight: "800", fontSize: 13 },
 });

@@ -70,9 +70,9 @@ export default function TeacherTabsLayout() {
       <Tabs.Screen
         name="messages"
         options={{
-          title: "Earnings",
+          title: "Messages",
           tabBarIcon: ({ color, size }) => (
-            <Ionicons name="wallet" size={size} color={color} />
+            <Ionicons name="chatbubble" size={size} color={color} />
           ),
         }}
       />
