@@ -20,6 +20,14 @@ type Job = {
   requirements: string[];
 };
 
+type Me = {
+  id: string;
+  fullName: string;
+  teacherProfile: {
+    connectsBalance: number;
+  } | null;
+};
+
 export default function JobDetailApplyScreen() {
   const { jobId } = useLocalSearchParams<{ jobId: string }>();
   const { isDark } = useTheme();
@@ -28,9 +36,8 @@ export default function JobDetailApplyScreen() {
   const [error, setError] = useState("");
   const [job, setJob] = useState<Job | null>(null);
   const [applied, setApplied] = useState(false);
-  const [cover, setCover] = useState(
-    "Hello! I'm an MSc Mathematics graduate with 7 years of tutoring experience. Fayda ID verified and degree certified."
-  );
+  const [cover, setCover] = useState("");
+  const [connects, setConnects] = useState<number | null>(null);
 
   useEffect(() => {
     if (!jobId) return;
@@ -52,6 +59,19 @@ export default function JobDetailApplyScreen() {
     return () => { cancelled = true; };
   }, [jobId]);
 
+  useEffect(() => {
+    let cancelled = false;
+    apiRequest<Me>(paths.usersMe)
+      .then((data) => {
+        if (!cancelled && data?.teacherProfile?.connectsBalance != null) {
+          setConnects(data.teacherProfile.connectsBalance);
+        }
+      })
+      .catch(() => {});
+
+    return () => { cancelled = true; };
+  }, []);
+
   const onApply = async () => {
     try {
       await apiRequest(paths.jobApply(jobId), {
@@ -59,7 +79,7 @@ export default function JobDetailApplyScreen() {
         body: JSON.stringify({ coverNote: cover }),
       });
       setApplied(true);
-      Alert.alert("Applied", "2 Connects used.");
+      Alert.alert("Applied", "Your application has been submitted.");
     } catch (err: any) {
       Alert.alert("Error", err.message || "Failed to apply");
     }
@@ -69,7 +89,7 @@ export default function JobDetailApplyScreen() {
   const card = isDark ? "#112240" : "#FFFFFF";
   const text = isDark ? "#F0FAFA" : "#0D2B2A";
   const sub = isDark ? "#94A3B8" : "#64748B";
-  const primary = "#0D9488";
+  const primary = "#2563EB";
   const border = isDark ? "#1E3A5F" : "#E2E8F0";
 
   if (loading) {
@@ -109,11 +129,11 @@ export default function JobDetailApplyScreen() {
         <TouchableOpacity onPress={() => router.back()}><Text style={{ color: sub }}>←</Text></TouchableOpacity>
         <Text style={{ color: text, fontSize: 16, fontWeight: "800", flex: 1 }}>Job Detail</Text>
         {job.urgency === "Urgent" && (
-          <Text style={{ fontSize: 10, backgroundColor: "#FEE2E2", color: "#DC2626", paddingHorizontal: 8, borderRadius: 99, overflow: "hidden", fontWeight: "700" }}>🔥 Urgent</Text>
+          <Text style={{ fontSize: 10, backgroundColor: isDark ? "#7F1D1D" : "#FEE2E2", color: isDark ? "#FCA5A5" : "#DC2626", paddingHorizontal: 8, borderRadius: 99, overflow: "hidden", fontWeight: "700" }}>🔥 Urgent</Text>
         )}
       </View>
       <ScrollView contentContainerStyle={{ padding: 16, gap: 12, paddingBottom: 100 }}>
-        <View style={{ backgroundColor: card, borderRadius: 16, padding: 16 }}>
+        <View style={{ backgroundColor: card, borderRadius: 16, padding: 16, borderWidth: 1, borderColor: border }}>
           <Text style={{ color: text, fontSize: 17, fontWeight: "900" }}>{job.title}</Text>
           <Text style={{ color: sub, fontSize: 12, marginTop: 4 }}>📍 {job.loc} · Job #{job.id}</Text>
           <View style={{ flexDirection: "row", flexWrap: "wrap", gap: 6, marginTop: 10 }}>
@@ -126,26 +146,30 @@ export default function JobDetailApplyScreen() {
           </Text>
         </View>
 
-        <View style={{ backgroundColor: isDark ? "rgba(245,158,11,0.15)" : "#FFFBEB", borderRadius: 16, padding: 14 }}>
-          <Text style={{ color: "#D97706", fontWeight: "800" }}>🔗 Apply with Connects</Text>
-          <Text style={{ color: sub, fontSize: 12, marginTop: 2 }}>Costs 2 Connects · You have 24</Text>
-        </View>
+        {connects != null && (
+          <View style={{ backgroundColor: isDark ? "rgba(37,99,235,0.15)" : "#EFF6FF", borderRadius: 16, padding: 14, borderWidth: 1, borderColor: isDark ? "#1E3A8A" : "#BFDBFE" }}>
+            <Text style={{ color: primary, fontWeight: "800" }}>🔗 Your Connects</Text>
+            <Text style={{ color: sub, fontSize: 12, marginTop: 2 }}>Available balance: {connects}</Text>
+          </View>
+        )}
 
         {!applied ? (
-          <View style={{ backgroundColor: card, borderRadius: 16, padding: 14 }}>
+          <View style={{ backgroundColor: card, borderRadius: 16, padding: 14, borderWidth: 1, borderColor: border }}>
             <Text style={{ color: sub, fontSize: 10, fontWeight: "800", marginBottom: 8 }}>YOUR APPLICATION</Text>
             <TextInput
               value={cover}
               onChangeText={setCover}
               multiline
+              placeholder="Write a short cover note..."
+              placeholderTextColor={sub}
               style={{ color: text, minHeight: 100, textAlignVertical: "top", fontSize: 13 }}
             />
           </View>
         ) : (
-          <View style={{ backgroundColor: isDark ? "rgba(16,185,129,0.15)" : "#ECFDF5", borderRadius: 16, padding: 20, alignItems: "center" }}>
+          <View style={{ backgroundColor: isDark ? "rgba(16,185,129,0.15)" : "#ECFDF5", borderRadius: 16, padding: 20, alignItems: "center", borderWidth: 1, borderColor: isDark ? "#064E3B" : "#A7F3D0" }}>
             <Text style={{ fontSize: 28 }}>✓</Text>
             <Text style={{ color: "#059669", fontWeight: "800", marginTop: 6 }}>Application Submitted!</Text>
-            <Text style={{ color: sub, fontSize: 12 }}>2 Connects used · 22 remaining</Text>
+            <Text style={{ color: sub, fontSize: 12 }}>We will review your application shortly.</Text>
           </View>
         )}
       </ScrollView>
@@ -155,7 +179,7 @@ export default function JobDetailApplyScreen() {
             style={{ backgroundColor: primary, borderRadius: 14, paddingVertical: 16, alignItems: "center" }}
             onPress={onApply}
           >
-            <Text style={{ color: "#fff", fontWeight: "800" }}>Apply Now — Use 2 Connects</Text>
+            <Text style={{ color: "#fff", fontWeight: "800" }}>Apply Now</Text>
           </TouchableOpacity>
         </View>
       )}

@@ -20,6 +20,14 @@ type Job = {
   requirements: string[];
 };
 
+type Me = {
+  id: string;
+  fullName: string;
+  teacherProfile: {
+    connectsBalance: number;
+  } | null;
+};
+
 export default function AvailableJobsScreen() {
   const { isDark } = useTheme();
   const router = useRouter();
@@ -28,13 +36,14 @@ export default function AvailableJobsScreen() {
   const [jobs, setJobs] = useState<Job[]>([]);
   const [selected, setSelected] = useState(0);
   const [filter, setFilter] = useState(0);
+  const [connects, setConnects] = useState<number | null>(null);
   const filters = ["All", "Math", "Physics", "Chemistry", "Near Me"];
 
   const bg = isDark ? "#0A1628" : "#F8FAFC";
   const card = isDark ? "#112240" : "#FFFFFF";
   const text = isDark ? "#F0FAFA" : "#0D2B2A";
   const sub = isDark ? "#94A3B8" : "#64748B";
-  const primary = "#0D9488";
+  const primary = "#2563EB";
   const border = isDark ? "#1E3A5F" : "#E2E8F0";
 
   useEffect(() => {
@@ -52,6 +61,19 @@ export default function AvailableJobsScreen() {
       .finally(() => {
         if (!cancelled) setLoading(false);
       });
+
+    return () => { cancelled = true; };
+  }, []);
+
+  useEffect(() => {
+    let cancelled = false;
+    apiRequest<Me>(paths.usersMe)
+      .then((data) => {
+        if (!cancelled && data?.teacherProfile?.connectsBalance != null) {
+          setConnects(data.teacherProfile.connectsBalance);
+        }
+      })
+      .catch(() => {});
 
     return () => { cancelled = true; };
   }, []);
@@ -102,7 +124,11 @@ export default function AvailableJobsScreen() {
       <View style={{ padding: 14, borderBottomWidth: 1, borderBottomColor: border }}>
         <View style={{ flexDirection: "row", justifyContent: "space-between", marginBottom: 10 }}>
           <Text style={{ color: text, fontSize: 18, fontWeight: "800" }}>Available Jobs</Text>
-          <Text style={{ color: "#D97706", fontWeight: "800", fontSize: 12 }}>🔗 24 Connects</Text>
+          {connects != null && (
+            <Text style={{ color: "#D97706", fontWeight: "800", fontSize: 12 }}>
+              🔗 {connects} Connects
+            </Text>
+          )}
         </View>
         <View style={{ backgroundColor: isDark ? "#112240" : "#F1F5F9", borderRadius: 12, flexDirection: "row", alignItems: "center", paddingHorizontal: 12, paddingVertical: 10, gap: 8 }}>
           <Text>🔍</Text>
@@ -124,7 +150,7 @@ export default function AvailableJobsScreen() {
         {jobs.map((j, i) => (
           <TouchableOpacity
             key={j.id}
-            style={{ backgroundColor: card, borderRadius: 16, padding: 14 }}
+            style={{ backgroundColor: card, borderRadius: 16, padding: 14, borderWidth: 1, borderColor: border }}
             onPress={() => {
               setSelected(i);
               router.push(`/(teacher)/apply/${j.id}`);
@@ -132,7 +158,11 @@ export default function AvailableJobsScreen() {
           >
             <View style={{ flexDirection: "row", justifyContent: "space-between" }}>
               <View style={{ flexDirection: "row", gap: 4 }}>
-                {j.urgency === "Urgent" && <Text style={{ fontSize: 10, backgroundColor: "#FEE2E2", color: "#DC2626", paddingHorizontal: 6, borderRadius: 99, overflow: "hidden", fontWeight: "700" }}>🔥 Urgent</Text>}
+                {j.urgency === "Urgent" && (
+                  <Text style={{ fontSize: 10, backgroundColor: isDark ? "#7F1D1D" : "#FEE2E2", color: isDark ? "#FCA5A5" : "#DC2626", paddingHorizontal: 6, borderRadius: 99, overflow: "hidden", fontWeight: "700" }}>
+                    🔥 Urgent
+                  </Text>
+                )}
               </View>
               <Text style={{ color: sub, fontSize: 10 }}>📍 {j.loc}</Text>
             </View>

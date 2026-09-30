@@ -72,16 +72,6 @@ export default function EarningsScreen() {
       .catch(() => {});
   }, []);
 
-  const WEEK = useMemo(() => {
-    if (!earnings?.payouts?.length) return [30, 45, 40, 60, 55, 70, 65];
-    const buckets = Array(7).fill(0);
-    earnings.payouts.forEach((p, i) => {
-      const v = parseInt(String(p.amount).replace(/[^0-9]/g, ""), 10) || 0;
-      buckets[i % 7] = Math.max(buckets[i % 7], v / 100);
-    });
-    return buckets.map((v) => Math.min(100, Math.max(20, v)));
-  }, [earnings]);
-
   const available = earnings ? `${earnings.pendingPayout.toLocaleString()} ETB` : "0 ETB";
   const monthEarned = earnings ? `${earnings.totalEarned.toLocaleString()} ETB` : "0 ETB";
   const payouts: Payout[] = earnings?.payouts?.length ? earnings.payouts : [];
@@ -257,67 +247,6 @@ export default function EarningsScreen() {
         </View>
 
         <View style={[styles.card, { backgroundColor: card, borderColor: border }]}>
-          <Text style={[styles.section, { color: sub }]}>JUNE 2025</Text>
-          <View style={styles.chartRow}>
-            {WEEK.map((v, i) => (
-              <View key={i} style={styles.barCol}>
-                <View
-                  style={[
-                    styles.bar,
-                    {
-                      height: (v / 100) * 56,
-                      backgroundColor: i === 6 ? primary : isDark ? "#1E3A5F" : "#99F6E4",
-                    },
-                  ]}
-                />
-              </View>
-            ))}
-          </View>
-          <View style={styles.statsRow}>
-            {[
-              ["32", "📚", "Sessions"],
-              [monthEarned.replace(" ETB", ""), "💰", "ETB Earned"],
-              ["4.9", "⭐", "Avg Rating"],
-            ].map(([v, icon, l]) => (
-              <View key={l} style={[styles.stat, { backgroundColor: surface }]}>
-                <Text style={{ fontSize: 14 }}>{icon}</Text>
-                <Text style={{ color: primary, fontWeight: "900", fontSize: 13 }}>{v}</Text>
-                <Text style={{ color: sub, fontSize: 9 }}>{l}</Text>
-              </View>
-            ))}
-          </View>
-        </View>
-
-        <View style={[styles.card, { backgroundColor: card, borderColor: border }]}>
-          <Text style={[styles.section, { color: sub }]}>PAYOUT METHODS</Text>
-          {[
-            { icon: "📱", name: "Telebirr", num: "+251 91 *** 4521", def: true },
-            { icon: "🏦", name: "CBE Account", num: "1000 *** *** 4812", def: false },
-          ].map((p) => (
-            <View
-              key={p.name}
-              style={[styles.methodRow, { borderBottomColor: border }]}
-            >
-              <Text style={{ fontSize: 18 }}>{p.icon}</Text>
-              <View style={{ flex: 1 }}>
-                <Text style={{ color: text, fontWeight: "700", fontSize: 12 }}>{p.name}</Text>
-                <Text style={{ color: sub, fontSize: 10 }}>{p.num}</Text>
-              </View>
-              {p.def && (
-                <View style={[styles.pill, { backgroundColor: "#CCFBF1" }]}>
-                  <Text style={{ color: "#0F766E", fontSize: 9, fontWeight: "700" }}>Default</Text>
-                </View>
-              )}
-            </View>
-          ))}
-          <TouchableOpacity onPress={() => router.push("/(teacher)/connects")}>
-            <Text style={{ color: primary, fontWeight: "700", fontSize: 12, marginTop: 8 }}>
-              + Add payout method
-            </Text>
-          </TouchableOpacity>
-        </View>
-
-        <View style={[styles.card, { backgroundColor: card, borderColor: border }]}>
           <Text style={[styles.section, { color: sub }]}>PAYOUT HISTORY</Text>
           {payouts.map((p) => (
             <View key={p.id} style={[styles.methodRow, { borderBottomColor: border }]}>
@@ -392,23 +321,6 @@ const styles = StyleSheet.create({
     letterSpacing: 0.5,
     marginBottom: 10,
   },
-  chartRow: {
-    flexDirection: "row",
-    alignItems: "flex-end",
-    height: 56,
-    gap: 6,
-    marginBottom: 12,
-  },
-  barCol: { flex: 1, justifyContent: "flex-end" },
-  bar: { width: "100%", borderRadius: 4 },
-  statsRow: { flexDirection: "row", gap: 8 },
-  stat: {
-    flex: 1,
-    borderRadius: 12,
-    padding: 10,
-    alignItems: "center",
-    gap: 2,
-  },
   methodRow: {
     flexDirection: "row",
     alignItems: "center",
@@ -417,12 +329,5 @@ const styles = StyleSheet.create({
     borderBottomWidth: 1,
   },
   pill: { paddingHorizontal: 8, paddingVertical: 3, borderRadius: 999 },
-  tx: {
-    borderRadius: 14,
-    padding: 14,
-    borderWidth: 1,
-    flexDirection: "row",
-    alignItems: "center",
-  },
   retryBtn: { paddingVertical: 12, paddingHorizontal: 24, borderRadius: 12, alignItems: "center" },
 });
